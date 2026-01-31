@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEXUS | Compound SOTA</title>
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 950: '#0b0e11', 900: '#151a1e', 800: '#1e2329', 700: '#2b3139', 600: '#474d57' },
+                        trade: { buy: '#0ecb81', sell: '#f6465d', accent: '#fcd535', fire: '#ff9f43' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['Roboto Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0b0e11; color: #eaecef; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .number-font { font-family: 'Roboto Mono', monospace; }
+        
+        .loader { border: 2px solid #1e2329; border-top: 2px solid #fcd535; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0b0e11; }
+        ::-webkit-scrollbar-thumb { background: #2b3139; border-radius: 2px; }
+
+        .flash-green { animation: flashG 0.6s; }
+        .flash-red { animation: flashR 0.6s; }
+        @keyframes flashG { 0% { color: #0ecb81; background-color: rgba(14, 203, 129, 0.2); } 100% { color: inherit; background-color: transparent; } }
+        @keyframes flashR { 0% { color: #f6465d; background-color: rgba(246, 70, 93, 0.2); } 100% { color: inherit; background-color: transparent; } }
+
+        /* Streak Effects */
+        .glow-gold { box-shadow: 0 0 15px rgba(252, 213, 53, 0.2); }
+        .streak-step { position: relative; padding-left: 20px; }
+        .streak-step::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #2b3139; }
+        .streak-step.active::before { background: #fcd535; }
+        .streak-dot { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 50%; background: #1e2329; border: 2px solid #474d57; z-index: 2; }
+        .streak-step.active .streak-dot { background: #fcd535; border-color: #fcd535; box-shadow: 0 0 10px #fcd535; }
+        .streak-step.completed .streak-dot { background: #0ecb81; border-color: #0ecb81; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="h-[100dvh] flex flex-col bg-dark-950 text-white overflow-hidden">
+
+    <!-- 1. HEADER & TICKER -->
+    <header class="shrink-0 bg-dark-900 border-b border-dark-800 flex flex-col z-30">
+        <div class="h-14 flex items-center justify-between px-3">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-layer-group text-trade-accent text-xl"></i>
+                <div class="relative">
+                    <button @click="toggleAssetMenu" class="flex items-center gap-2 font-bold text-lg leading-none hover:text-trade-accent transition">
+                        {{ currentPair.replace('usdt', '').toUpperCase() }}
+                        <span class="text-xs text-gray-500 font-normal">/USDT</span>
+                        <i class="fa-solid fa-caret-down text-xs"></i>
+                    </button>
+                    <div v-if="assetMenuOpen" class="absolute top-full left-0 mt-3 w-48 bg-dark-800 rounded-lg shadow-2xl border border-dark-700 overflow-hidden z-50">
+                        <div v-for="pair in availablePairs" :key="pair" @click="changePair(pair)" class="px-4 py-3 hover:bg-dark-700 cursor-pointer border-b border-dark-700 last:border-0 flex justify-between">
+                            <span class="font-bold">{{ pair.replace('usdt', '').toUpperCase() }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-end">
+                <span class="text-lg number-font font-bold tracking-tight" :class="priceColor">{{ formatPrice(currentPrice) }}</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MAIN LAYOUT -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        
+        <!-- LEFT: CHART -->
+        <main class="relative w-full h-[45vh] lg:h-full lg:flex-1 bg-dark-950 flex flex-col border-b lg:border-b-0 lg:border-r border-dark-800">
+            <div class="absolute top-3 left-3 z-10 flex gap-1 p-1 bg-dark-900 rounded border border-dark-700 shadow-lg">
+                <button v-for="tf in timeframes" :key="tf.val" 
+                        @click="changeTimeframe(tf.val)"
+                        :class="currentTimeframe === tf.val ? 'text-dark-950 bg-trade-accent font-bold' : 'text-gray-400 hover:text-white'"
+                        class="px-2 py-1 text-[10px] rounded transition-colors">
+                    {{ tf.label }}
+                </button>
+                <div class="w-[1px] bg-dark-700 mx-1"></div>
+                <button @click="toggleIndicators" class="px-2 py-1 text-[10px] text-trade-accent font-bold hover:text-white">
+                    <i class="fa-solid fa-chart-line mr-1"></i> Indicators
+                </button>
+            </div>
+
+            <div v-if="isLoading" class="absolute inset-0 z-0 flex items-center justify-center bg-dark-950">
+                <div class="loader"></div>
+            </div>
+            <div id="chart-container" class="w-full h-full"></div>
+        </main>
+
+        <!-- RIGHT: TRADING PANEL -->
+        <aside class="w-full lg:w-[380px] bg-dark-900 flex flex-col shrink-0 relative z-20">
+            
+            <!-- Tabs -->
+            <div class="flex border-b border-dark-800">
+                <button @click="activeTab = 'trade'" :class="activeTab === 'trade' ? 'text-trade-accent border-trade-accent' : 'text-gray-500 border-transparent'" class="flex-1 py-3 text-sm font-bold border-b-2 bg-dark-900 hover:bg-dark-800">Trade</button>
+                <button @click="activeTab = 'compound'" :class="activeTab === 'compound' ? 'text-trade-fire border-trade-fire' : 'text-gray-500 border-transparent'" class="flex-1 py-3 text-sm font-bold border-b-2 bg-dark-900 hover:bg-dark-800"><i class="fa-solid fa-fire mr-1"></i>Compound</button>
+                <button @click="activeTab = 'positions'" :class="activeTab === 'positions' ? 'text-trade-accent border-trade-accent' : 'text-gray-500 border-transparent'" class="flex-1 py-3 text-sm font-bold border-b-2 bg-dark-900 hover:bg-dark-800">Pos ({{ positions.length }})</button>
+            </div>
+
+            <!-- TAB 1: STANDARD TRADE -->
+            <div v-show="activeTab === 'trade'" class="flex flex-col h-full overflow-y-auto">
+                <div class="p-4 space-y-4">
+                    <div class="flex justify-between items-end bg-dark-800 p-3 rounded border border-dark-700">
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase">Total Equity</div>
+                            <div class="text-xl font-bold text-white number-font">${{ formatMoney(equity) }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-400 uppercase">Available</div>
+                            <div class="text-sm text-gray-300 number-font">${{ account ? formatMoney(account.balance) : '0.00' }}</div>
+                        </div>
+                    </div>
+
+                    <div v-if="notification" class="bg-blue-600/20 border border-blue-500 text-blue-100 px-3 py-2 rounded text-xs flex items-center gap-2 animate-pulse">
+                        <i class="fa-solid fa-circle-info"></i> {{ notification }}
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="bg-dark-950 rounded border border-dark-700 p-2 focus-within:border-trade-accent transition-colors">
+                            <label class="text-[10px] text-gray-500 block mb-1">Order Value (USDT)</label>
+                            <div class="flex items-center">
+                                <input type="number" v-model.number="orderAmount" class="bg-transparent w-full text-white font-bold text-lg outline-none number-font" placeholder="0.00">
+                                <span class="text-xs text-gray-500 font-bold">USD</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button v-for="pct in [10, 25, 50, 100]" @click="setAmount(pct)" class="bg-dark-800 text-[10px] py-2 rounded hover:bg-dark-700 text-gray-300 transition">{{ pct }}%</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button @click="executeTrade('buy', false)" class="bg-trade-buy hover:opacity-90 text-white py-4 rounded font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-all">Buy / Long</button>
+                            <button @click="executeTrade('sell', false)" class="bg-trade-sell hover:opacity-90 text-white py-4 rounded font-bold shadow-lg shadow-red-900/20 active:scale-95 transition-all">Sell / Short</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Market Trades -->
+                <div class="flex-1 overflow-hidden flex flex-col border-t border-dark-800">
+                    <div class="px-4 py-2 text-[10px] font-bold text-gray-500 bg-dark-950">Market Trades</div>
+                    <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+                        <div v-for="(t, i) in marketTrades" :key="i" class="flex justify-between text-[11px] number-font opacity-90">
+                            <span :class="t.m ? 'text-trade-sell' : 'text-trade-buy'">{{ formatPrice(t.p) }}</span>
+                            <span class="text-gray-400">{{ parseFloat(t.q).toFixed(4) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: COMPOUND GROWTH (NEW) -->
+            <div v-show="activeTab === 'compound'" class="flex flex-col h-full overflow-y-auto bg-dark-900 relative">
+                
+                <!-- Setup Screen -->
+                <div v-if="!streak.active" class="p-6 flex flex-col items-center justify-center h-full text-center">
+                    <div class="w-16 h-16 rounded-full bg-trade-fire/10 flex items-center justify-center mb-4 text-trade-fire text-3xl glow-gold">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Compound Master</h3>
+                    <p class="text-sm text-gray-400 mb-6 px-4">Start small. Reinvest 100% of profits per step. One loss resets to step 1, but you only lose the initial risk.</p>
+                    
+                    <div class="w-full bg-dark-950 p-4 rounded-lg border border-dark-700 mb-6">
+                        <label class="text-xs text-gray-500 mb-2 block text-left">Initial Risk Amount</label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-trade-fire font-bold">$</span>
+                            <input type="number" v-model.number="streak.initialInput" class="bg-transparent w-full text-white font-bold text-2xl outline-none number-font" placeholder="10">
+                        </div>
+                    </div>
+
+                    <button @click="startStreak" class="w-full bg-gradient-to-r from-orange-500 to-trade-fire text-dark-950 font-bold py-4 rounded-lg shadow-lg hover:brightness-110 transition active:scale-95">
+                        Start Streak
+                    </button>
+                </div>
+
+                <!-- Active Streak Screen -->
+                <div v-else class="flex flex-col h-full">
+                    <!-- Status Header -->
+                    <div class="bg-gradient-to-b from-dark-800 to-dark-900 p-4 border-b border-dark-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold text-trade-fire uppercase tracking-widest">Streak Active <i class="fa-solid fa-fire animate-pulse"></i></span>
+                            <button @click="endStreak" class="text-[10px] text-gray-500 hover:text-white underline">Quit Streak</button>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="text-gray-400 text-xs">Current Pot</div>
+                                <div class="text-3xl font-bold text-white number-font">${{ formatMoney(streak.currentPot) }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-gray-400 text-xs">Actual Risk</div>
+                                <div class="text-sm text-gray-300 number-font">${{ formatMoney(streak.initialRisk) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- The Ladder Visual -->
+                    <div class="flex-1 overflow-y-auto p-4 relative">
+                        <!-- Connecting Line drawn via CSS -->
+                        <div class="space-y-6 ml-2 pt-2">
+                            <!-- Previous Steps (Completed) -->
+                            <div v-for="n in (streak.step - 1)" :key="n" class="streak-step completed pl-8 opacity-50">
+                                <div class="streak-dot"></div>
+                                <div class="text-xs text-trade-buy font-bold">Step {{ n }} Complete</div>
+                            </div>
+
+                            <!-- Current Step (Active) -->
+                            <div class="streak-step active pl-8">
+                                <div class="streak-dot"></div>
+                                <div class="text-trade-accent font-bold text-sm">Step {{ streak.step }} (Current)</div>
+                                <div class="text-xs text-gray-400 mt-1">
+                                    Next Win: <span class="text-white number-font">~${{ formatMoney(streak.currentPot * 1.5) }}</span> (Est)
+                                </div>
+                            </div>
+
+                            <!-- Future Steps -->
+                            <div v-for="n in 3" :key="n + streak.step" class="streak-step pl-8 opacity-30">
+                                <div class="streak-dot"></div>
+                                <div class="text-xs text-gray-500 font-bold">Step {{ streak.step + n }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="p-4 bg-dark-950 border-t border-dark-800 z-10">
+                        <div v-if="hasOpenStreakPos" class="text-center py-4 text-yellow-500 font-bold text-sm animate-pulse">
+                            Trade in Progress...
+                        </div>
+                        <div v-else>
+                            <p class="text-[10px] text-center text-gray-500 mb-2">Betting Full Pot: ${{ formatMoney(streak.currentPot) }}</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button @click="executeTrade('buy', true)" class="bg-trade-buy hover:brightness-110 text-white py-4 rounded font-bold shadow-lg active:scale-95 transition-all">
+                                    Step Up (Buy)
+                                </button>
+                                <button @click="executeTrade('sell', true)" class="bg-trade-sell hover:brightness-110 text-white py-4 rounded font-bold shadow-lg active:scale-95 transition-all">
+                                    Step Up (Sell)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: POSITIONS -->
+            <div v-show="activeTab === 'positions'" class="flex-1 bg-dark-900 flex flex-col overflow-hidden">
+                <div class="overflow-auto flex-1 p-2">
+                    <div v-if="positions.length === 0" class="h-full flex flex-col items-center justify-center text-gray-600 space-y-2">
+                        <i class="fa-solid fa-clipboard-list text-3xl"></i>
+                        <span class="text-xs">No open positions</span>
+                    </div>
+
+                    <div v-for="pos in positions" :key="pos.id" class="bg-dark-950 p-3 mb-2 rounded border border-dark-800 hover:border-dark-600 transition-colors relative overflow-hidden">
+                        <!-- Streak Indicator -->
+                        <div v-if="pos.isStreak" class="absolute right-0 top-0 bg-trade-fire text-dark-950 text-[9px] font-bold px-2 py-0.5 rounded-bl">STREAK</div>
+                        
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <span :class="pos.side === 'buy' ? 'text-trade-buy border-trade-buy' : 'text-trade-sell border-trade-sell'" class="text-[10px] px-1 rounded border uppercase font-bold">{{ pos.side }}</span>
+                                <span class="text-sm font-bold">{{ pos.symbol.toUpperCase() }}</span>
+                            </div>
+                            <span :class="getPnl(pos) >= 0 ? 'text-trade-buy' : 'text-trade-sell'" class="font-bold number-font text-sm">
+                                ${{ getPnl(pos).toFixed(2) }}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 text-[11px] text-gray-500 mb-2">
+                            <div>Entry: <span class="text-gray-300">{{ formatPrice(pos.entryPrice) }}</span></div>
+                            <div class="text-right">Mark: <span class="text-gray-300">{{ formatPrice(currentPrice) }}</span></div>
+                            <div>Size: <span class="text-gray-300">{{ pos.qty.toFixed(4) }}</span></div>
+                            <div class="text-right">ROE: <span :class="getPnl(pos) >= 0 ? 'text-trade-buy' : 'text-trade-sell'">{{ getPnlPercent(pos) }}%</span></div>
+                        </div>
+                        <button @click="closePosition(pos)" class="w-full py-1.5 bg-dark-800 hover:bg-dark-700 text-xs text-gray-300 rounded transition-colors">Close Position</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div v-if="showLogin" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl p-8 w-full max-w-md shadow-2xl text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-trade-accent/10 text-trade-accent mb-6">
+                <i class="fa-solid fa-rocket text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-2">NEXUS Demo</h2>
+            <p class="text-gray-400 text-sm mb-6">Experience real-time simulated trading with a <b>$100,000</b> portfolio.</p>
+            <button @click="createAccount" class="w-full bg-trade-accent hover:bg-yellow-400 text-dark-950 font-bold py-4 rounded-xl transition-all shadow-lg text-lg">
+                Enter Platform
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, onMounted, computed, watch } = Vue;
+
+    createApp({
+        setup() {
+            // UI
+            const activeTab = ref('trade');
+            const assetMenuOpen = ref(false);
+            const isLoading = ref(true);
+            const showLogin = ref(false);
+            const notification = ref('');
+            
+            // Data
+            const availablePairs = ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'dogeusdt', 'xrpusdt'];
+            const currentPair = ref('btcusdt');
+            const currentPrice = ref(0);
+            const prevPrice = ref(0);
+            const timeframes = [
+                { label: '1s', val: '1s' }, { label: '1m', val: '1m' }, { label: '5m', val: '5m' },
+                { label: '15m', val: '15m' }, { label: '1h', val: '1h' }, { label: '4h', val: '4h' }, { label: '12h', val: '12h' }
+            ];
+            const currentTimeframe = ref('15m');
+
+            // Account & Trade
+            const account = ref(null);
+            const orderAmount = ref('');
+            const positions = ref([]);
+            const marketTrades = ref([]);
+            
+            // Streak State
+            const streak = ref({
+                active: false,
+                initialInput: 10,
+                initialRisk: 0,
+                currentPot: 0,
+                step: 1
+            });
+
+            // Internals
+            let ws = null;
+            let chart = null;
+            let candleSeries = null;
+            let volumeSeries = null;
+            let smaSeries = null;
+            let showIndicators = ref(true);
+
+            // Computed
+            const priceColor = computed(() => {
+                if(currentPrice.value > prevPrice.value) return 'text-trade-buy flash-green';
+                if(currentPrice.value < prevPrice.value) return 'text-trade-sell flash-red';
+                return 'text-white';
+            });
+
+            const equity = computed(() => {
+                if(!account.value) return 0;
+                let unrealizedPnL = 0;
+                positions.value.forEach(p => unrealizedPnL += getPnl(p));
+                return account.value.balance + unrealizedPnL;
+            });
+
+            const hasOpenStreakPos = computed(() => {
+                return positions.value.some(p => p.isStreak);
+            });
+
+            // Watchers
+            watch(equity, (newVal) => {
+                if(account.value && newVal < 5) {
+                    notification.value = "Margin Call! Account Reset to $100k";
+                    positions.value = [];
+                    account.value.balance = 100000;
+                    streak.value.active = false; // Kill streak on reset
+                    saveData();
+                    setTimeout(() => { notification.value = ''; }, 5000);
+                }
+            });
+
+            onMounted(() => {
+                const saved = localStorage.getItem('nexus_sota_compound');
+                if(saved) {
+                    const data = JSON.parse(saved);
+                    account.value = data.account;
+                    positions.value = data.positions || [];
+                    if(data.streak) streak.value = data.streak;
+                } else {
+                    showLogin.value = true;
+                }
+                initChart();
+                loadMarketData();
+            });
+
+            // --- STREAK LOGIC ---
+            const startStreak = () => {
+                if(streak.value.initialInput > account.value.balance) {
+                    alert("Insufficient balance for streak risk");
+                    return;
+                }
+                streak.value.initialRisk = streak.value.initialInput;
+                streak.value.currentPot = streak.value.initialInput;
+                streak.value.step = 1;
+                streak.value.active = true;
+                saveData();
+            };
+
+            const endStreak = () => {
+                streak.value.active = false;
+                saveData();
+            };
+
+            // --- TRADING CORE ---
+            const createAccount = () => {
+                account.value = { name: 'Trader', balance: 100000 };
+                positions.value = [];
+                saveData();
+                showLogin.value = false;
+            };
+
+            const setAmount = (pct) => {
+                if(!account.value) return;
+                orderAmount.value = Math.floor(account.value.balance * (pct/100));
+            };
+
+            const executeTrade = (side, isStreakTrade) => {
+                let amount = 0;
+
+                if(isStreakTrade) {
+                    if(!streak.value.active) return;
+                    if(hasOpenStreakPos.value) return alert("Wait for current streak step to finish.");
+                    amount = streak.value.currentPot;
+                } else {
+                    amount = orderAmount.value;
+                }
+
+                if(!amount || amount <= 0) return;
+                if(amount > account.value.balance) {
+                    notification.value = "Insufficient Balance";
+                    return;
+                }
+                
+                account.value.balance -= amount;
+                
+                const qty = amount / currentPrice.value;
+                positions.value.unshift({
+                    id: Date.now(),
+                    symbol: currentPair.value.replace('usdt',''),
+                    side: side,
+                    qty: qty,
+                    entryPrice: currentPrice.value,
+                    collateral: amount,
+                    isStreak: isStreakTrade // Flag tracking
+                });
+                
+                if(!isStreakTrade) orderAmount.value = '';
+                saveData();
+                
+                if(window.innerWidth < 1024) activeTab.value = 'positions';
+            };
+
+            const closePosition = (pos) => {
+                const pnl = getPnl(pos);
+                const totalReturn = pos.collateral + pnl;
+                
+                account.value.balance += totalReturn;
+                
+                // Streak Logic Calculation
+                if(pos.isStreak) {
+                    if(pnl > 0) {
+                        // WIN: Compounding
+                        streak.value.currentPot = totalReturn;
+                        streak.value.step++;
+                        notification.value = `Streak Step ${streak.value.step - 1} WON! Pot grew to $${formatMoney(totalReturn)}`;
+                    } else {
+                        // LOSS: Reset
+                        notification.value = `Streak Lost. You only lost the initial $${streak.value.initialRisk}.`;
+                        streak.value.active = false;
+                    }
+                }
+
+                positions.value = positions.value.filter(p => p.id !== pos.id);
+                saveData();
+            };
+
+            // --- CHART & DATA ---
+            const initChart = () => {
+                const container = document.getElementById('chart-container');
+                chart = LightweightCharts.createChart(container, {
+                    layout: { background: { type: 'solid', color: '#0b0e11' }, textColor: '#6b7280' },
+                    grid: { vertLines: { color: '#151a1e' }, horzLines: { color: '#151a1e' } },
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    timeScale: { timeVisible: true, secondsVisible: true, borderColor: '#1e2329' },
+                    rightPriceScale: { borderColor: '#1e2329' },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                });
+
+                candleSeries = chart.addCandlestickSeries({ upColor: '#0ecb81', downColor: '#f6465d', borderUpColor: '#0ecb81', borderDownColor: '#f6465d', wickUpColor: '#0ecb81', wickDownColor: '#f6465d' });
+                volumeSeries = chart.addHistogramSeries({ color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '' });
+                volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+                smaSeries = chart.addLineSeries({ color: '#fcd535', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+
+                new ResizeObserver(entries => {
+                    if (entries.length === 0 || entries[0].target !== container) return;
+                    const newRect = entries[0].contentRect;
+                    chart.applyOptions({ width: newRect.width, height: newRect.height });
+                }).observe(container);
+            };
+
+            const loadMarketData = async () => {
+                isLoading.value = true;
+                if(ws) ws.close();
+                try {
+                    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentPair.value.toUpperCase()}&interval=${currentTimeframe.value}&limit=500`);
+                    const rawData = await res.json();
+                    const candles = rawData.map(d => ({ time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+                    const volumes = rawData.map(d => ({ time: d[0] / 1000, value: parseFloat(d[5]), color: parseFloat(d[4]) >= parseFloat(d[1]) ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)' }));
+                    candleSeries.setData(candles);
+                    volumeSeries.setData(volumes);
+                    updateSMA(candles);
+                    currentPrice.value = candles[candles.length - 1].close;
+                } catch (e) { console.error(e); }
+                isLoading.value = false;
+                connectWebSocket();
+            };
+
+            const connectWebSocket = () => {
+                ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentPair.value}@kline_${currentTimeframe.value}/${currentPair.value}@aggTrade`);
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.e === 'kline') {
+                        const k = data.k;
+                        const candle = { time: k.t / 1000, open: parseFloat(k.o), high: parseFloat(k.h), low: parseFloat(k.l), close: parseFloat(k.c) };
+                        candleSeries.update(candle);
+                        volumeSeries.update({ time: candle.time, value: parseFloat(k.v), color: candle.close >= candle.open ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)' });
+                        prevPrice.value = currentPrice.value;
+                        currentPrice.value = parseFloat(k.c);
+                    }
+                    if (data.e === 'aggTrade') {
+                        marketTrades.value.unshift(data);
+                        if(marketTrades.value.length > 20) marketTrades.value.pop();
+                    }
+                };
+            };
+
+            const updateSMA = (data) => {
+                if(!showIndicators.value) { smaSeries.setData([]); return; }
+                const smaData = [];
+                const period = 20;
+                for (let i = 0; i < data.length; i++) {
+                    if (i < period) continue;
+                    let sum = 0;
+                    for (let j = 0; j < period; j++) sum += data[i - j].close;
+                    smaData.push({ time: data[i].time, value: sum / period });
+                }
+                smaSeries.setData(smaData);
+            };
+
+            const changePair = (pair) => { currentPair.value = pair; assetMenuOpen.value = false; loadMarketData(); };
+            const changeTimeframe = (tf) => { currentTimeframe.value = tf; loadMarketData(); };
+            const toggleIndicators = () => { showIndicators.value = !showIndicators.value; loadMarketData(); };
+            const toggleAssetMenu = () => { assetMenuOpen.value = !assetMenuOpen.value; };
+            
+            const getPnl = (pos) => { const diff = currentPrice.value - pos.entryPrice; return pos.side === 'buy' ? diff * pos.qty : -diff * pos.qty; };
+            const getPnlPercent = (pos) => ((getPnl(pos) / pos.collateral) * 100).toFixed(2);
+            const formatMoney = (val) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const formatPrice = (val) => val < 10 ? val.toFixed(4) : val.toFixed(2);
+            
+            const saveData = () => localStorage.setItem('nexus_sota_compound', JSON.stringify({ account: account.value, positions: positions.value, streak: streak.value }));
+
+            return {
+                activeTab, assetMenuOpen, availablePairs, currentPair, currentPrice, priceColor, timeframes, currentTimeframe, isLoading,
+                account, showLogin, notification, orderAmount, positions, marketTrades, equity, streak, hasOpenStreakPos,
+                toggleAssetMenu, changePair, changeTimeframe, toggleIndicators, createAccount, setAmount, 
+                startStreak, endStreak, executeTrade, closePosition,
+                formatMoney, formatPrice, getPnl, getPnlPercent
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
