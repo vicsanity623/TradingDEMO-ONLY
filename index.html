@@ -6,14 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0f">
 
-<link rel="manifest" href="data:application/json,{
-  &quot;name&quot;:&quot;Geo Horror GO&quot;,
-  &quot;short_name&quot;:&quot;HorrorGO&quot;,
-  &quot;display&quot;:&quot;standalone&quot;,
-  &quot;background_color&quot;:&quot;#000000&quot;,
-  &quot;theme_color&quot;:&quot;#0a0a0f&quot;
-}">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -30,12 +22,9 @@ header{padding:12px;font-size:18px;border-bottom:1px solid #333}
 .monster-card img{width:64px;filter:contrast(1.3) brightness(.8)}
 .hp-bar{height:6px;background:#300;border-radius:4px;overflow:hidden}
 .hp-fill{height:100%;background:red;transition:width .2s}
-.xp-fill{height:4px;background:#44f}
 .log{font-size:13px;white-space:pre-line}
 .spin{animation:spin 1s linear infinite}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-.float{position:absolute;color:#fff;pointer-events:none;animation:float 1s ease-out}
-@keyframes float{to{transform:translateY(-30px);opacity:0}}
 </style>
 </head>
 <body>
@@ -53,113 +42,155 @@ header{padding:12px;font-size:18px;border-bottom:1px solid #333}
 <div class="modal-content" id="rosterList"></div>
 </div>
 
-<div class="modal" id="battleModal">
-<header>Training Battle</header>
-<div class="modal-content">
-<img id="battleSprite" width="120">
-<div class="hp-bar"><div id="battleHP" class="hp-fill"></div></div>
-<div class="hp-bar"><div id="chargeBar" class="hp-fill" style="background:#44f"></div></div>
-<div class="log" id="battleLog"></div>
-<button id="chargeBtn" onclick="chargedAttack()" style="display:none">CHARGED ATTACK</button>
-<button onclick="attack()">ATTACK</button>
-<button onclick="closeAll()">Retreat</button>
-</div>
-</div>
-
 <script>
-const state=JSON.parse(localStorage.getItem('state'))||{
-xp:0,balls:25,coins:0,
-monsters:[],gyms:[],path:{},capacity:20
+/* =========================
+   STATE
+========================= */
+const state = JSON.parse(localStorage.getItem('state')) || {
+    xp: 0,
+    balls: 25,
+    coins: 0,
+    monsters: [],
+    gyms: [],
+    path: {}
 };
 
-let selectedMonster=null,defender=null,charge=0,pathLine=null;
-const map=L.map('map').setView([0,0],18);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let map;
+let pathLine;
 
-navigator.geolocation.watchPosition(p=>{
-const latlng=[p.coords.latitude,p.coords.longitude];
-map.setView(latlng);
-recordPath(latlng);
-if(Math.random()>0.99)spawnSpin(latlng);
-},{enableHighAccuracy:true});
+/* =========================
+   SAFE MAP INIT (ONCE)
+========================= */
+window.addEventListener('load', () => {
+    map = L.map('map', { zoomControl:false }).setView([0,0],18);
 
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 20 }
+    ).addTo(map);
+
+    startGPS();
+    drawGyms();
+    updateHUD();
+});
+
+/* =========================
+   GPS
+========================= */
+function startGPS(){
+    navigator.geolocation.watchPosition(p=>{
+        const latlng=[p.coords.latitude,p.coords.longitude];
+        map.setView(latlng);
+        recordPath(latlng);
+
+        if(Math.random() > 0.99) spawnSpin(latlng);
+    },err=>{
+        alert("GPS required");
+    },{enableHighAccuracy:true});
+}
+
+/* =========================
+   PATH TRACKING
+========================= */
 function recordPath(p){
-const key=p.map(v=>v.toFixed(5)).join(',');
-state.path[key]=(state.path[key]||0)+1;
-if(pathLine)map.removeLayer(pathLine);
-const hue=Math.min(state.path[key]*15,360);
-pathLine=L.polyline(Object.keys(state.path).map(k=>k.split(',').map(Number)),
-{color:`hsl(${hue},80%,50%)`,weight:6}).addTo(map);
-save();
+    const key=p.map(v=>v.toFixed(5)).join(',');
+    state.path[key]=(state.path[key]||0)+1;
+
+    if(pathLine) map.removeLayer(pathLine);
+
+    const points = Object.keys(state.path).map(k=>k.split(',').map(Number));
+    const hue = Math.min(state.path[key]*15,360);
+
+    pathLine = L.polyline(points,{
+        color:`hsl(${hue},80%,50%)`,
+        weight:6
+    }).addTo(map);
+
+    save();
 }
 
+/* =========================
+   SPIN STOPS
+========================= */
 function spawnSpin(p){
-const m=L.marker(p,{icon:L.divIcon({html:'🌀',className:'spin'})}).addTo(map);
-m.on('click',()=>{
-const drop=Math.random();
-if(drop<.5)state.balls++;
-else state.coins+=10;
-map.removeLayer(m);
-save();
-});
+    const m = L.marker(p,{
+        icon:L.divIcon({html:'🌀',className:'spin'})
+    }).addTo(map);
+
+    m.on('click',()=>{
+        Math.random()<0.5 ? state.balls++ : state.coins+=10;
+        map.removeLayer(m);
+        save();
+    });
 }
 
+/* =========================
+   GYMS
+========================= */
+function createGym(){
+    if(state.gyms.length>=3) return;
+    navigator.geolocation.getCurrentPosition(p=>{
+        state.gyms.push({
+            lat:p.coords.latitude,
+            lng:p.coords.longitude
+        });
+        drawGyms();
+        save();
+    });
+}
+
+function drawGyms(){
+    state.gyms.forEach(g=>{
+        L.circle([g.lat,g.lng],{
+            radius:25,
+            color:'red',
+            fillOpacity:0.3
+        }).addTo(map);
+    });
+}
+
+/* =========================
+   ROSTER
+========================= */
 function openRoster(){
-const r=document.getElementById('rosterList');r.innerHTML='';
-state.monsters.forEach(m=>{
-const d=document.createElement('div');d.className='monster-card';
-d.innerHTML=`<img src="${sprite(m.id)}">
-<div>${m.name} (${m.rarity})<br>
-Lv ${m.level}<br>
-<div class="hp-bar"><div class="hp-fill" style="width:${m.hp/m.maxHp*100}%"></div></div></div>`;
-d.onclick=()=>selectedMonster=m;
-r.appendChild(d);
-});
-show('rosterModal');
+    const list=document.getElementById('rosterList');
+    list.innerHTML='';
+    state.monsters.forEach(m=>{
+        const d=document.createElement('div');
+        d.className='monster-card';
+        d.innerHTML=`
+        <img src="${sprite(m.id)}">
+        <div>
+        <b>${m.name||'Feral Beast'}</b><br>
+        HP ${m.hp||100}/${m.maxHp||100}
+        </div>`;
+        list.appendChild(d);
+    });
+    show('rosterModal');
 }
 
-function sprite(id){return`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
-
-function attack(){
-if(!selectedMonster||!defender)return;
-const dmg=Math.max(1,selectedMonster.atk-defender.def);
-defender.hp-=dmg;charge+=10;
-log(`Hit ${dmg}`);
-updateBattle();
-if(charge>=100)document.getElementById('chargeBtn').style.display='block';
-if(defender.hp<=0)winBattle();
+function sprite(id){
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 }
 
-function chargedAttack(){
-const dmg=(selectedMonster.atk+selectedMonster.def)*2;
-defender.hp-=dmg;charge=0;
-log(`CHARGED ${dmg}!`);
-document.getElementById('chargeBtn').style.display='none';
-updateBattle();
-if(defender.hp<=0)winBattle();
+/* =========================
+   UI
+========================= */
+function show(id){
+    document.getElementById(id).classList.add('active');
 }
-
-function updateBattle(){
-document.getElementById('battleHP').style.width=Math.max(0,defender.hp/defender.maxHp*100)+'%';
-document.getElementById('chargeBar').style.width=charge+'%';
+function closeAll(){
+    document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'));
 }
-
-function winBattle(){
-selectedMonster.xp+=30;
-if(selectedMonster.xp>=50){selectedMonster.level++;selectedMonster.xp=0;selectedMonster.maxHp+=20;selectedMonster.atk+=5;}
-log('Defeated!');
-save();
+function updateHUD(){
+    document.getElementById('status').textContent =
+        `XP:${state.xp} Balls:${state.balls} Coins:${state.coins}`;
 }
-
-function log(t){
-document.getElementById('battleLog').textContent+=t+'\n';
+function save(){
+    localStorage.setItem('state',JSON.stringify(state));
+    updateHUD();
 }
-
-function show(id){document.getElementById(id).classList.add('active')}
-function closeAll(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'))}
-function save(){localStorage.setItem('state',JSON.stringify(state));
-document.getElementById('status').textContent=`XP:${state.xp} Balls:${state.balls} Coins:${state.coins}`}
-save();
 </script>
+
 </body>
 </html>
