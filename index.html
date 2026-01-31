@@ -4,261 +4,162 @@
 <meta charset="UTF-8">
 <title>Geo Horror GO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0b0b0f">
+<meta name="theme-color" content="#0a0a0f">
 
-<!-- Leaflet (lightweight, mobile-friendly) -->
+<link rel="manifest" href="data:application/json,{
+  &quot;name&quot;:&quot;Geo Horror GO&quot;,
+  &quot;short_name&quot;:&quot;HorrorGO&quot;,
+  &quot;display&quot;:&quot;standalone&quot;,
+  &quot;background_color&quot;:&quot;#000000&quot;,
+  &quot;theme_color&quot;:&quot;#0a0a0f&quot;
+}">
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: #000;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    touch-action: manipulation;
-}
-
-#map {
-    width: 100%;
-    height: 100%;
-}
-
-/* Horror overlay */
-.leaflet-container {
-    filter: saturate(0.6) contrast(1.2) brightness(0.9);
-}
-
-.horror-sprite {
-    filter: grayscale(0.3) contrast(1.4) brightness(0.8);
-    position: relative;
-}
-.horror-sprite::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at bottom, rgba(180,0,0,0.35), transparent 60%);
-    pointer-events: none;
-}
-
-/* HUD */
-#hud {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(10,10,15,0.9);
-    color: #fff;
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    z-index: 999;
-}
-
-button {
-    background: #1b1b24;
-    color: #fff;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 14px;
-}
-button:active {
-    transform: scale(0.96);
-}
-
-/* Loading screen */
-#loading {
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(circle, #120015, #000);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #f55;
-    font-size: 18px;
-    z-index: 2000;
-}
+html,body{margin:0;height:100%;background:#000;font-family:system-ui;overflow:hidden}
+#map{height:100%}
+.hud{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.95);display:flex;justify-content:space-between;padding:10px;z-index:1000}
+button{background:#1c1c28;border:1px solid #333;color:#fff;border-radius:12px;padding:10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;color:#fff;z-index:2000}
+.modal.active{display:flex}
+header{padding:12px;font-size:18px;border-bottom:1px solid #333}
+.modal-content{flex:1;overflow:auto;padding:12px}
+.monster-card{display:flex;gap:12px;background:#141420;padding:10px;border-radius:12px;margin-bottom:10px}
+.monster-card img{width:64px;filter:contrast(1.3) brightness(.8)}
+.hp-bar{height:6px;background:#300;border-radius:4px;overflow:hidden}
+.hp-fill{height:100%;background:red;transition:width .2s}
+.xp-fill{height:4px;background:#44f}
+.log{font-size:13px;white-space:pre-line}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.float{position:absolute;color:#fff;pointer-events:none;animation:float 1s ease-out}
+@keyframes float{to{transform:translateY(-30px);opacity:0}}
 </style>
 </head>
 <body>
 
-<div id="loading">Loading corrupted creatures…</div>
 <div id="map"></div>
 
-<div id="hud">
-    <button onclick="createGym()">Create GYM</button>
-    <div id="status">XP: 0 | Coins: 0</div>
-    <button onclick="openInventory()">Inventory</button>
+<div class="hud">
+<button onclick="createGym()">Create GYM</button>
+<div id="status"></div>
+<button onclick="openRoster()">Inventory</button>
+</div>
+
+<div class="modal" id="rosterModal">
+<header>Collection <button onclick="closeAll()">Close</button></header>
+<div class="modal-content" id="rosterList"></div>
+</div>
+
+<div class="modal" id="battleModal">
+<header>Training Battle</header>
+<div class="modal-content">
+<img id="battleSprite" width="120">
+<div class="hp-bar"><div id="battleHP" class="hp-fill"></div></div>
+<div class="hp-bar"><div id="chargeBar" class="hp-fill" style="background:#44f"></div></div>
+<div class="log" id="battleLog"></div>
+<button id="chargeBtn" onclick="chargedAttack()" style="display:none">CHARGED ATTACK</button>
+<button onclick="attack()">ATTACK</button>
+<button onclick="closeAll()">Retreat</button>
+</div>
 </div>
 
 <script>
-/* ============================
-   CORE GAME STATE
-============================ */
-const state = {
-    xp: 0,
-    coins: 0,
-    path: [],
-    gyms: JSON.parse(localStorage.getItem('gyms') || '[]'),
-    monsters: [],
-    items: {},
-    joinedAt: Date.now()
+const state=JSON.parse(localStorage.getItem('state'))||{
+xp:0,balls:25,coins:0,
+monsters:[],gyms:[],path:{},capacity:20
 };
 
-/* ============================
-   MAP INIT
-============================ */
-const map = L.map('map', {
-    zoomControl: false,
-    attributionControl: false
-}).setView([0, 0], 18);
+let selectedMonster=null,defender=null,charge=0,pathLine=null;
+const map=L.map('map').setView([0,0],18);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    { maxZoom: 20 }
-).addTo(map);
+navigator.geolocation.watchPosition(p=>{
+const latlng=[p.coords.latitude,p.coords.longitude];
+map.setView(latlng);
+recordPath(latlng);
+if(Math.random()>0.99)spawnSpin(latlng);
+},{enableHighAccuracy:true});
 
-/* ============================
-   PLAYER
-============================ */
-let playerMarker;
-let pathLine;
+function recordPath(p){
+const key=p.map(v=>v.toFixed(5)).join(',');
+state.path[key]=(state.path[key]||0)+1;
+if(pathLine)map.removeLayer(pathLine);
+const hue=Math.min(state.path[key]*15,360);
+pathLine=L.polyline(Object.keys(state.path).map(k=>k.split(',').map(Number)),
+{color:`hsl(${hue},80%,50%)`,weight:6}).addTo(map);
+save();
+}
 
-navigator.geolocation.watchPosition(pos => {
-    const latlng = [pos.coords.latitude, pos.coords.longitude];
-
-    if (!playerMarker) {
-        playerMarker = L.circleMarker(latlng, {
-            radius: 10,
-            color: '#ff4444',
-            fillColor: '#ff0000',
-            fillOpacity: 0.9
-        }).addTo(map);
-        map.setView(latlng, 19);
-    } else {
-        playerMarker.setLatLng(latlng);
-    }
-
-    recordPath(latlng);
-    spawnCheck(latlng);
-}, err => {
-    alert('GPS required to play.');
-}, {
-    enableHighAccuracy: true,
-    maximumAge: 1000
+function spawnSpin(p){
+const m=L.marker(p,{icon:L.divIcon({html:'🌀',className:'spin'})}).addTo(map);
+m.on('click',()=>{
+const drop=Math.random();
+if(drop<.5)state.balls++;
+else state.coins+=10;
+map.removeLayer(m);
+save();
 });
-
-/* ============================
-   PATH RECORDING (COLOR FADING)
-============================ */
-function recordPath(latlng) {
-    state.path.push(latlng);
-
-    if (state.path.length < 2) return;
-
-    if (pathLine) map.removeLayer(pathLine);
-
-    pathLine = L.polyline(state.path, {
-        color: `hsl(${Math.min(state.path.length / 5, 360)}, 80%, 50%)`,
-        weight: 6,
-        opacity: 0.85
-    }).addTo(map);
 }
 
-/* ============================
-   SPIN STOPS
-============================ */
-function spawnSpinStop(latlng) {
-    const marker = L.circleMarker(latlng, {
-        radius: 14,
-        color: '#44f',
-        fillColor: '#2266ff',
-        fillOpacity: 0.9
-    }).addTo(map);
-
-    marker.on('click', () => {
-        const drops = Math.floor(Math.random() * 5) + 1;
-        state.coins += drops;
-        updateHUD();
-        map.removeLayer(marker);
-    });
+function openRoster(){
+const r=document.getElementById('rosterList');r.innerHTML='';
+state.monsters.forEach(m=>{
+const d=document.createElement('div');d.className='monster-card';
+d.innerHTML=`<img src="${sprite(m.id)}">
+<div>${m.name} (${m.rarity})<br>
+Lv ${m.level}<br>
+<div class="hp-bar"><div class="hp-fill" style="width:${m.hp/m.maxHp*100}%"></div></div></div>`;
+d.onclick=()=>selectedMonster=m;
+r.appendChild(d);
+});
+show('rosterModal');
 }
 
-/* ============================
-   MONSTER SPAWNS
-============================ */
-async function spawnCheck(latlng) {
-    if (Math.random() > 0.98) {
-        const id = Math.floor(Math.random() * 151) + 1;
-        const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+function sprite(id){return`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
 
-        const m = L.marker(latlng, {
-            icon: L.icon({
-                iconUrl: sprite,
-                iconSize: [48,48],
-                className: 'horror-sprite'
-            })
-        }).addTo(map);
-
-        m.on('click', () => {
-            state.monsters.push({ id, level: 1 });
-            state.xp += 10;
-            updateHUD();
-            map.removeLayer(m);
-        });
-    }
+function attack(){
+if(!selectedMonster||!defender)return;
+const dmg=Math.max(1,selectedMonster.atk-defender.def);
+defender.hp-=dmg;charge+=10;
+log(`Hit ${dmg}`);
+updateBattle();
+if(charge>=100)document.getElementById('chargeBtn').style.display='block';
+if(defender.hp<=0)winBattle();
 }
 
-/* ============================
-   GYMS (LOCAL PERSISTENCE)
-============================ */
-function createGym() {
-    if (state.gyms.length >= 3 || !playerMarker) return;
-
-    const latlng = playerMarker.getLatLng();
-    const gym = { latlng, defenders: [] };
-
-    state.gyms.push(gym);
-    localStorage.setItem('gyms', JSON.stringify(state.gyms));
-
-    renderGyms();
+function chargedAttack(){
+const dmg=(selectedMonster.atk+selectedMonster.def)*2;
+defender.hp-=dmg;charge=0;
+log(`CHARGED ${dmg}!`);
+document.getElementById('chargeBtn').style.display='none';
+updateBattle();
+if(defender.hp<=0)winBattle();
 }
 
-function renderGyms() {
-    state.gyms.forEach(g => {
-        L.circle(g.latlng, {
-            radius: 25,
-            color: '#f00',
-            fillOpacity: 0.3
-        }).addTo(map);
-    });
-}
-renderGyms();
-
-/* ============================
-   HUD
-============================ */
-function updateHUD() {
-    document.getElementById('status').textContent =
-        `XP: ${state.xp} | Coins: ${state.coins}`;
-}
-updateHUD();
-
-/* ============================
-   INVENTORY
-============================ */
-function openInventory() {
-    alert(`Monsters: ${state.monsters.length}`);
+function updateBattle(){
+document.getElementById('battleHP').style.width=Math.max(0,defender.hp/defender.maxHp*100)+'%';
+document.getElementById('chargeBar').style.width=charge+'%';
 }
 
-/* ============================
-   PRELOAD COMPLETE
-============================ */
-setTimeout(() => {
-    document.getElementById('loading').style.display = 'none';
-}, 1200);
+function winBattle(){
+selectedMonster.xp+=30;
+if(selectedMonster.xp>=50){selectedMonster.level++;selectedMonster.xp=0;selectedMonster.maxHp+=20;selectedMonster.atk+=5;}
+log('Defeated!');
+save();
+}
+
+function log(t){
+document.getElementById('battleLog').textContent+=t+'\n';
+}
+
+function show(id){document.getElementById(id).classList.add('active')}
+function closeAll(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'))}
+function save(){localStorage.setItem('state',JSON.stringify(state));
+document.getElementById('status').textContent=`XP:${state.xp} Balls:${state.balls} Coins:${state.coins}`}
+save();
 </script>
 </body>
 </html>
