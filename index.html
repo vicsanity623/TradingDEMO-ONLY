@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Goku: Saiyan Ascension DOCS Edition</title>
+    <title>Goku: Saiyan Ascension - Fixed Battle</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,19 +13,23 @@
             --bg-dark: #050505;
         }
 
+        * { box-sizing: border-box; }
+
         body {
             margin: 0; padding: 0;
             font-family: 'Orbitron', sans-serif;
             background: var(--bg-dark);
             color: white;
             overflow: hidden;
-            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            display: flex;
+            flex-direction: column;
         }
 
-        /* --- PRE-LOADING SCREEN --- */
+        /* --- PRE-LOADING --- */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; z-index: 1000;
+            background: black; z-index: 2000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .load-title { font-family: 'Bangers'; font-size: 2.5rem; color: var(--dbz-orange); text-align: center; }
@@ -35,7 +39,7 @@
         /* --- NAVIGATION --- */
         nav {
             display: flex; background: #111; border-bottom: 3px solid var(--dbz-orange);
-            height: 60px; z-index: 100; position: relative;
+            height: 60px; min-height: 60px; z-index: 100;
         }
         nav button {
             flex: 1; background: transparent; border: none;
@@ -44,14 +48,15 @@
         nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
         /* --- SCREENS --- */
-        .screen { display: none; height: calc(100vh - 60px); flex-direction: column; padding: 15px; overflow-y: auto; }
+        .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; position: relative; }
         .active-screen { display: flex; }
 
-        /* --- CHARACTER HUB --- */
+        /* --- HUB STYLES --- */
+        #view-char { padding: 15px; overflow-y: auto; }
         .rank-header { text-align: center; font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); }
-        .goku-view { position: relative; height: 280px; display: flex; justify-content: center; align-items: center; }
+        .goku-view { position: relative; height: 250px; display: flex; justify-content: center; align-items: center; }
         .aura { 
-            position: absolute; width: 180px; height: 240px; 
+            position: absolute; width: 180px; height: 220px; 
             background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
             filter: blur(15px); animation: auraPulse 0.8s infinite alternate; 
             display: none; 
@@ -59,58 +64,113 @@
         @keyframes auraPulse { from { transform: scale(1); opacity: 0.4; } to { transform: scale(1.2); opacity: 0.8; } }
         .main-sprite { height: 100%; z-index: 2; filter: drop-shadow(0 0 10px black); }
 
-        /* HUD Bars */
-        .bar-wrap { background: #222; height: 20px; border-radius: 10px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
-        .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
-        .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
-
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(20,20,20,0.8); padding: 12px; border-radius: 10px; border: 1px solid #333; }
-        .train-btn { background: #27ae60; border: none; color: white; padding: 4px 10px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; }
+        .train-btn { background: #27ae60; border: none; color: white; padding: 6px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; }
 
-        /* Inventory */
-        .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background: #000; padding: 8px; border-radius: 8px; height: 90px; overflow-y: auto; }
-        .item { background: #1a1a1a; border: 1px solid #333; height: 40px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #777; }
-        .item.active { border-color: var(--dbz-yellow); background: #222; color: white; }
-
-        /* --- BATTLE SCREEN --- */
+        /* --- BATTLE SCREEN (FIXED) --- */
         #view-battle { 
             background-size: cover; 
             background-position: center; 
-            transition: background-image 1s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .battle-header {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .arena { 
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            position: relative; 
+            z-index: 1; 
+            gap: 20px;
+            padding: 0 10px;
+        }
+
+        .unit { 
+            width: 140px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
             position: relative;
         }
-        #view-battle::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3); z-index: 0;
+        .unit img { 
+            width: 100%; 
+            max-height: 180px; 
+            object-fit: contain; 
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
         }
 
-        .arena { flex: 1; display: flex; justify-content: space-between; align-items: flex-end; padding: 30px 10px; position: relative; z-index: 1; }
-        .unit { width: 45%; text-align: center; }
-        .unit img { width: 100%; max-height: 200px; object-fit: contain; }
-        
-        .beam { position: absolute; height: 60px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); width: 0; left: 60px; top: 50%; box-shadow: 0 0 40px #00d2ff; z-index: 10; border-radius: 30px; }
-        .pop { position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2rem; animation: popUp 0.7s forwards; z-index: 20; text-shadow: 1px 1px black; }
+        .bar-wrap { width: 100%; background: #222; height: 12px; border-radius: 6px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
+        .bar-fill { height: 100%; width: 100%; transition: width 0.3s; }
+        .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
+        .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
+
+        /* BEAM CENTERING */
+        .beam { 
+            position: absolute; 
+            height: 50px; 
+            background: linear-gradient(to bottom, #fff, #00d2ff, #fff); 
+            width: 0; 
+            left: 50%; 
+            top: 55%; 
+            transform: translateY(-50%);
+            box-shadow: 0 0 40px #00d2ff; 
+            z-index: 10; 
+            border-radius: 25px; 
+            pointer-events: none;
+        }
+
+        .pop { 
+            position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2rem; 
+            animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; 
+            pointer-events: none;
+        }
         @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-70px); } }
 
-        #log { background: rgba(0,0,0,0.8); height: 100px; overflow-y: auto; padding: 10px; border-top: 2px solid var(--dbz-orange); font-size: 0.8rem; color: #0f0; position: relative; z-index: 1; }
+        /* LOG VISIBILITY */
+        #log { 
+            background: rgba(0,0,0,0.9); 
+            height: 140px; 
+            min-height: 140px;
+            overflow-y: auto; 
+            padding: 12px; 
+            border-top: 3px solid var(--dbz-orange); 
+            font-size: 0.9rem; 
+            color: #0f0; 
+            z-index: 5;
+            text-shadow: 1px 1px #000;
+        }
+
+        .ready-banner {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Bangers'; font-size: 4rem; color: var(--dbz-yellow);
+            text-shadow: 4px 4px black; z-index: 100; display: none;
+        }
+
     </style>
 </head>
 <body onload="initGame()">
 
-    <!-- STARTUP LOADING SCREEN -->
     <div id="loader">
-        <div class="load-title">SYNCING WITH DRAGON BALL API...</div>
+        <div class="load-title">LOADING KI...</div>
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
-        <div id="load-status" style="font-size: 0.7rem; color: #555;">Connecting to Base URL...</div>
     </div>
+
+    <div id="ready-msg" class="ready-banner">READY?</div>
 
     <nav>
         <button id="tab-char" class="active" onclick="showTab('char')">HUB</button>
         <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
     </nav>
 
-    <!-- CHARACTER TAB -->
+    <!-- HUB -->
     <div id="view-char" class="screen active-screen">
         <div class="rank-header" id="ui-rank">RANK: BASE</div>
         <div class="goku-view">
@@ -118,13 +178,13 @@
             <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
         </div>
 
-        <div style="margin-top: -20px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#aaa;">
+        <div style="margin-top: -10px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem;">
                 <span>HP: <span id="ui-hp-txt">0/0</span></span>
                 <span id="ui-power" style="color:var(--dbz-yellow)">POWER: 0</span>
             </div>
             <div class="bar-wrap"><div id="bar-hp" class="bar-fill hp-f"></div></div>
-            <div style="font-size:0.7rem; margin-top:5px; color:#aaa;">LVL <span id="ui-lvl">1</span> XP</div>
+            <div style="font-size:0.7rem; margin-top:5px;">LVL <span id="ui-lvl">1</span> XP</div>
             <div class="bar-wrap"><div id="bar-xp" class="bar-fill xp-f"></div></div>
         </div>
 
@@ -135,35 +195,35 @@
             </div>
             <div style="text-align:right;">
                 <div style="color:gold; font-family:'Bangers'; font-size:1.4rem;">COINS: <span id="ui-coins">0</span></div>
-                <div style="font-size:0.6rem; color:#666;">Train: 100 Coins</div>
+                <button class="train-btn" style="background:var(--dbz-orange)" onclick="doEquip()">EQUIP GEAR</button>
             </div>
         </div>
-
-        <h4 style="font-family:'Bangers'; color:var(--dbz-orange); margin:10px 0 5px 0;">EQUIPMENT</h4>
-        <div style="display:flex; gap:10px;">
-            <div class="item" id="slot-w" style="flex:1">W: NONE</div>
-            <div class="item" id="slot-a" style="flex:1">A: NONE</div>
-        </div>
-        <div class="inv-grid" id="inv-grid"></div>
-        <button id="ui-equip-btn" class="train-btn" style="width:100%; padding:8px; margin-top:8px; display:none;" onclick="doEquip()">EQUIP SELECTED</button>
+        <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px;"></div>
     </div>
 
-    <!-- BATTLE TAB -->
+    <!-- BATTLE -->
     <div id="view-battle" class="screen">
-        <h2 id="ui-stage-tag" style="text-align:center; font-family:'Bangers'; color:var(--dbz-yellow); margin:0; z-index:1; position:relative;">STAGE 1</h2>
+        <div class="battle-header">
+            <div id="ui-stage-tag" style="font-family:'Bangers'; color:var(--dbz-yellow); font-size:1.5rem;">STAGE 1</div>
+        </div>
+        
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
+            
             <div class="unit" id="p-box">
-                <div class="bar-wrap" style="height:8px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <div class="bar-wrap"><div id="btl-p-hp" class="bar-fill hp-f"></div></div>
                 <img id="btl-p-sprite" src="IMG_0054.png" style="transform: scaleX(-1);">
+                <div style="font-family:'Bangers'; font-size:0.8rem;">GOKU</div>
             </div>
+
             <div class="unit" id="e-box">
-                <div class="bar-wrap" style="height:8px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <div class="bar-wrap"><div id="btl-e-hp" class="bar-fill hp-f"></div></div>
                 <img id="e-img" src="">
-                <div id="e-name" style="font-family:'Bangers'; font-size:0.9rem; margin-top:5px; color:#fff;">...</div>
+                <div id="e-name" style="font-family:'Bangers'; font-size:0.8rem; color:red;">...</div>
             </div>
         </div>
-        <div id="log">Awaiting battle start...</div>
+
+        <div id="log">Awaiting start...</div>
     </div>
 
 <script>
@@ -178,34 +238,20 @@
         bAtk: 30, bDef: 20, bHp: 400, hp: 400,
         inv: [], gear: { w: null, a: null }, selected: -1
     };
-    let battle = { stage: 1, world: 1, active: false, enemy: null, planetIdx: 0 };
+    let battle = { stage: 1, world: 1, active: false, enemy: null };
 
     async function initGame() {
-        const prog = document.getElementById('load-progress');
-        const stat = document.getElementById('load-status');
-
         try {
-            // 1. Fetch Characters (Page 1 - Limit 50 to get a wide variety of enemies)
-            stat.innerText = "Downloading Character Data...";
             const charRes = await fetch(`${API_BASE}/characters?limit=50`);
             const charJson = await charRes.json();
             apiData.characters = charJson.items;
-            prog.style.width = "50%";
-
-            // 2. Fetch Planets (Limit 20 to get all backgrounds)
-            stat.innerText = "Downloading Planet Backgrounds...";
             const planRes = await fetch(`${API_BASE}/planets?limit=20`);
             const planJson = await planRes.json();
             apiData.planets = planJson.items;
-            prog.style.width = "100%";
-
-            setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-                syncUI();
-            }, 800);
+            document.getElementById('loader').style.display = 'none';
+            syncUI();
         } catch (e) {
-            stat.innerText = "Offline Mode Enabled (API Error)";
-            setTimeout(() => document.getElementById('loader').style.display = 'none', 1000);
+            document.getElementById('loader').style.display = 'none';
         }
     }
 
@@ -214,21 +260,19 @@
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         document.getElementById('view-' + t).classList.add('active-screen');
         document.getElementById('tab-' + t).classList.add('active');
-        
         if(t === 'battle') startBattle(); else battle.active = false;
         syncUI();
     }
 
     function syncUI() {
-        const maxHp = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
-        const atk = player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0);
-
-        // TRANSFORMATION LOGIC
         const sprite = (player.rank >= 1) ? GOKU_SSJ : GOKU_BASE;
         document.getElementById('ui-sprite').src = sprite;
         document.getElementById('btl-p-sprite').src = sprite;
         document.getElementById('ui-aura').style.display = (player.rank >= 1) ? "block" : "none";
-
+        
+        const maxHp = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
+        const atk = player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0);
+        
         document.getElementById('ui-rank').innerText = `RANK: ${RANKS[player.rank]}`;
         document.getElementById('ui-lvl').innerText = player.lvl;
         document.getElementById('ui-atk').innerText = atk;
@@ -236,21 +280,17 @@
         document.getElementById('ui-coins').innerText = player.coins;
         document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}/${maxHp}`;
         document.getElementById('ui-power').innerText = `POWER: ${(atk * 25 + maxHp).toLocaleString()}`;
-
         document.getElementById('bar-hp').style.width = (player.hp / maxHp * 100) + "%";
         document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
-
-        // Gear
-        document.getElementById('slot-w').innerText = `W: ${player.gear.w?.n || 'NONE'}`;
-        document.getElementById('slot-a').innerText = `A: ${player.gear.a?.n || 'NONE'}`;
-
+        
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         player.inv.forEach((item, i) => {
             const d = document.createElement('div');
-            d.className = `item ${player.selected === i ? 'active' : ''}`;
+            d.style.cssText = "background:#222; border:1px solid #444; padding:5px; font-size:0.6rem; text-align:center;";
+            if(player.selected === i) d.style.borderColor = "var(--dbz-yellow)";
             d.innerText = item.n;
-            d.onclick = () => { player.selected = i; document.getElementById('ui-equip-btn').style.display = 'block'; syncUI(); };
+            d.onclick = () => { player.selected = i; syncUI(); };
             grid.appendChild(d);
         });
     }
@@ -264,67 +304,66 @@
     }
 
     function doEquip() {
+        if(player.selected === -1) return;
         const item = player.inv[player.selected];
         const old = player.gear[item.type];
         player.gear[item.type] = item;
         player.inv.splice(player.selected, 1);
         if(old) player.inv.push(old);
         player.selected = -1;
-        document.getElementById('ui-equip-btn').style.display = 'none';
         syncUI();
     }
 
-    // --- Battle Core ---
-    function startBattle() {
+    // --- BATTLE ---
+    async function startBattle() {
+        if(battle.active) return;
         battle.active = true;
-        const maxHp = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
-        player.hp = maxHp;
-        updatePlanet();
-        spawnEnemy();
-        loop();
-    }
-
-    function updatePlanet() {
-        // Rotates planet background based on World/Prestige Level
+        const log = document.getElementById('log');
+        log.innerHTML = "Preparing battle...";
+        
+        // Setup Planet & Enemy
         if(apiData.planets.length > 0) {
-            const planet = apiData.planets[battle.world % apiData.planets.length];
-            document.getElementById('view-battle').style.backgroundImage = `url('${planet.image}')`;
+            document.getElementById('view-battle').style.backgroundImage = `url('${apiData.planets[battle.world % apiData.planets.length].image}')`;
         }
+        spawnEnemy();
+        
+        // 2 Second Delay
+        const banner = document.getElementById('ready-msg');
+        banner.style.display = "block";
+        banner.innerText = "READY?";
+        await new Promise(r => setTimeout(r, 1000));
+        banner.innerText = "FIGHT!";
+        await new Promise(r => setTimeout(r, 1000));
+        banner.style.display = "none";
+        
+        log.innerHTML = "Battle Started!";
+        loop();
     }
 
     function spawnEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
-        let dat = { name: "Mystery Warrior", image: "" };
-        
-        if(apiData.characters.length > 0) {
-            dat = apiData.characters[Math.floor(Math.random() * apiData.characters.length)];
-        }
-
+        let dat = apiData.characters[Math.floor(Math.random() * apiData.characters.length)] || {name:"Enemy", image:""};
         battle.enemy = { name: dat.name, hp: 200 * scale, maxHp: 200 * scale, atk: 25 * scale, i: dat.image };
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
         document.getElementById('ui-stage-tag').innerText = `WORLD ${battle.world} - STAGE ${battle.stage}`;
-        refreshBars();
+        updateBars();
     }
 
     async function loop() {
         if(!battle.active) return;
-
-        // Player Turn
+        
+        // Player
         if(Math.random() < 0.2) await special(); else strike('p');
+        if(battle.enemy.hp <= 0) { win(); return; }
 
-        if(battle.enemy.hp <= 0) {
-            win();
-        } else {
-            await new Promise(r => setTimeout(r, 1000));
-            strike('e');
-            if(player.hp <= 0) {
-                alert("DEFEAT! Training required.");
-                showTab('char');
-                return;
-            }
-        }
-        setTimeout(loop, 1400);
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Enemy
+        strike('e');
+        if(player.hp <= 0) { alert("DEFEAT!"); showTab('char'); return; }
+
+        setTimeout(loop, 1200);
     }
 
     function strike(side) {
@@ -332,61 +371,54 @@
         const atkVal = isP ? (player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0)) : battle.enemy.atk;
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
-
-        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.5));
+        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
         target.hp -= dmg;
         pop(dmg, targetId);
-        refreshBars();
+        updateBars();
         
         const el = document.getElementById(isP ? 'p-box' : 'e-box');
-        el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
+        el.style.transform = isP ? 'translateX(20px)' : 'translateX(-20px)';
         setTimeout(() => el.style.transform = 'translateX(0)', 100);
     }
 
     async function special() {
         const beam = document.getElementById('fx-beam');
-        const name = (player.rank >= 1) ? "KAMEHAMEHA!!!" : "KAIOKEN ATTACK!!!";
-        addLog(name);
-        beam.style.width = "400px";
+        const log = document.getElementById('log');
+        const move = (player.rank >= 1) ? "SUPER KAMEHAMEHA!!!" : "KAIOKEN X4!!!";
+        log.innerHTML = `<div style="color:var(--dbz-yellow)">> ${move}</div>` + log.innerHTML;
+        
+        // Beam expands from center outwards to both
+        beam.style.width = "300px";
+        beam.style.left = "calc(50% - 150px)";
+        
         await new Promise(r => setTimeout(r, 600));
         const dmg = (player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0)) * 6;
         battle.enemy.hp -= dmg;
         pop(dmg, 'e-box');
-        refreshBars();
+        updateBars();
         beam.style.width = "0";
     }
 
     function win() {
         const xp = 80 * battle.stage * battle.world;
         player.xp += xp; player.coins += 200;
-        addLog(`Enemy Cleared! +${xp} XP`);
+        document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xp} XP</div>` + document.getElementById('log').innerHTML;
         
-        if(Math.random() < 0.35) {
-            const drops = [{n: "Power Pole", t:'w', v:600}, {n: "Saiyan Plate", t:'a', v:1500}];
-            const d = drops[Math.floor(Math.random()*2)];
-            player.inv.push({n: d.n, type: d.t, val: d.v * battle.world});
-            addLog("LOOT: " + d.n);
+        if(Math.random() < 0.3) {
+            player.inv.push({n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 500 * battle.world});
         }
-
+        
         if(player.xp >= player.nextXp) {
-            player.lvl++; player.xp = 0; player.nextXp = Math.floor(player.nextXp * 1.5);
-            if(player.lvl >= 100) { 
-                player.lvl = 1; player.rank++; 
-                addLog("ASCENSION! POWER LEVEL CRITICAL!"); 
-            }
+            player.lvl++; player.xp = 0; player.nextXp *= 1.5;
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
         battle.stage++;
-        if(battle.stage > 20) { 
-            battle.stage = 1; 
-            battle.world++; 
-            updatePlanet(); // Change background when difficulty resets
-            addLog("NEW WORLD UNLOCKED!");
-        }
-        spawnEnemy();
+        if(battle.stage > 20) { battle.stage = 1; battle.world++; }
+        startBattle();
     }
 
-    function refreshBars() {
+    function updateBars() {
         const m = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
         document.getElementById('btl-p-hp').style.width = (player.hp / m * 100) + "%";
         document.getElementById('btl-e-hp').style.width = (battle.enemy.hp / battle.enemy.maxHp * 100) + "%";
@@ -399,7 +431,6 @@
         setTimeout(() => d.remove(), 700);
     }
 
-    function addLog(m) { const l = document.getElementById('log'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
 </script>
 </body>
 </html>
