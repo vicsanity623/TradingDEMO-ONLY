@@ -3,71 +3,220 @@
 <head>
 <meta charset="UTF-8">
 <title>Geo Horror GO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-html,body{margin:0;height:100%;background:#000;font-family:system-ui;overflow:hidden}
-#map{height:100%}
-.hud{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.95);display:flex;justify-content:space-between;padding:10px;z-index:1000}
-button{background:#1c1c28;border:1px solid #333;color:#fff;border-radius:12px;padding:10px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;flex-direction:column;color:#fff;z-index:2000}
-.modal.active{display:flex}
-header{padding:12px;font-size:18px;border-bottom:1px solid #333}
-.modal-content{flex:1;overflow:auto;padding:12px}
-.monster-card{display:flex;gap:12px;background:#141420;padding:10px;border-radius:12px;margin-bottom:10px}
-.monster-card img{width:64px;filter:contrast(1.3) brightness(.8)}
-.hp-bar{height:6px;background:#300;border-radius:4px;overflow:hidden}
-.hp-fill{height:100%;background:red;transition:width .2s}
-.log{font-size:13px;white-space:pre-line}
-.spin{animation:spin 1s linear infinite}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+/* ================= GAME UI STYLES ================= */
+html,body { margin:0; height:100%; background:#050505; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow:hidden; color:white; }
+
+/* Darken map for "Horror/Night" vibe */
+.leaflet-layer { filter: brightness(0.6) contrast(1.2) hue-rotate(200deg); }
+
+#map { height: 100%; width: 100%; z-index: 1; }
+
+/* TOP HUD (Player Stats) */
+.hud-top {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 10px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+    z-index: 1000;
+    display: flex; align-items: center; gap: 10px;
+    pointer-events: none; /* Let clicks pass through to map */
+}
+
+.player-avatar {
+    width: 60px; height: 60px;
+    background: #222; border: 2px solid #ffd700; border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 10px #ffd700;
+}
+.player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.stats-container { flex: 1; text-shadow: 1px 1px 2px black; }
+.player-name { font-weight: bold; font-size: 16px; color: #fff; }
+.level-badge { background: #ffd700; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
+
+.xp-bar-bg {
+    width: 100%; height: 8px; background: #333; border-radius: 4px; margin-top: 4px; overflow: hidden; border: 1px solid #555;
+}
+.xp-fill {
+    height: 100%; background: linear-gradient(90deg, #00ff88, #00cc6a); width: 0%; transition: width 0.5s;
+}
+
+/* BOTTOM HUD (Controls) */
+.hud-bottom {
+    position: fixed; bottom: 20px; left: 0; right: 0;
+    display: flex; justify-content: space-around; align-items: flex-end;
+    padding: 0 10px; pointer-events: none;
+    z-index: 1000;
+}
+
+.game-btn {
+    pointer-events: auto;
+    background: linear-gradient(145deg, #2a2a35, #1c1c25);
+    border: 1px solid #444; color: #fff;
+    border-radius: 50%; width: 60px; height: 60px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    font-size: 10px; font-weight: bold;
+    transition: transform 0.1s;
+}
+.game-btn:active { transform: scale(0.95); background: #333; }
+.game-btn img { width: 24px; height: 24px; margin-bottom: 2px; filter: invert(1); }
+
+.main-menu-btn {
+    width: 70px; height: 70px; border-color: #ffd700;
+    background: radial-gradient(circle, #e63946 0%, #901010 100%);
+}
+
+/* 3D GYM MARKER CSS */
+.gym-marker-3d { pointer-events: auto; }
+.gym-base {
+    width: 60px; height: 60px;
+    background: radial-gradient(circle, #ff4444 30%, #550000 90%);
+    border-radius: 50%;
+    transform: rotateX(60deg); /* Flatten to look like a disk on map */
+    border: 3px solid #ffaaaa;
+    box-shadow: 0 0 15px #ff0000;
+    position: absolute; bottom: 0; left: -30px;
+    animation: pulseGym 2s infinite;
+}
+.gym-defender {
+    position: absolute; bottom: 15px; left: -30px;
+    width: 60px; height: 60px;
+    z-index: 10;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+    animation: float 3s ease-in-out infinite;
+}
+
+/* PLAYER MAP AVATAR */
+.ash-marker {
+    width: 50px; height: 50px;
+    background-image: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/25.gif'); /* Using Pikachu following Ash logic for now, or trainer */
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    filter: drop-shadow(0 0 5px white);
+}
+
+/* WILD SPAWN */
+.wild-spawn {
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.wild-spawn img {
+    width: 60px; height: 60px;
+    filter: drop-shadow(0 0 10px gold);
+    cursor: pointer;
+}
+
+/* MODALS */
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; flex-direction:column; color:#fff; z-index:2000; backdrop-filter: blur(5px); }
+.modal.active { display:flex; }
+header { padding:15px; font-size:20px; font-weight:bold; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; background:#111; }
+.modal-content { flex:1; overflow:auto; padding:15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.close-btn { background:none; border:none; font-size:24px; color:#fff; }
+
+.monster-card {
+    background: #1c1c28; border: 1px solid #333; border-radius: 8px; padding: 10px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.monster-card img { width: 64px; height: 64px; }
+
+/* ANIMATIONS */
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes pulseGym { 0% { box-shadow: 0 0 10px #ff0000; } 50% { box-shadow: 0 0 25px #ff0000; } 100% { box-shadow: 0 0 10px #ff0000; } }
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 </style>
 </head>
 <body>
 
+<!-- MAP CONTAINER -->
 <div id="map"></div>
 
-<div class="hud">
-<button onclick="createGym()">Create GYM</button>
-<div id="status"></div>
-<button onclick="openRoster()">Inventory</button>
+<!-- TOP HUD -->
+<div class="hud-top">
+    <div class="player-avatar">
+        <!-- Ash Ketchum Generic Sprite -->
+        <img src="https://img.pokemondb.net/sprites/heartgold-soulsilver/normal/pikachu.png" alt="Player">
+    </div>
+    <div class="stats-container">
+        <div><span class="level-badge" id="lvlDisplay">LVL 1</span> <span class="player-name">Ash Ketchum</span></div>
+        <div class="xp-bar-bg"><div class="xp-fill" id="xpFill"></div></div>
+        <div style="font-size:10px; opacity:0.7; margin-top:2px;" id="statusText">XP: 0/100</div>
+    </div>
 </div>
 
+<!-- BOTTOM HUD -->
+<div class="hud-bottom">
+    <button class="game-btn" onclick="openRoster()">
+        <span>🎒</span>
+        Bag
+    </button>
+    
+    <button class="game-btn main-menu-btn" onclick="createGym()">
+        <span style="font-size:24px">🏟️</span>
+        <div style="margin-top:-5px">GYM</div>
+    </button>
+    
+    <button class="game-btn" onclick="alert('Resources: ' + state.balls + ' Balls, ' + state.coins + ' Coins')">
+        <span>🪙</span>
+        Shop
+    </button>
+</div>
+
+<!-- INVENTORY MODAL -->
 <div class="modal" id="rosterModal">
-<header>Collection <button onclick="closeAll()">Close</button></header>
-<div class="modal-content" id="rosterList"></div>
+    <header>
+        Pokemon Storage 
+        <button class="close-btn" onclick="closeAll()">×</button>
+    </header>
+    <div class="modal-content" id="rosterList"></div>
 </div>
 
 <script>
 /* =========================
-   STATE
+   GAME STATE & CONFIG
 ========================= */
 const state = JSON.parse(localStorage.getItem('state')) || {
     xp: 0,
+    level: 1,
+    maxXp: 100,
     balls: 25,
     coins: 0,
     monsters: [],
     gyms: [],
-    path: {}
+    pathSegments: {}, // Stores segment frequency "lat1,lng1-lat2,lng2"
+    lastLogin: null
 };
 
+// Global Variables
 let map;
-let pathLine;
+let playerMarker;
+let lastPos = null;
+let pathLayerGroup = L.layerGroup();
+let wildSpawnsLayer = L.layerGroup();
 
 /* =========================
-   SAFE MAP INIT (ONCE)
+   INITIALIZATION
 ========================= */
 window.addEventListener('load', () => {
-    map = L.map('map', { zoomControl:false }).setView([0,0],18);
+    // Check Daily Login
+    checkDailyLogin();
 
-    L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 20 }
-    ).addTo(map);
+    // Init Map
+    map = L.map('map', { 
+        zoomControl:false, 
+        attributionControl: false 
+    }).setView([0,0],18);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 20
+    }).addTo(map);
+
+    pathLayerGroup.addTo(map);
+    wildSpawnsLayer.addTo(map);
 
     startGPS();
     drawGyms();
@@ -75,95 +224,205 @@ window.addEventListener('load', () => {
 });
 
 /* =========================
-   GPS
+   GPS & PLAYER MOVEMENT
 ========================= */
 function startGPS(){
-    navigator.geolocation.watchPosition(p=>{
-        const latlng=[p.coords.latitude,p.coords.longitude];
-        map.setView(latlng);
-        recordPath(latlng);
+    navigator.geolocation.watchPosition(p => {
+        const lat = p.coords.latitude;
+        const lng = p.coords.longitude;
+        const latlng = [lat, lng];
 
-        if(Math.random() > 0.99) spawnSpin(latlng);
-    },err=>{
-        alert("GPS required");
-    },{enableHighAccuracy:true});
+        // 1. Update Player Avatar Position
+        if(!playerMarker) {
+            // Create Ash Ketchum Icon
+            const ashIcon = L.divIcon({
+                className: 'player-icon-container',
+                html: `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/ash.png" style="width:50px; height:80px; margin-top:-40px; margin-left:-25px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));">`,
+                iconSize: [0,0] // Controlled by CSS/HTML
+            });
+            playerMarker = L.marker(latlng, {icon: ashIcon, zIndexOffset: 1000}).addTo(map);
+            map.setView(latlng, 19);
+        } else {
+            playerMarker.setLatLng(latlng);
+            // Smooth pan
+            map.panTo(latlng);
+        }
+
+        // 2. Handle Path Tracing
+        if(lastPos) {
+            processPathSegment(lastPos, latlng);
+        }
+        lastPos = latlng;
+
+        // 3. Random Wild Spawn Logic
+        if(Math.random() > 0.85) { // 15% chance per update to spawn
+            spawnWildMonster(lat, lng);
+        }
+
+    }, err => {
+        alert("GPS Signal Lost or Denied. Enable Location Services.");
+    }, {
+        enableHighAccuracy: true,
+        maximumAge: 0
+    });
 }
 
 /* =========================
-   PATH TRACKING
+   SMART PATH TRACKING
 ========================= */
-function recordPath(p){
-    const key=p.map(v=>v.toFixed(5)).join(',');
-    state.path[key]=(state.path[key]||0)+1;
+function processPathSegment(p1, p2) {
+    // Create a unique key for this segment to track retracing
+    // Round to 4 decimals to snap slightly to a grid, ensuring retracing registers
+    const k1 = p1.map(n => n.toFixed(4)).join(',');
+    const k2 = p2.map(n => n.toFixed(4)).join(',');
+    const key = k1 < k2 ? `${k1}-${k2}` : `${k2}-${k1}`; // Order independent key
 
-    if(pathLine) map.removeLayer(pathLine);
+    state.pathSegments[key] = (state.pathSegments[key] || 0) + 1;
 
-    const points = Object.keys(state.path).map(k=>k.split(',').map(Number));
-    const hue = Math.min(state.path[key]*15,360);
+    // Determine color based on intensity
+    const intensity = state.pathSegments[key];
+    let color = '#00aaff'; // Default Blue
+    if(intensity > 2) color = '#aa00ff'; // Purple
+    if(intensity > 5) color = '#ff0000'; // Red (Hot)
 
-    pathLine = L.polyline(points,{
-        color:`hsl(${hue},80%,50%)`,
-        weight:6
-    }).addTo(map);
+    // Draw this specific segment
+    L.polyline([p1, p2], {
+        color: color,
+        weight: 6,
+        opacity: 0.7,
+        lineCap: 'round'
+    }).addTo(pathLayerGroup);
 
     save();
 }
 
 /* =========================
-   SPIN STOPS
+   GAME LOGIC: SPAWNS & GYMS
 ========================= */
-function spawnSpin(p){
-    const m = L.marker(p,{
-        icon:L.divIcon({html:'🌀',className:'spin'})
-    }).addTo(map);
 
-    m.on('click',()=>{
-        Math.random()<0.5 ? state.balls++ : state.coins+=10;
-        map.removeLayer(m);
+// Spawn a visible wild Pokemon
+function spawnWildMonster(lat, lng) {
+    // Random offset so it's not directly under feet
+    const offsetLat = lat + (Math.random() - 0.5) * 0.0005;
+    const offsetLng = lng + (Math.random() - 0.5) * 0.0005;
+    const id = Math.floor(Math.random() * 150) + 1; // Gen 1
+
+    const icon = L.divIcon({
+        className: 'wild-spawn',
+        html: `<img src="${sprite(id)}" class="spawn-anim">`,
+        iconSize: [60, 60],
+        iconAnchor: [30, 30]
+    });
+
+    const m = L.marker([offsetLat, offsetLng], {icon: icon}).addTo(wildSpawnsLayer);
+
+    m.on('click', () => {
+        // Catch Logic
+        if(state.balls > 0) {
+            state.balls--;
+            state.monsters.push({ id: id, hp: 100, maxHp: 100, name: `Poke #${id}` });
+            addXp(50);
+            wildSpawnsLayer.removeLayer(m);
+            alert("Caught Pokemon!");
+        } else {
+            alert("No Pokeballs left!");
+        }
         save();
     });
+
+    // Despawn after 30 seconds
+    setTimeout(() => { wildSpawnsLayer.removeLayer(m) }, 30000);
 }
 
-/* =========================
-   GYMS
-========================= */
 function createGym(){
-    if(state.gyms.length>=3) return;
-    navigator.geolocation.getCurrentPosition(p=>{
+    if(state.gyms.length >= 5) { alert("Max Gyms Reached"); return; }
+    
+    navigator.geolocation.getCurrentPosition(p => {
+        const id = Math.floor(Math.random() * 150) + 1; // Random defender
         state.gyms.push({
-            lat:p.coords.latitude,
-            lng:p.coords.longitude
+            lat: p.coords.latitude,
+            lng: p.coords.longitude,
+            defenderId: id
         });
-        drawGyms();
+        drawGyms(); // Redraw
+        addXp(200);
         save();
     });
 }
 
 function drawGyms(){
-    state.gyms.forEach(g=>{
-        L.circle([g.lat,g.lng],{
-            radius:25,
-            color:'red',
-            fillOpacity:0.3
-        }).addTo(map);
+    // Clear existing graphical gyms (not strictly necessary with this logic but good practice)
+    // Here we just redraw everything on top or strictly manage layers. 
+    // For simplicity in this shell, we iterate.
+    
+    state.gyms.forEach(g => {
+        const gymHtml = `
+            <div class="gym-base"></div>
+            <img class="gym-defender" src="${sprite(g.defenderId || 25)}">
+        `;
+        
+        const gymIcon = L.divIcon({
+            className: 'gym-marker-3d',
+            html: gymHtml,
+            iconSize: [0, 0] // Handled by CSS
+        });
+
+        L.marker([g.lat, g.lng], { icon: gymIcon }).addTo(map)
+         .bindPopup("Gym Defender");
     });
 }
 
 /* =========================
-   ROSTER
+   PROGRESSION & UI
 ========================= */
+function addXp(amount) {
+    state.xp += amount;
+    if(state.xp >= state.maxXp) {
+        state.level++;
+        state.xp = state.xp - state.maxXp;
+        state.maxXp = Math.floor(state.maxXp * 1.5);
+        state.balls += 10; // Level up reward
+        alert(`LEVEL UP! You are now level ${state.level}`);
+    }
+    updateHUD();
+    save();
+}
+
+function checkDailyLogin() {
+    const today = new Date().toDateString();
+    if(state.lastLogin !== today) {
+        state.lastLogin = today;
+        state.coins += 50;
+        state.balls += 10;
+        alert("Daily Login Bonus: +50 Coins, +10 Balls!");
+        save();
+    }
+}
+
+function updateHUD(){
+    // Update Top HUD
+    document.getElementById('lvlDisplay').innerText = "LVL " + state.level;
+    document.getElementById('statusText').innerText = `XP: ${state.xp}/${state.maxXp} | Balls: ${state.balls}`;
+    
+    const pct = (state.xp / state.maxXp) * 100;
+    document.getElementById('xpFill').style.width = pct + "%";
+}
+
 function openRoster(){
-    const list=document.getElementById('rosterList');
-    list.innerHTML='';
-    state.monsters.forEach(m=>{
-        const d=document.createElement('div');
-        d.className='monster-card';
-        d.innerHTML=`
+    const list = document.getElementById('rosterList');
+    list.innerHTML = '';
+    
+    if(state.monsters.length === 0) {
+        list.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px;">No Pokemon yet. Go walk!</div>';
+    }
+
+    state.monsters.slice().reverse().forEach(m => {
+        const d = document.createElement('div');
+        d.className = 'monster-card';
+        d.innerHTML = `
         <img src="${sprite(m.id)}">
-        <div>
-        <b>${m.name||'Feral Beast'}</b><br>
-        HP ${m.hp||100}/${m.maxHp||100}
-        </div>`;
+        <div style="font-size:12px; margin-top:5px; font-weight:bold;">CP ${Math.floor(Math.random()*1000)}</div>
+        `;
         list.appendChild(d);
     });
     show('rosterModal');
@@ -173,24 +432,10 @@ function sprite(id){
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 }
 
-/* =========================
-   UI
-========================= */
-function show(id){
-    document.getElementById(id).classList.add('active');
-}
-function closeAll(){
-    document.querySelectorAll('.modal').forEach(m=>m.classList.remove('active'));
-}
-function updateHUD(){
-    document.getElementById('status').textContent =
-        `XP:${state.xp} Balls:${state.balls} Coins:${state.coins}`;
-}
-function save(){
-    localStorage.setItem('state',JSON.stringify(state));
-    updateHUD();
-}
-</script>
+function show(id){ document.getElementById(id).classList.add('active'); }
+function closeAll(){ document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+function save(){ localStorage.setItem('state', JSON.stringify(state)); updateHUD(); }
 
+</script>
 </body>
 </html>
