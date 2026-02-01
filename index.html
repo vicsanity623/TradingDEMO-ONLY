@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Geo Horror GO - RNG Edition</title>
+<title>Geo Horror GO - Fixed Edition</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
 
@@ -128,7 +128,7 @@ header { padding:15px; font-size:18px; font-weight:bold; border-bottom:1px solid
         <img src="https://img.pokemondb.net/sprites/heartgold-soulsilver/normal/pikachu.png" alt="Player">
     </div>
     <div class="stats-container">
-        <div><b id="lvlDisplay">LVL 1</b> <span id="playerName">Ash</span></div>
+        <div><b id="lvlDisplay">LVL 1</b> <span id="playerName">Trainer</span></div>
         <div class="xp-bar-bg"><div class="xp-fill" id="xpFill"></div></div>
         <div style="font-size:11px; opacity:0.8; margin-top:2px;" id="statusText"></div>
     </div>
@@ -400,7 +400,7 @@ function calculateStats(speciesBase, level, iv) {
 ========================= */
 function startCatch(mon, markerLayer) {
     activeWildMon = JSON.parse(JSON.stringify(mon)); 
-    activeWildMon.marker = markerLayer;
+    activeWildMon.marker = markerLayer; // Store reference to map layer
     
     document.getElementById('catchImg').src = sprite(activeWildMon.id, activeWildMon.shiny);
     document.getElementById('catchName').innerText = activeWildMon.name;
@@ -432,6 +432,7 @@ function updateCatchUI() {
 
 function throwBall() {
     if(state.balls <= 0) return alert("Out of Balls!");
+    
     state.balls--;
     updateHUD();
     document.getElementById('ballCountDisplay').innerText = state.balls;
@@ -442,24 +443,29 @@ function throwBall() {
     if(Math.random() < catchChance) {
         alert(`Gotcha! ${activeWildMon.name} was caught.`);
         
-        // Add to roster
-        // Make sure we save the ORIGINAL stats, not the damaged HP
-        activeWildMon.hp = activeWildMon.maxHp;
-        delete activeWildMon.marker; // Clean up map ref
-        state.monsters.push(activeWildMon);
+        // 1. Remove visual from map immediately
+        if(activeWildMon.marker) {
+            wildSpawnsLayer.removeLayer(activeWildMon.marker);
+        }
         
-        state.coins += 20; // Coin reward
+        // 2. Prepare for storage (clean up circular references)
+        const monToSave = JSON.parse(JSON.stringify(activeWildMon));
+        delete monToSave.marker; // Remove marker reference
+        monToSave.hp = monToSave.maxHp; // Heal completely
+        
+        // 3. Save to roster
+        state.monsters.push(monToSave);
+        state.coins += 20;
         addXp(100);
         
-        wildSpawnsLayer.removeLayer(activeWildMon.marker);
         closeAll();
         save();
     } else {
         alert("Broke free!");
-        // 30% Flee rate
+        // 30% Flee rate if missed
         if(Math.random() > 0.7) {
             alert("The wild Pokemon fled!");
-            wildSpawnsLayer.removeLayer(activeWildMon.marker);
+            if(activeWildMon.marker) wildSpawnsLayer.removeLayer(activeWildMon.marker);
             closeAll();
         }
     }
