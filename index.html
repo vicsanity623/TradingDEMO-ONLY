@@ -312,8 +312,8 @@
         </div>
 
         <div class="side-menu">
-            <div class="side-btn" onclick="alert('Coming soon!')">
-                <i>📜</i> Strategy
+            <div class="side-btn" onclick="openStrategy()">
+                <i>💊</i> Strategy
             </div>
             <div class="side-btn" onclick="alert('Coming soon!')">
                 <i>🔒</i> Lock-on
@@ -432,6 +432,7 @@
         <div id="log">Battle Log initialized...</div>
     </div>
 
+<script src="strategy.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -477,6 +478,8 @@
             syncUI();
             buildStageSelector();
             
+            if(typeof initStrategy === 'function') initStrategy();
+        
             setInterval(saveGame, 30000);
             
         } catch (e) {
@@ -486,6 +489,9 @@
     }
 
     function saveGame() {
+        // Update the timestamp on the player object before saving
+        player.lastSave = Date.now(); 
+        
         const saveData = {
             player: player,
             battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
