@@ -36,6 +36,10 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
+            
+            /* FIX FOR IPHONE LAYOUT: Use Flex column to manage header height */
+            display: flex;
+            flex-direction: column;
         }
 
         /* --- PRE-LOADER --- */
@@ -48,21 +52,35 @@
         .load-bar { width: 70%; height: 10px; border: 1px solid white; border-radius: 5px; margin: 20px 0; overflow: hidden; }
         .load-fill { height: 100%; width: 0%; background: var(--dbz-yellow); transition: width 0.2s; }
 
-        /* --- NAVIGATION --- */
+        /* --- NAVIGATION (UPDATED FOR IPHONE NOTCH) --- */
         nav {
-            display: flex; background: #111; border-bottom: 3px solid var(--dbz-orange);
-            height: 60px; min-height: 60px; width: 100%; z-index: 1000;
+            display: flex; 
+            background: #111; 
+            border-bottom: 3px solid var(--dbz-orange);
+            width: 100%; 
+            z-index: 1000;
+            flex-shrink: 0; /* Prevent nav from shrinking */
+            
+            /* ADD PADDING FOR NOTCH/STATUS BAR */
+            padding-top: env(safe-area-inset-top);
+            padding-top: constant(safe-area-inset-top); /* Old iOS fallback */
+            
+            /* Allow height to grow based on safe area */
+            height: auto;
+            min-height: 60px; 
         }
         nav button {
             flex: 1; background: transparent; border: none;
             color: #555; font-family: 'Bangers'; font-size: 1.4rem; cursor: pointer;
+            height: 60px; /* Ensure click target stays large */
         }
         nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
-        /* --- SCREEN WRAPPERS --- */
+        /* --- SCREEN WRAPPERS (UPDATED FOR FLEX) --- */
         .screen { 
             display: none; 
-            height: calc(100vh - 60px); 
+            /* Fill remaining space after Nav */
+            flex: 1;
             width: 100%;
             flex-direction: column; 
             position: relative; 
@@ -111,7 +129,7 @@
         /* Main Sprite Area */
         .gacha-view { 
             flex: 1; position: relative; display: flex; justify-content: center; align-items: center; 
-            margin-top: 40px; min-height: 300px;
+            margin-top: 10px; min-height: 300px;
         }
         .aura { 
             position: absolute; width: 220px; height: 280px; 
