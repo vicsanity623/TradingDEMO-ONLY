@@ -472,14 +472,60 @@
             const planRes = await fetch(`${API_BASE}/planets?limit=20`);
             const planJson = await planRes.json();
             apiData.planets = planJson.items;
+            
+            // Auto-load here
+            loadGame();
+            
             document.getElementById('loader').style.display = 'none';
             syncUI();
             buildStageSelector();
+            
+            // Start Auto-Save Interval
+            setInterval(saveGame, 30000); // 30 seconds
+            
         } catch (e) {
             console.error("API Error", e);
             document.getElementById('loader').style.display = 'none';
         }
     }
+
+    // Save Logic
+    function saveGame() {
+        const saveData = {
+            player: player,
+            battle: {
+                stage: battle.stage,
+                world: battle.world,
+                maxStage: battle.maxStage
+            }
+        };
+        localStorage.setItem('dbz_gacha_save', JSON.stringify(saveData));
+        console.log('Game Saved: ' + new Date().toLocaleTimeString());
+    }
+
+    // Load Logic
+    function loadGame() {
+        const saved = localStorage.getItem('dbz_gacha_save');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if(parsed.player) player = parsed.player;
+                if(parsed.battle) {
+                    battle.stage = parsed.battle.stage || 1;
+                    battle.world = parsed.battle.world || 1;
+                    battle.maxStage = parsed.battle.maxStage || 1;
+                }
+                console.log('Game Loaded from Save');
+            } catch (e) {
+                console.error("Save file corrupted", e);
+            }
+        }
+    }
+
+    // Save on exit
+    window.addEventListener('beforeunload', () => {
+        saveGame();
+    });
 
     function showTab(t) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
