@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Goku: Saiyan Ascension - Fixed Battle</title>
+    <title>Goku: Saiyan Ascension - Definitive Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,20 +13,19 @@
             --bg-dark: #050505;
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        body {
+        body, html {
             margin: 0; padding: 0;
             font-family: 'Orbitron', sans-serif;
             background: var(--bg-dark);
             color: white;
             overflow: hidden;
-            height: 100dvh; /* Dynamic viewport height for mobile */
-            display: flex;
-            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
         }
 
-        /* --- PRE-LOADING --- */
+        /* --- PRE-LOADER --- */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: black; z-index: 2000;
@@ -39,7 +38,7 @@
         /* --- NAVIGATION --- */
         nav {
             display: flex; background: #111; border-bottom: 3px solid var(--dbz-orange);
-            height: 60px; min-height: 60px; z-index: 100;
+            height: 60px; min-height: 60px; width: 100%;
         }
         nav button {
             flex: 1; background: transparent; border: none;
@@ -47,14 +46,21 @@
         }
         nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
-        /* --- SCREENS --- */
-        .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; position: relative; }
+        /* --- SCREEN WRAPPERS --- */
+        .screen { 
+            display: none; 
+            height: calc(100vh - 60px); 
+            width: 100%;
+            flex-direction: column; 
+            position: relative; 
+            overflow: hidden;
+        }
         .active-screen { display: flex; }
 
-        /* --- HUB STYLES --- */
-        #view-char { padding: 15px; overflow-y: auto; }
-        .rank-header { text-align: center; font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); }
-        .goku-view { position: relative; height: 250px; display: flex; justify-content: center; align-items: center; }
+        /* --- HUB SCREEN --- */
+        #view-char { padding: 15px; overflow-y: auto; background: var(--bg-dark); }
+        .rank-header { text-align: center; font-family: 'Bangers'; font-size: 2.2rem; color: var(--dbz-yellow); margin: 0; }
+        .goku-view { position: relative; height: 260px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
         .aura { 
             position: absolute; width: 180px; height: 220px; 
             background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
@@ -64,102 +70,72 @@
         @keyframes auraPulse { from { transform: scale(1); opacity: 0.4; } to { transform: scale(1.2); opacity: 0.8; } }
         .main-sprite { height: 100%; z-index: 2; filter: drop-shadow(0 0 10px black); }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(20,20,20,0.8); padding: 12px; border-radius: 10px; border: 1px solid #333; }
-        .train-btn { background: #27ae60; border: none; color: white; padding: 6px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(30,30,30,0.9); padding: 12px; border-radius: 10px; border: 1px solid #333; }
+        .train-btn { background: #27ae60; border: none; color: white; padding: 6px 12px; border-radius: 4px; font-family: 'Bangers'; cursor: pointer; font-size: 1rem; }
+        .train-btn:active { transform: scale(0.95); }
 
-        /* --- BATTLE SCREEN (FIXED) --- */
-        #view-battle { 
-            background-size: cover; 
-            background-position: center; 
-            display: flex;
-            flex-direction: column;
-        }
-
-        .battle-header {
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            text-align: center;
-            z-index: 5;
-        }
-
-        .arena { 
-            flex: 1; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            position: relative; 
-            z-index: 1; 
-            gap: 20px;
-            padding: 0 10px;
-        }
-
-        .unit { 
-            width: 140px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center;
-            position: relative;
-        }
-        .unit img { 
-            width: 100%; 
-            max-height: 180px; 
-            object-fit: contain; 
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));
-        }
-
-        .bar-wrap { width: 100%; background: #222; height: 12px; border-radius: 6px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
-        .bar-fill { height: 100%; width: 100%; transition: width 0.3s; }
+        .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
 
-        /* BEAM CENTERING */
+        /* --- BATTLE SCREEN --- */
+        #view-battle { 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat;
+        }
+        .battle-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); z-index: 0;
+        }
+
+        .battle-header {
+            position: relative; z-index: 5; background: rgba(0,0,0,0.6); padding: 10px; text-align: center;
+        }
+
+        .arena { 
+            flex: 1; display: flex; justify-content: center; align-items: center; 
+            position: relative; z-index: 1; gap: 30px; padding-bottom: 50px;
+        }
+
+        .unit { width: 140px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .unit img { width: 100%; max-height: 180px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0,0,0,0.7)); }
+
+        /* HYPER BEAM */
         .beam { 
-            position: absolute; 
-            height: 50px; 
-            background: linear-gradient(to bottom, #fff, #00d2ff, #fff); 
-            width: 0; 
-            left: 50%; 
-            top: 55%; 
-            transform: translateY(-50%);
-            box-shadow: 0 0 40px #00d2ff; 
-            z-index: 10; 
-            border-radius: 25px; 
-            pointer-events: none;
+            position: absolute; height: 60px; background: linear-gradient(to bottom, #fff, #00d2ff, #fff); 
+            width: 0; left: 50%; top: 55%; transform: translate(-50%, -50%);
+            box-shadow: 0 0 50px #00d2ff; z-index: 10; border-radius: 30px; pointer-events: none;
         }
 
         .pop { 
-            position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2rem; 
-            animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; 
-            pointer-events: none;
+            position: absolute; color: yellow; font-family: 'Bangers'; font-size: 2.2rem; 
+            animation: popUp 0.7s forwards; z-index: 20; text-shadow: 2px 2px black; pointer-events: none;
         }
-        @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-70px); } }
+        @keyframes popUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-80px); } }
 
-        /* LOG VISIBILITY */
+        /* BATTLE LOG */
         #log { 
-            background: rgba(0,0,0,0.9); 
-            height: 140px; 
-            min-height: 140px;
-            overflow-y: auto; 
-            padding: 12px; 
+            background: rgba(0,0,0,0.95); 
+            height: 140px; min-height: 140px; 
+            overflow-y: auto; padding: 12px; 
             border-top: 3px solid var(--dbz-orange); 
-            font-size: 0.9rem; 
-            color: #0f0; 
-            z-index: 5;
-            text-shadow: 1px 1px #000;
+            font-size: 0.9rem; color: #00ff00; z-index: 5;
+            text-shadow: 1px 1px black;
         }
 
         .ready-banner {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-family: 'Bangers'; font-size: 4rem; color: var(--dbz-yellow);
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Bangers'; font-size: 4.5rem; color: var(--dbz-yellow);
             text-shadow: 4px 4px black; z-index: 100; display: none;
         }
-
     </style>
 </head>
 <body onload="initGame()">
 
     <div id="loader">
-        <div class="load-title">LOADING KI...</div>
+        <div class="load-title">SYNCING WITH API...</div>
         <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
     </div>
 
@@ -170,7 +146,7 @@
         <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
     </nav>
 
-    <!-- HUB -->
+    <!-- CHARACTER HUB -->
     <div id="view-char" class="screen active-screen">
         <div class="rank-header" id="ui-rank">RANK: BASE</div>
         <div class="goku-view">
@@ -179,51 +155,52 @@
         </div>
 
         <div style="margin-top: -10px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.7rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#aaa;">
                 <span>HP: <span id="ui-hp-txt">0/0</span></span>
                 <span id="ui-power" style="color:var(--dbz-yellow)">POWER: 0</span>
             </div>
             <div class="bar-wrap"><div id="bar-hp" class="bar-fill hp-f"></div></div>
-            <div style="font-size:0.7rem; margin-top:5px;">LVL <span id="ui-lvl">1</span> XP</div>
+            <div style="font-size:0.75rem; margin-top:5px; color:#aaa;">LVL <span id="ui-lvl">1</span> XP PROGRESS</div>
             <div class="bar-wrap"><div id="bar-xp" class="bar-fill xp-f"></div></div>
         </div>
 
         <div class="stat-grid">
             <div>
-                <div style="font-size:0.8rem;">ATK: <b id="ui-atk">0</b> <button class="train-btn" onclick="train('atk')">+</button></div>
-                <div style="font-size:0.8rem; margin-top:8px;">DEF: <b id="ui-def">0</b> <button class="train-btn" onclick="train('def')">+</button></div>
+                <div style="font-size:0.9rem;">ATK: <b id="ui-atk">0</b> <button class="train-btn" onclick="train('atk')">+</button></div>
+                <div style="font-size:0.9rem; margin-top:10px;">DEF: <b id="ui-def">0</b> <button class="train-btn" onclick="train('def')">+</button></div>
             </div>
             <div style="text-align:right;">
-                <div style="color:gold; font-family:'Bangers'; font-size:1.4rem;">COINS: <span id="ui-coins">0</span></div>
-                <button class="train-btn" style="background:var(--dbz-orange)" onclick="doEquip()">EQUIP GEAR</button>
+                <div style="color:gold; font-family:'Bangers'; font-size:1.6rem;">COINS: <span id="ui-coins">0</span></div>
+                <button class="train-btn" style="background:var(--dbz-orange); margin-top:5px;" onclick="doEquip()">EQUIP GEAR</button>
             </div>
         </div>
-        <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px;"></div>
+        <div id="inv-grid" style="display:grid; grid-template-columns: repeat(4,1fr); gap:5px; margin-top:10px; height: 80px; overflow-y:auto;"></div>
     </div>
 
-    <!-- BATTLE -->
+    <!-- BATTLE SCREEN -->
     <div id="view-battle" class="screen">
+        <div class="battle-overlay"></div>
         <div class="battle-header">
-            <div id="ui-stage-tag" style="font-family:'Bangers'; color:var(--dbz-yellow); font-size:1.5rem;">STAGE 1</div>
+            <div id="ui-stage-tag" style="font-family:'Bangers'; color:var(--dbz-yellow); font-size:1.8rem; text-shadow: 2px 2px black;">STAGE 1</div>
         </div>
         
         <div class="arena">
             <div id="fx-beam" class="beam"></div>
             
             <div class="unit" id="p-box">
-                <div class="bar-wrap"><div id="btl-p-hp" class="bar-fill hp-f"></div></div>
+                <div class="bar-wrap" style="height:10px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
                 <img id="btl-p-sprite" src="IMG_0054.png" style="transform: scaleX(-1);">
-                <div style="font-family:'Bangers'; font-size:0.8rem;">GOKU</div>
+                <div style="font-family:'Bangers'; font-size:1rem; margin-top:5px;">GOKU</div>
             </div>
 
             <div class="unit" id="e-box">
-                <div class="bar-wrap"><div id="btl-e-hp" class="bar-fill hp-f"></div></div>
+                <div class="bar-wrap" style="height:10px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
                 <img id="e-img" src="">
-                <div id="e-name" style="font-family:'Bangers'; font-size:0.8rem; color:red;">...</div>
+                <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;">...</div>
             </div>
         </div>
 
-        <div id="log">Awaiting start...</div>
+        <div id="log">Initializing battle sensors...</div>
     </div>
 
 <script>
@@ -235,7 +212,7 @@
     let apiData = { characters: [], planets: [] };
     let player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
-        bAtk: 30, bDef: 20, bHp: 400, hp: 400,
+        bAtk: 40, bDef: 25, bHp: 500, hp: 500,
         inv: [], gear: { w: null, a: null }, selected: -1
     };
     let battle = { stage: 1, world: 1, active: false, enemy: null };
@@ -251,7 +228,9 @@
             document.getElementById('loader').style.display = 'none';
             syncUI();
         } catch (e) {
+            console.error("API Error", e);
             document.getElementById('loader').style.display = 'none';
+            syncUI();
         }
     }
 
@@ -260,7 +239,12 @@
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         document.getElementById('view-' + t).classList.add('active-screen');
         document.getElementById('tab-' + t).classList.add('active');
-        if(t === 'battle') startBattle(); else battle.active = false;
+        
+        if(t === 'battle') {
+            if(!battle.active) startBattle(); 
+        } else {
+            battle.active = false; // Stop loops when not in battle tab
+        }
         syncUI();
     }
 
@@ -270,16 +254,17 @@
         document.getElementById('btl-p-sprite').src = sprite;
         document.getElementById('ui-aura').style.display = (player.rank >= 1) ? "block" : "none";
         
-        const maxHp = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
-        const atk = player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0);
+        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
+        const def = player.bDef + (player.rank * 150);
         
         document.getElementById('ui-rank').innerText = `RANK: ${RANKS[player.rank]}`;
         document.getElementById('ui-lvl').innerText = player.lvl;
         document.getElementById('ui-atk').innerText = atk;
-        document.getElementById('ui-def').innerText = player.bDef + (player.rank * 100);
+        document.getElementById('ui-def').innerText = def;
         document.getElementById('ui-coins').innerText = player.coins;
         document.getElementById('ui-hp-txt').innerText = `${Math.floor(player.hp)}/${maxHp}`;
-        document.getElementById('ui-power').innerText = `POWER: ${(atk * 25 + maxHp).toLocaleString()}`;
+        document.getElementById('ui-power').innerText = `POWER: ${(atk * 30 + maxHp).toLocaleString()}`;
         document.getElementById('bar-hp').style.width = (player.hp / maxHp * 100) + "%";
         document.getElementById('bar-xp').style.width = (player.xp / player.nextXp * 100) + "%";
         
@@ -287,7 +272,7 @@
         grid.innerHTML = '';
         player.inv.forEach((item, i) => {
             const d = document.createElement('div');
-            d.style.cssText = "background:#222; border:1px solid #444; padding:5px; font-size:0.6rem; text-align:center;";
+            d.style.cssText = "background:#222; border:1px solid #444; padding:5px; font-size:0.6rem; text-align:center; border-radius:3px;";
             if(player.selected === i) d.style.borderColor = "var(--dbz-yellow)";
             d.innerText = item.n;
             d.onclick = () => { player.selected = i; syncUI(); };
@@ -298,7 +283,7 @@
     function train(s) {
         if(player.coins >= 100) {
             player.coins -= 100;
-            if(s === 'atk') player.bAtk += 15; else player.bDef += 8;
+            if(s === 'atk') player.bAtk += 20; else player.bDef += 10;
             syncUI();
         }
     }
@@ -314,20 +299,21 @@
         syncUI();
     }
 
-    // --- BATTLE ---
+    // --- BATTLE SYSTEM ---
     async function startBattle() {
-        if(battle.active) return;
         battle.active = true;
         const log = document.getElementById('log');
-        log.innerHTML = "Preparing battle...";
+        log.innerHTML = "Seeking new opponent...";
         
-        // Setup Planet & Enemy
+        // Background Planet Rotation
         if(apiData.planets.length > 0) {
-            document.getElementById('view-battle').style.backgroundImage = `url('${apiData.planets[battle.world % apiData.planets.length].image}')`;
+            const pIdx = (battle.world - 1) % apiData.planets.length;
+            document.getElementById('view-battle').style.backgroundImage = `url('${apiData.planets[pIdx].image}')`;
         }
+
         spawnEnemy();
         
-        // 2 Second Delay
+        // 2 Second Loading Delay
         const banner = document.getElementById('ready-msg');
         banner.style.display = "block";
         banner.innerText = "READY?";
@@ -336,95 +322,122 @@
         await new Promise(r => setTimeout(r, 1000));
         banner.style.display = "none";
         
-        log.innerHTML = "Battle Started!";
-        loop();
+        log.innerHTML = `<div style="color:white">Battle Started: Stage ${battle.stage}</div>`;
+        battleLoop();
     }
 
     function spawnEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
-        let dat = apiData.characters[Math.floor(Math.random() * apiData.characters.length)] || {name:"Enemy", image:""};
-        battle.enemy = { name: dat.name, hp: 200 * scale, maxHp: 200 * scale, atk: 25 * scale, i: dat.image };
+        let dat = apiData.characters[Math.floor(Math.random() * apiData.characters.length)] || {name:"Challenger", image:""};
+        battle.enemy = { name: dat.name, hp: 250 * scale, maxHp: 250 * scale, atk: 30 * scale, i: dat.image };
+        
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
         document.getElementById('ui-stage-tag').innerText = `WORLD ${battle.world} - STAGE ${battle.stage}`;
         updateBars();
     }
 
-    async function loop() {
+    async function battleLoop() {
         if(!battle.active) return;
         
-        // Player
-        if(Math.random() < 0.2) await special(); else strike('p');
-        if(battle.enemy.hp <= 0) { win(); return; }
+        // Goku's Turn
+        if(Math.random() < 0.2) await executeSpecial(); else executeStrike('p');
+        if(battle.enemy.hp <= 0) { handleWin(); return; }
 
         await new Promise(r => setTimeout(r, 1000));
-        
-        // Enemy
-        strike('e');
-        if(player.hp <= 0) { alert("DEFEAT!"); showTab('char'); return; }
+        if(!battle.active) return;
 
-        setTimeout(loop, 1200);
+        // Enemy's Turn
+        executeStrike('e');
+        if(player.hp <= 0) { handleDefeat(); return; }
+
+        setTimeout(battleLoop, 1200);
     }
 
-    function strike(side) {
+    function executeStrike(side) {
         const isP = (side === 'p');
-        const atkVal = isP ? (player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0)) : battle.enemy.atk;
+        const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
         const target = isP ? battle.enemy : player;
         const targetId = isP ? 'e-box' : 'p-box';
+        
         const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
         target.hp -= dmg;
-        pop(dmg, targetId);
+        popDamage(dmg, targetId);
         updateBars();
         
         const el = document.getElementById(isP ? 'p-box' : 'e-box');
-        el.style.transform = isP ? 'translateX(20px)' : 'translateX(-20px)';
+        el.style.transform = isP ? 'translateX(25px)' : 'translateX(-25px)';
         setTimeout(() => el.style.transform = 'translateX(0)', 100);
     }
 
-    async function special() {
+    async function executeSpecial() {
         const beam = document.getElementById('fx-beam');
         const log = document.getElementById('log');
         const move = (player.rank >= 1) ? "SUPER KAMEHAMEHA!!!" : "KAIOKEN X4!!!";
         log.innerHTML = `<div style="color:var(--dbz-yellow)">> ${move}</div>` + log.innerHTML;
         
-        // Beam expands from center outwards to both
-        beam.style.width = "300px";
-        beam.style.left = "calc(50% - 150px)";
+        beam.style.width = "320px";
+        beam.style.left = "calc(50% - 160px)";
         
         await new Promise(r => setTimeout(r, 600));
-        const dmg = (player.bAtk + (player.rank * 300) + (player.gear.w?.val || 0)) * 6;
+        const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 7;
         battle.enemy.hp -= dmg;
-        pop(dmg, 'e-box');
+        popDamage(dmg, 'e-box');
         updateBars();
         beam.style.width = "0";
     }
 
-    function win() {
-        const xp = 80 * battle.stage * battle.world;
-        player.xp += xp; player.coins += 200;
-        document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xp} XP</div>` + document.getElementById('log').innerHTML;
+    function handleWin() {
+        battle.active = false; // Stop current loop
+        const xpGain = 100 * battle.stage * battle.world;
+        player.xp += xpGain; 
+        player.coins += 250;
         
-        if(Math.random() < 0.3) {
-            player.inv.push({n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 500 * battle.world});
+        document.getElementById('log').innerHTML = `<div style="color:cyan">> VICTORY! +${xpGain} XP</div>` + document.getElementById('log').innerHTML;
+        
+        // Random Loot
+        if(Math.random() < 0.35) {
+            player.inv.push({n: "Saiyan Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 700 * battle.world});
         }
         
+        // Ascension Logic
         if(player.xp >= player.nextXp) {
-            player.lvl++; player.xp = 0; player.nextXp *= 1.5;
+            player.lvl++; 
+            player.xp = 0; 
+            player.nextXp *= 1.6;
             if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
         }
 
+        // Advance Stage
         battle.stage++;
-        if(battle.stage > 20) { battle.stage = 1; battle.world++; }
-        startBattle();
+        if(battle.stage > 20) { 
+            battle.stage = 1; 
+            battle.world++; 
+        }
+
+        // Auto-Proceed after short pause
+        setTimeout(() => {
+            if(document.getElementById('view-battle').classList.contains('active-screen')) {
+                startBattle();
+            }
+        }, 1000);
+    }
+
+    function handleDefeat() {
+        battle.active = false;
+        alert("GOKU WAS DEFEATED!");
+        showTab('char');
+        player.hp = player.bHp + (player.rank * 2500); // Reset HP for Hub
+        syncUI();
     }
 
     function updateBars() {
-        const m = player.bHp + (player.rank * 2000) + (player.gear.a?.val || 0);
-        document.getElementById('btl-p-hp').style.width = (player.hp / m * 100) + "%";
-        document.getElementById('btl-e-hp').style.width = (battle.enemy.hp / battle.enemy.maxHp * 100) + "%";
+        const m = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        document.getElementById('btl-p-hp').style.width = Math.max(0, (player.hp / m * 100)) + "%";
+        document.getElementById('btl-e-hp').style.width = Math.max(0, (battle.enemy.hp / battle.enemy.maxHp * 100)) + "%";
     }
 
-    function pop(dmg, id) {
+    function popDamage(dmg, id) {
         const d = document.createElement('div');
         d.className = 'pop'; d.innerText = "-" + Math.floor(dmg);
         document.getElementById(id).appendChild(d);
