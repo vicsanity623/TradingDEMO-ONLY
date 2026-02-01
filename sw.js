@@ -2,6 +2,7 @@ const CACHE_NAME = 'goku-rpg-v1.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './strategy.js',
   './IMG_0054.png',
   './IMG_0061.png',
   './IMG_0062.png'
