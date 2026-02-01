@@ -56,8 +56,8 @@ function initStrategy() {
         // player.rank 0 is Base (x1)
         const multiplier = (player.rank || 0) + 1;
         
-        // 47 XP per minute * Multiplier
-        pendingOfflineXp = offlineMinutes * 47 * multiplier;
+        // 147 XP per minute * Multiplier
+        pendingOfflineXp = offlineMinutes * 147 * multiplier;
 
         console.log(`[Strategy] Offline for ${offlineMinutes} mins. Rank ${multiplier}x. XP: ${pendingOfflineXp}`);
         
