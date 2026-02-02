@@ -1023,9 +1023,22 @@
         updateBars();
 
         setTimeout(() => {
-            beam.style.opacity = '0';
-            beam.style.width = "0";
-            battle.cinematic = false; // Resume combat
+            beam.style.transition = "opacity 0.2s ease-out"; // Only animate opacity
+            beam.style.opacity = '0'; 
+            
+            // Wait for fade to finish, then reset width instantly
+            setTimeout(() => {
+                beam.style.transition = "none"; // Disable animation for reset
+                beam.style.width = "0"; 
+                
+                // Restore original transition for next time
+                setTimeout(() => {
+                    beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
+                }, 50);
+
+                battle.cinematic = false; // Resume combat
+            }, 200);
+            
         }, 300);
 
         if(battle.enemy.hp <= 0) {
