@@ -212,13 +212,41 @@
             display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 1.2rem;
         }
 
-        /* --- BATTLE SCREEN --- */
-        .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
-        .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; }
-        .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
-        .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
-        .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
-
+        /* --- BATTLE SCREEN CSS UPDATES --- */
+        .unit { 
+            width: 140px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative; 
+            /* Removed transition here to control it via JS classes for snappiness */
+        }
+        
+        /* New aggressive attack animation class */
+        .attacking-right { animation: lungeRight 0.15s ease-in-out; }
+        .attacking-left  { animation: lungeLeft 0.15s ease-in-out; }
+        
+        /* New impact shake class */
+        .hit-shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        @keyframes lungeRight {
+            0% { transform: translateX(0) scale(1); }
+            50% { transform: translateX(60px) scale(1.1); } /* Lunges further */
+            100% { transform: translateX(0) scale(1); }
+        }
+        
+        @keyframes lungeLeft {
+            0% { transform: translateX(0) scale(1); }
+            50% { transform: translateX(-60px) scale(1.1); }
+            100% { transform: translateX(0) scale(1); }
+        }
+        
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); } /* Flash Red/White */
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
         /* RARITY STYLES */
         .item-basic { color: var(--rarity-common); border-color: #555 !important; }
         .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
@@ -826,8 +854,9 @@
         battle.active = false;
         GameState.inBattle = false;
     
-        clearInterval(battle.pInterval);
-        clearInterval(battle.eInterval);
+        // Clear Timeouts instead of Intervals
+        clearTimeout(battle.pInterval);
+        clearTimeout(battle.eInterval);
     }
 
     function exitBattle() {
@@ -876,8 +905,6 @@
         battle.active = true;
         GameState.inBattle = true;
         
-        // NOTE: removed player.charge = 0; to allow carry over between stages
-        
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         document.getElementById('e-img').style.display = 'block';
@@ -899,53 +926,56 @@
         const banner = document.getElementById('ready-msg');
         banner.style.display = "block";
         banner.innerText = "READY?";
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 800)); // Slightly faster intro
         banner.innerText = "FIGHT!";
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 400));
         banner.style.display = "none";
         
         log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
-        // PLAYER LOOP
-        battle.pInterval = setInterval(() => {
-            if(!battle.active || battle.cinematic) return; // Paused during cinematic
-    
-            // 🔥 AUTO SKILLS (SAFE ORDER)
-            if (window.Skills) {
-                // Skill 1 – Double Hit
-                const dhDmg = Skills.useDoubleHit();
-                if (dhDmg > 0) {
-                    battle.enemy.hp -= dhDmg;
-                    popDamage(dhDmg, 'e-box', true);
-                }
-    
-                // Skill 2 – Focus (Heal)
-                Skills.useFocus();
-    
-                // Skill 3 – Kame Blast
-                const kbDmg = Skills.useKameBlast();
-                if (kbDmg > 0) {
-                    battle.enemy.hp -= kbDmg;
-                    popDamage(kbDmg, 'e-box', true);
-                }
-            }
-    
-            // NORMAL ATTACK FLOW
-            if(player.charge >= 100) {
-                executeSpecial();
-            } else {
-                executeStrike('p');
-            }
-    
-            updateBars();
-    
-        }, 400);
-    
-        // ENEMY LOOP
-        battle.eInterval = setInterval(() => {
-            if(!battle.active || battle.cinematic) return; // Paused during cinematic
-            executeStrike('e');
-        }, 500);
+        // KICK OFF THE LOOPS
+        playerCombatLoop();
+        enemyCombatLoop();
+    }
+
+    // NEW: Recursive Player Loop
+    function playerCombatLoop() {
+        if(!battle.active) return;
+        if(battle.cinematic) { setTimeout(playerCombatLoop, 100); return; } // Wait if cinematic playing
+
+        // 1. Auto Skills Check
+        if (window.Skills) {
+            const dhDmg = Skills.useDoubleHit();
+            if (dhDmg > 0) { battle.enemy.hp -= dhDmg; popDamage(dhDmg, 'e-box', true); }
+            Skills.useFocus();
+            const kbDmg = Skills.useKameBlast();
+            if (kbDmg > 0) { battle.enemy.hp -= kbDmg; popDamage(kbDmg, 'e-box', true); }
+        }
+
+        // 2. Normal Attack Logic
+        if(player.charge >= 100) {
+            executeSpecial();
+        } else {
+            executeStrike('p');
+        }
+
+        updateBars();
+
+        // 3. Randomize next attack (Fast: 150ms to 450ms)
+        const nextAttackDelay = Math.floor(Math.random() * 300) + 150; 
+        battle.pInterval = setTimeout(playerCombatLoop, nextAttackDelay);
+    }
+
+    // NEW: Recursive Enemy Loop
+    function enemyCombatLoop() {
+        if(!battle.active) return;
+        if(battle.cinematic) { setTimeout(enemyCombatLoop, 100); return; }
+
+        executeStrike('e');
+
+        // Randomize enemy attack (Slightly slower than player to be fair: 300ms to 700ms)
+        const nextAttackDelay = Math.floor(Math.random() * 400) + 300; 
+        battle.eInterval = setTimeout(enemyCombatLoop, nextAttackDelay);
     }
 
     function spawnPersistentEnemy() {
@@ -964,21 +994,38 @@
 
         const isP = (side === 'p');
         const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
-        const target = isP ? battle.enemy : player;
-        const targetId = isP ? 'e-box' : 'p-box';
+        const targetStats = isP ? battle.enemy : player;
         
-        if(isP) player.charge += 37; 
+        // DOM Elements
+        const attackerEl = document.getElementById(isP ? 'p-box' : 'e-box');
+        const victimEl = document.getElementById(isP ? 'e-box' : 'p-box');
+        const victimId = isP ? 'e-box' : 'p-box';
+
+        // Charge Logic
+        if(isP) player.charge += 26; // Increased charge gain slightly due to speed
         if(player.charge > 100) player.charge = 100;
 
-        const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
-        target.hp -= dmg;
+        // Damage Calculation
+        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
+        targetStats.hp -= dmg;
         
-        popDamage(dmg, targetId);
+        popDamage(dmg, victimId);
         updateBars();
         
-        const el = document.getElementById(isP ? 'p-box' : 'e-box');
-        el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
-        setTimeout(() => el.style.transform = 'translateX(0)', 50);
+        // --- NEW VISUAL LOGIC ---
+        
+        // 1. Add Attacker Lunge
+        const lungeClass = isP ? 'attacking-right' : 'attacking-left';
+        attackerEl.classList.remove(lungeClass);
+        void attackerEl.offsetWidth; // Trigger Reflow to restart animation
+        attackerEl.classList.add(lungeClass);
+
+        // 2. Add Victim Shake/Flash
+        victimEl.classList.remove('hit-shake');
+        void victimEl.offsetWidth; 
+        victimEl.classList.add('hit-shake');
+        
+        // ------------------------
 
         if(battle.enemy.hp <= 0) {
             stopCombat();
