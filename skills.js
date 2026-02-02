@@ -60,7 +60,7 @@
        UNLOCK CHECKS
     ------------------------- */
     function updateUnlocks() {
-        if (GameState.gokuLevel >= 30) skills.doubleHit.unlocked = true;
+        if (GameState.gokuLevel >= 25) skills.doubleHit.unlocked = true;
         if (GameState.gokuLevel >= 50) skills.focus.unlocked = true;
         if (GameState.gokuLevel >= 70) skills.kameBlast.unlocked = true;
         save();
