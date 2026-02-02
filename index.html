@@ -393,10 +393,11 @@
                     <div class="nav-circle" style="color:#e74c3c;">💪</div>
                     Training
                 </div>
-                <div class="nav-icon">
+                <div class="nav-icon" onclick="Skills.openSkillScreen()">
                     <div class="nav-circle" style="color:#f1c40f;">🌟</div>
                     Skills
                 </div>
+
                 <div class="nav-icon">
                     <div class="nav-circle" style="color:#3498db;">🎒</div>
                     Gear
@@ -468,6 +469,7 @@
     </div>
 
 <script src="strategy.js"></script>
+<script src="skills.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -496,6 +498,18 @@
         autoTimerId: null,
         pInterval: null,
         eInterval: null
+    };
+    window.GameState = {
+        get gokuLevel() { return player.lvl; },
+        get gokuPower() {
+            return (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0));
+        },
+        get gokuHP() { return player.hp; },
+        set gokuHP(v) { player.hp = v; },
+        get gokuMaxHP() {
+            return player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+        },
+        inBattle: false
     };
 
     async function initGame() {
@@ -841,6 +855,7 @@
     async function startBattle() {
         stopCombat(); 
         battle.active = true;
+        GameState.inBattle = true;
         
         // NOTE: removed player.charge = 0; to allow carry over between stages
         
@@ -848,17 +863,17 @@
         document.getElementById('battle-menu').style.display = 'none';
         document.getElementById('e-img').style.display = 'block';
         document.getElementById('e-img').classList.remove('dead-anim');
-
+    
         const log = document.getElementById('log');
         log.innerHTML = `Stage ${battle.stage}: Finding guardian...`;
         
         buildStageSelector();
-
+    
         if(apiData.planets.length > 0) {
             const pIdx = (battle.world - 1) % apiData.planets.length;
             document.getElementById('view-battle').style.backgroundImage = `url('${apiData.planets[pIdx].image}')`;
         }
-
+    
         spawnPersistentEnemy();
         updateBars();
         
@@ -872,20 +887,56 @@
         
         log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
+        // PLAYER LOOP
         battle.pInterval = setInterval(() => {
             if(!battle.active) return;
+    
+            // 🔥 AUTO SKILLS (SAFE ORDER)
+            if (window.Skills) {
+                // Skill 1 – Double Hit
+                const dhDmg = Skills.useDoubleHit();
+                if (dhDmg > 0) {
+                    battle.enemy.hp -= dhDmg;
+                    popDamage(dhDmg, 'e-box', true);
+                }
+    
+                // Skill 2 – Focus (Heal)
+                Skills.useFocus();
+    
+                // Skill 3 – Kame Blast
+                const kbDmg = Skills.useKameBlast();
+                if (kbDmg > 0) {
+                    battle.enemy.hp -= kbDmg;
+                    popDamage(kbDmg, 'e-box', true);
+                }
+            }
+    
+            // NORMAL ATTACK FLOW
             if(player.charge >= 100) {
                 executeSpecial();
             } else {
                 executeStrike('p');
             }
+    
+            updateBars();
+    
         }, 400);
-
+    
+        // ENEMY LOOP
         battle.eInterval = setInterval(() => {
             if(!battle.active) return;
             executeStrike('e');
         }, 500);
     }
+    
+    function stopCombat() {
+        battle.active = false;
+        GameState.inBattle = false;
+    
+        clearInterval(battle.pInterval);
+        clearInterval(battle.eInterval);
+    }
+
 
     function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
@@ -989,6 +1040,10 @@
         }
 
         syncUI();
+        
+        if (window.Skills) {
+            Skills.autoBattleTick();
+        }
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
