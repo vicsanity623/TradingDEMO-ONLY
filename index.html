@@ -807,6 +807,8 @@
 
     function stopCombat() {
         battle.active = false;
+        GameState.inBattle = false;
+    
         clearInterval(battle.pInterval);
         clearInterval(battle.eInterval);
     }
@@ -928,15 +930,6 @@
             executeStrike('e');
         }, 500);
     }
-    
-    function stopCombat() {
-        battle.active = false;
-        GameState.inBattle = false;
-    
-        clearInterval(battle.pInterval);
-        clearInterval(battle.eInterval);
-    }
-
 
     function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
@@ -1040,10 +1033,6 @@
         }
 
         syncUI();
-        
-        if (window.Skills) {
-            Skills.autoBattleTick();
-        }
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
