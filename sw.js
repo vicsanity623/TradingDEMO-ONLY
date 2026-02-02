@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goku-rpg-v2.12'; // UPDATED: Version bump forces cache clear
+const CACHE_NAME = 'goku-rpg-v2.13'; // UPDATED: Version bump forces cache clear
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
