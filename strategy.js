@@ -52,10 +52,10 @@ function initStrategy() {
         offlineMinutes = Math.floor(diffMs / 60000);
         const multiplier = (player.rank || 0) + 1;
         
-        // 47 XP per minute (as requested previously)
-        pendingOfflineXp = offlineMinutes * 20000 * multiplier;
+        // 2000 XP per minute (as requested previously)
+        pendingOfflineXp = offlineMinutes * 2000 * multiplier;
         
-        // 10 Coins per minute
+        // 25 Coins per minute
         pendingOfflineGold = offlineMinutes * 10 * multiplier;
 
         // Item Drop Logic: 1 Item every 30 mins approx
