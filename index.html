@@ -964,11 +964,16 @@
 
         // 1. Auto Skills Check
         if (window.Skills) {
-            const dhDmg = Skills.useDoubleHit();
-            if (dhDmg > 0) { battle.enemy.hp -= dhDmg; popDamage(dhDmg, 'e-box', true); }
+            // Double Hit now handles its own damage loop
+            Skills.useDoubleHit(battle); 
+            
             Skills.useFocus();
+            
             const kbDmg = Skills.useKameBlast();
-            if (kbDmg > 0) { battle.enemy.hp -= kbDmg; popDamage(kbDmg, 'e-box', true); }
+            if (kbDmg > 0) { 
+                battle.enemy.hp -= kbDmg; 
+                popDamage(kbDmg, 'e-box', true); 
+            }
         }
 
         // 2. Normal Attack Logic
