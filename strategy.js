@@ -121,40 +121,36 @@ function openStrategy() {
 }
 
 // Claim Logic
-// Claim Logic
 function claimStrategy() {
     // Add XP & Gold
     player.xp += pendingOfflineXp;
     player.coins += pendingOfflineGold;
 
-    // Add Items (using helper from index.html)
+    // Add Items
     if(typeof addToInventory === 'function') {
         pendingItems.forEach(item => addToInventory(item));
     } else {
-        // Fallback if helper not found
         player.inv.push(...pendingItems);
     }
     
-    // Check Level Up logic (Use WHILE to handle multiple levels at once)
-    while(player.xp >= player.nextXp) {
-        player.lvl++; 
-        player.xp -= player.nextXp; 
-        player.nextXp = Math.floor(player.nextXp * 1.2);
-        
-        // Increase Base Stats per Level
-        player.bHp += 100; 
-        player.bAtk += 10; 
-        player.bDef += 5;
-        
-        // Full Heal on Level Up
-        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-        player.hp = maxHp;
-
-        if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+    // --- CHANGED: Use Global checkLevelUp() to trigger Modal ---
+    if(typeof checkLevelUp === 'function') {
+        checkLevelUp();
+    } else {
+        // Fallback if checkLevelUp is missing (safety)
+        while(player.xp >= player.nextXp) {
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3);
+            player.bHp += 250; player.bAtk += 5; player.bDef += 2;
+            player.hp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+        }
     }
-    
+    // -----------------------------------------------------------
+
     if(pendingOfflineXp > 0) {
-        alert("LEVEL UP! GRAVITY TRAINING COMPLETE!");
+        // Removed alert, modal handles it now
     }
 
     // Reset
