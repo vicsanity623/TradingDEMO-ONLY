@@ -678,7 +678,7 @@
                 rarity: 1 
             };
             addToInventory(item);
-            msg += `\n+1 Saiyan Gear`;
+            msg += `\n+1 BASIC GEAR`;
         }
         
         checkLevelUp();
@@ -1183,7 +1183,6 @@
     }
 
     function handleWin() {
-        // RESET TITLE & BUTTON STYLE
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "STAGE CLEARED!";
         tEl.style.color = "var(--dbz-yellow)";
@@ -1195,18 +1194,11 @@
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
-        // --- DROP LOGIC (SCALED BY WORLD) ---
         let dropText = "NONE";
         let dropCount = 0;
-        
-        // Drop chance loop (0 to 3 items)
         const qty = Math.floor(Math.random() * 4); 
 
-        // Determine Rarity based on World (World 1 = Rarity 1, World 2 = Rarity 2, etc)
-        // Cap at 6 (SSS)
         let dropRarity = Math.min(6, battle.world);
-        
-        // Standardized Values (Must match mergeItems logic for stacking)
         let baseVal = 700;
         let baseName = "Saiyan Gear";
 
@@ -1227,32 +1219,15 @@
         }
 
         if(dropCount > 0) {
-            // Show rarity color in text
             let rColor = "#fff";
-            if(dropRarity === 2) rColor = "#00d2ff"; // Rare
-            if(dropRarity === 3) rColor = "#ff00ff"; // Legendary
-            if(dropRarity >= 4) rColor = "#e74c3c";  // S+
+            if(dropRarity === 2) rColor = "#00d2ff"; 
+            if(dropRarity === 3) rColor = "#ff00ff"; 
+            if(dropRarity >= 4) rColor = "#e74c3c";  
             
             dropText = `<span style="color:${rColor}">+${dropCount} ${baseName.toUpperCase()}</span>`;
         }
-        // -------------------------------------
         
-        if(player.xp >= player.nextXp) {
-            player.lvl++; 
-            player.xp -= player.nextXp; 
-            player.nextXp = Math.floor(player.nextXp * 1.3); // Increased XP req slightly
-            
-            // NEW STAT GROWTH:
-            player.bHp += 250; 
-            player.bAtk += 5; 
-            player.bDef += 2;
-            
-            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-            player.hp = maxHp; // Full heal on level up
-            
-            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
-        }
-
+        checkLevelUp();
         syncUI();
         
         if (window.Skills) {
@@ -1261,7 +1236,7 @@
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
-        document.getElementById('r-drops').innerHTML = dropText; // Changed to innerHTML for color
+        document.getElementById('r-drops').innerHTML = dropText; 
 
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
