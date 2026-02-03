@@ -777,7 +777,6 @@
             
             // Remove 3 items (decrement from stacks)
             let needed = 3;
-            // Iterate backwards to safely remove from array if empty
             for(let i = player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
                 let item = player.inv[i];
@@ -793,12 +792,20 @@
                 }
             }
 
-            // Create new better item
+            // --- FIXED: STANDARDIZED STATS FOR STACKING ---
             const newRarity = sItem.rarity + 1;
-            let mult = (newRarity === 2) ? 2 : 2.5; 
-            const newVal = Math.floor(sItem.val * mult);
-            
-            addToInventory({ n: sItem.n, type: sItem.type, val: newVal, rarity: newRarity });
+            let newVal = 0;
+            let newName = "Saiyan Gear";
+
+            // Hardcoded stats to ensure perfect stacking
+            if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }      // Rare
+            else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; } // Legendary
+            else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }       // S
+            else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }    // SS
+            else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }     // SSS
+            else { newVal = Math.floor(sItem.val * 2); } // Fallback
+
+            addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             
             player.selected = -1;
             syncUI();
@@ -1136,7 +1143,7 @@
     }
 
     function handleWin() {
-        // RESET TITLE & BUTTON STYLE (In case previous was defeat)
+        // RESET TITLE & BUTTON STYLE
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "STAGE CLEARED!";
         tEl.style.color = "var(--dbz-yellow)";
@@ -1148,26 +1155,47 @@
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
+        // --- DROP LOGIC (SCALED BY WORLD) ---
         let dropText = "NONE";
-            let dropCount = 0;
+        let dropCount = 0;
+        
+        // Drop chance loop (0 to 3 items)
+        const qty = Math.floor(Math.random() * 4); 
+
+        // Determine Rarity based on World (World 1 = Rarity 1, World 2 = Rarity 2, etc)
+        // Cap at 6 (SSS)
+        let dropRarity = Math.min(6, battle.world);
+        
+        // Standardized Values (Must match mergeItems logic for stacking)
+        let baseVal = 700;
+        let baseName = "Saiyan Gear";
+
+        if (dropRarity === 2) { baseVal = 1500; baseName = "Elite Gear"; }
+        else if (dropRarity === 3) { baseVal = 3500; baseName = "Legendary Gear"; }
+        else if (dropRarity === 4) { baseVal = 8500; baseName = "God Gear"; }
+        else if (dropRarity === 5) { baseVal = 20000; baseName = "Angel Gear"; }
+        else if (dropRarity === 6) { baseVal = 50000; baseName = "Omni Gear"; }
+
+        for(let i = 0; i < qty; i++) {
+            addToInventory({
+                n: baseName, 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: baseVal, 
+                rarity: dropRarity 
+            });
+            dropCount++;
+        }
+
+        if(dropCount > 0) {
+            // Show rarity color in text
+            let rColor = "#fff";
+            if(dropRarity === 2) rColor = "#00d2ff"; // Rare
+            if(dropRarity === 3) rColor = "#ff00ff"; // Legendary
+            if(dropRarity >= 4) rColor = "#e74c3c";  // S+
             
-            // This generates a number: 0, 1, 2, or 3
-            // This means you have a 75% chance to get at least 1 item now!
-            const qty = Math.floor(Math.random() * 4); 
-    
-            for(let i = 0; i < qty; i++) {
-                addToInventory({
-                    n: "Saiyan Gear", 
-                    type: Math.random() > 0.5 ? 'w' : 'a', 
-                    val: 700 * battle.world, 
-                    rarity: 1 
-                });
-                dropCount++;
-            }
-    
-            if(dropCount > 0) {
-                dropText = `+${dropCount} BASIC GEAR`;
-            }
+            dropText = `<span style="color:${rColor}">+${dropCount} ${baseName.toUpperCase()}</span>`;
+        }
+        // -------------------------------------
         
         if(player.xp >= player.nextXp) {
             player.lvl++; 
@@ -1175,7 +1203,6 @@
             player.nextXp = Math.floor(player.nextXp * 1.3); // Increased XP req slightly
             
             // NEW STAT GROWTH:
-            // High HP gain, Low Atk gain to extend battles
             player.bHp += 250; 
             player.bAtk += 5; 
             player.bDef += 2;
@@ -1194,7 +1221,7 @@
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
-        document.getElementById('r-drops').innerText = dropText;
+        document.getElementById('r-drops').innerHTML = dropText; // Changed to innerHTML for color
 
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
@@ -1204,10 +1231,9 @@
         const menu = document.getElementById('battle-menu');
         menu.style.display = 'flex';
         
-        // Reset Button to NEXT STAGE
         const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
         btnNext.innerText = "NEXT STAGE (3)";
-        btnNext.onclick = autoStartNext; // Reset function
+        btnNext.onclick = autoStartNext; 
         
         let time = 3;
         btnNext.innerText = `NEXT STAGE (${time})`;
