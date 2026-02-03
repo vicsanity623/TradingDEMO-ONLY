@@ -117,12 +117,25 @@
             width: 50px; height: 50px; background: rgba(0,0,0,0.6); border-radius: 50%;
             border: 2px solid #555; display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 0.7rem; color: white; cursor: pointer; backdrop-filter: blur(5px);
+            transition: all 0.2s;
         }
+        .side-btn:active { transform: scale(0.95); }
         .side-btn i { font-size: 1.2rem; margin-bottom: 2px; }
+        
+        /* Pulse animation for ready supply */
+        .btn-ready { 
+            border-color: #00ff00 !important; 
+            box-shadow: 0 0 10px #00ff00 !important;
+            animation: pulseGreen 1.5s infinite;
+        }
+        @keyframes pulseGreen { 0% { box-shadow: 0 0 5px #00ff00; } 50% { box-shadow: 0 0 15px #00ff00; } 100% { box-shadow: 0 0 5px #00ff00; } }
 
         .gacha-view { 
             flex: 1; position: relative; display: flex; justify-content: center; align-items: center; 
             margin-top: 10px; min-height: 300px;
+            /* Make Goku clickable */
+            cursor: pointer; 
+            -webkit-tap-highlight-color: transparent;
         }
         .aura { 
             position: absolute; width: 220px; height: 280px; 
@@ -131,7 +144,8 @@
             display: none; z-index: 1;
         }
         @keyframes auraPulse { from { transform: scale(1); opacity: 0.4; } to { transform: scale(1.2); opacity: 0.8; } }
-        .main-sprite { height: 90%; z-index: 2; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.3s; }
+        .main-sprite { height: 90%; z-index: 2; filter: drop-shadow(0 0 15px rgba(0,0,0,0.8)); transition: transform 0.1s; }
+        .main-sprite:active { transform: scale(0.95); filter: brightness(1.2); }
 
         .bottom-panel {
             background: #eef2f5; 
@@ -212,60 +226,13 @@
             display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 1.2rem;
         }
 
-        /* --- BATTLE SCREEN CSS UPDATES --- */
-        .bar-wrap { 
-            width: 100%; 
-            background: #222; 
-            height: 15px; 
-            border-radius: 8px; 
-            margin: 5px 0; 
-            overflow: hidden; 
-            border: 1px solid #444; 
-            position: relative;
-            z-index: 5;
-        }
-        .bar-fill { 
-            height: 100%; 
-            width: 0%; 
-            transition: width 0.1s linear; 
-        }
+        /* --- BATTLE SCREEN --- */
+        .bar-wrap { width: 100%; background: #222; height: 15px; border-radius: 8px; margin: 5px 0; overflow: hidden; border: 1px solid #444; position: relative;}
+        .bar-fill { height: 100%; width: 0%; transition: width 0.1s linear; }
         .hp-f { background: linear-gradient(to right, #ff3e3e, #ff0000); }
         .xp-f { background: linear-gradient(to right, #00d2ff, #3a86ff); }
         .charge-f { background: linear-gradient(to right, #FFD700, #ff8c00); box-shadow: 0 0 10px #FFD700; }
-        .unit { 
-            width: 140px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            position: relative; 
-            /* Removed transition here to control it via JS classes for snappiness */
-        }
-        
-        /* New aggressive attack animation class */
-        .attacking-right { animation: lungeRight 0.15s ease-in-out; }
-        .attacking-left  { animation: lungeLeft 0.15s ease-in-out; }
-        
-        /* New impact shake class */
-        .hit-shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
-        
-        @keyframes lungeRight {
-            0% { transform: translateX(0) scale(1); }
-            50% { transform: translateX(60px) scale(1.1); } /* Lunges further */
-            100% { transform: translateX(0) scale(1); }
-        }
-        
-        @keyframes lungeLeft {
-            0% { transform: translateX(0) scale(1); }
-            50% { transform: translateX(-60px) scale(1.1); }
-            100% { transform: translateX(0) scale(1); }
-        }
-        
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); } /* Flash Red/White */
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-            40%, 60% { transform: translate3d(8px, 0, 0); }
-        }
+
         /* RARITY STYLES */
         .item-basic { color: var(--rarity-common); border-color: #555 !important; }
         .item-rare { color: var(--rarity-rare); border-color: var(--rarity-rare) !important; box-shadow: inset 0 0 5px var(--rarity-rare); }
@@ -296,20 +263,21 @@
         /* UPDATED BEAM STYLES FOR PNG */
         .beam { 
             position: absolute; 
-            height: 100px; /* Adjust height based on png aspect ratio */
-            width: 0; /* Starts empty */
+            height: 100px; 
+            width: 0; 
             left: 20%; 
             top: 50%; 
             transform: translateY(-50%);
             z-index: 10; 
             pointer-events: none; 
             opacity: 0;
-            object-fit: fill; /* Stretch image */
+            object-fit: fill; 
             transform-origin: left center;
             transition: width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in;
             filter: drop-shadow(0 0 15px cyan);
         }
         
+        /* Floating Damage / Reward Text */
         .pop { 
             position: absolute; 
             color: yellow; 
@@ -392,6 +360,11 @@
         </div>
 
         <div class="side-menu">
+            <!-- NEW: Free Supply Button -->
+            <div class="side-btn" id="btn-supply" onclick="claimSupply()">
+                <i>🎁</i> Supply
+            </div>
+            
             <div class="side-btn" onclick="openStrategy()">
                 <i>💊</i> Strategy
             </div>
@@ -403,7 +376,8 @@
             </div>
         </div>
 
-        <div class="gacha-view">
+        <!-- NEW: Added onclick for Shadow Training -->
+        <div class="gacha-view" onclick="tapTrain()">
             <div id="ui-aura" class="aura"></div>
             <img id="ui-sprite" src="IMG_0054.png" class="main-sprite">
         </div>
@@ -509,8 +483,7 @@
         <div id="start-prompt">SELECT A STAGE<br>TO BEGIN FIGHT!</div>
 
         <div class="arena">
-            <!-- UPDATED BEAM to IMG -->
-            <img id="fx-beam" class="beam" src="hb_b.png">
+            <div id="fx-beam" class="beam"></div>
             
             <div class="unit" id="p-box">
                 <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
@@ -549,8 +522,9 @@
     let apiData = { characters: [], planets: [] };
     let player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
-        bAtk: 25, bDef: 10, bHp: 1000, hp: 1000, charge: 0, // HP 1000, Lowered Base Atk
-        inv: [], gear: { w: null, a: null }, selected: -1
+        bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
+        inv: [], gear: { w: null, a: null }, selected: -1,
+        lastCapsule: 0 // Track last supply claim
     };
     let battle = { 
         stage: 1, 
@@ -561,7 +535,7 @@
         autoTimerId: null,
         pInterval: null,
         eInterval: null,
-        cinematic: false // Added Cinematic Flag
+        cinematic: false 
     };
     window.GameState = {
         get gokuLevel() { return player.lvl; },
@@ -595,16 +569,119 @@
         
             setInterval(saveGame, 30000);
             
+            // Check button state every second
+            setInterval(updateCapsuleBtn, 1000);
+            
         } catch (e) {
             console.error("API Error", e);
             document.getElementById('loader').style.display = 'none';
         }
     }
 
-    function saveGame() {
-        // Update the timestamp on the player object before saving
-        player.lastSave = Date.now(); 
+    // --- NEW: CAPSULE SUPPLY LOGIC ---
+    function claimSupply() {
+        const now = Date.now();
+        const cooldown = 60000; // 60 seconds
         
+        // Handle init case
+        if(!player.lastCapsule) player.lastCapsule = 0;
+        
+        const diff = now - player.lastCapsule;
+        
+        if(diff < cooldown) {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            alert(`Supply Capsule recharging... ${rem}s remaining.`);
+            return;
+        }
+        
+        player.lastCapsule = now;
+        
+        // Rewards Calculation
+        const base = 50 * (player.lvl || 1);
+        const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
+        const coinGain = Math.floor(base * 0.5);
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        let msg = `SUPPLY DROP RECEIVED!\n\n+${xpGain} XP\n+${coinGain} Coins`;
+        
+        // 30% Chance for Item
+        if(Math.random() < 0.3) {
+            const item = {
+                n: "Capsule Gear", 
+                type: Math.random() > 0.5 ? 'w' : 'a', 
+                val: 700, // Standardized Rarity 1 Value
+                rarity: 1 
+            };
+            addToInventory(item);
+            msg += `\n+1 BASIC GEAR`;
+        }
+        
+        checkLevelUp();
+        syncUI();
+        saveGame();
+        
+        alert(msg);
+        updateCapsuleBtn();
+    }
+
+    function updateCapsuleBtn() {
+        const btn = document.getElementById('btn-supply');
+        if(!btn) return;
+        
+        const now = Date.now();
+        const cooldown = 60000;
+        const diff = now - (player.lastCapsule || 0);
+        
+        if(diff >= cooldown) {
+            btn.innerHTML = "<i>🎁</i> Supply Ready!";
+            btn.classList.add('btn-ready');
+            btn.style.color = "#fff";
+        } else {
+            const rem = Math.ceil((cooldown - diff) / 1000);
+            btn.innerHTML = `<i>⏳</i> ${rem}s`;
+            btn.classList.remove('btn-ready');
+            btn.style.color = "#777";
+        }
+    }
+
+    // --- NEW: SHADOW SPARRING (TAP TRAINING) ---
+    function tapTrain() {
+        // Simple clicker mechanic for Hub
+        const xpGain = Math.ceil(player.lvl / 2);
+        const coinGain = 1;
+        
+        player.xp += xpGain;
+        player.coins += coinGain;
+        
+        // Visual Pop on Goku
+        popDamage(`+${xpGain} XP`, 'view-char', true); // Reuse pop logic
+        
+        checkLevelUp();
+        syncUI();
+    }
+
+    // Extracted Level Up Logic for reuse
+    function checkLevelUp() {
+        while(player.xp >= player.nextXp) {
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3);
+            
+            player.bHp += 250; 
+            player.bAtk += 5; 
+            player.bDef += 2;
+            
+            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            player.hp = maxHp;
+            
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+        }
+    }
+
+    function saveGame() {
+        player.lastSave = Date.now(); 
         const saveData = {
             player: player,
             battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
@@ -623,7 +700,6 @@
                     battle.world = parsed.battle.world || 1;
                     battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                // Backwards compatibility for stacking
                 player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
@@ -650,9 +726,7 @@
         syncUI();
     }
 
-    // --- NEW INVENTORY LOGIC ---
     function addToInventory(item) {
-        // Try to stack
         const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) {
             found.qty++;
@@ -684,7 +758,6 @@
         const xpPct = (player.xp / player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // RENDER INVENTORY
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         
@@ -718,7 +791,6 @@
         if(player.selected !== -1) {
             const sItem = player.inv[player.selected];
             
-            // Check count for merge (Stacks + other slots)
             let totalCount = 0;
             player.inv.forEach(i => {
                 if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
@@ -766,7 +838,6 @@
         
         if(player.coins < cost) { alert("Not enough coins!"); return; }
 
-        // Recalculate count
         let totalCount = 0;
         player.inv.forEach(i => {
             if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
@@ -775,7 +846,6 @@
         if(totalCount >= 3) {
             player.coins -= cost;
             
-            // Remove 3 items (decrement from stacks)
             let needed = 3;
             for(let i = player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
@@ -792,18 +862,16 @@
                 }
             }
 
-            // --- FIXED: STANDARDIZED STATS FOR STACKING ---
             const newRarity = sItem.rarity + 1;
             let newVal = 0;
             let newName = "Saiyan Gear";
 
-            // Hardcoded stats to ensure perfect stacking
-            if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }      // Rare
-            else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; } // Legendary
-            else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }       // S
-            else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }    // SS
-            else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }     // SSS
-            else { newVal = Math.floor(sItem.val * 2); } // Fallback
+            if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }      
+            else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; } 
+            else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }       
+            else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }    
+            else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }     
+            else { newVal = Math.floor(sItem.val * 2); } 
 
             addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             
@@ -825,9 +893,7 @@
     function doEquip() {
         if(player.selected === -1) return;
         
-        const stackItem = player.inv[player.selected]; // This is the stack
-        
-        // Create a single instance to equip (clone basic props)
+        const stackItem = player.inv[player.selected]; 
         const itemToEquip = { 
             n: stackItem.n, 
             type: stackItem.type, 
@@ -836,22 +902,15 @@
             qty: 1 
         };
 
-        const old = player.gear[stackItem.type]; // Currently equipped
-        
-        // Equip new
+        const old = player.gear[stackItem.type]; 
         player.gear[stackItem.type] = itemToEquip;
-        
-        // Remove 1 from inventory stack
         stackItem.qty--;
         if(stackItem.qty <= 0) {
             player.inv.splice(player.selected, 1);
         }
-
-        // Put old gear back in inventory
         if(old) {
             addToInventory(old);
         }
-
         player.selected = -1;
         syncUI();
     }
@@ -880,9 +939,8 @@
         battle.active = false;
         GameState.inBattle = false;
     
-        // Clear Timeouts instead of Intervals
-        clearTimeout(battle.pInterval);
-        clearTimeout(battle.eInterval);
+        clearInterval(battle.pInterval);
+        clearInterval(battle.eInterval);
     }
 
     function exitBattle() {
@@ -908,16 +966,10 @@
         startBattle();
     }
     
-    // NEW: Function to restart from Stage 1 immediately on death
     function restartGame() {
-        // Heal
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         player.hp = maxHp;
-        
-        // Reset Charge (Penalty for losing)
         player.charge = 0;
-
-        // Reset to Stage 1
         battle.stage = 1;
         
         document.getElementById('battle-menu').style.display = 'none';
@@ -952,85 +1004,51 @@
         const banner = document.getElementById('ready-msg');
         banner.style.display = "block";
         banner.innerText = "READY?";
-        await new Promise(r => setTimeout(r, 800)); // Slightly faster intro
+        await new Promise(r => setTimeout(r, 1000));
         banner.innerText = "FIGHT!";
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 600));
         banner.style.display = "none";
         
         log.innerHTML = `<div style="color:white">Battle Started!</div>`;
         
-        // KICK OFF THE LOOPS
-        playerCombatLoop();
-        enemyCombatLoop();
-    }
-
-    // NEW: Recursive Player Loop
-    function playerCombatLoop() {
-        if(!battle.active) return;
-        if(battle.cinematic) { setTimeout(playerCombatLoop, 100); return; } // Wait if cinematic playing
-
-        // 1. Auto Skills Check
-        if (window.Skills) {
-            // Double Hit now handles its own damage loop
-            Skills.useDoubleHit(battle); 
-            
-            Skills.useFocus();
-            
-            const kbDmg = Skills.useKameBlast();
-            if (kbDmg > 0) { 
-                battle.enemy.hp -= kbDmg; 
-                popDamage(kbDmg, 'e-box', true); 
+        battle.pInterval = setInterval(() => {
+            if(!battle.active || battle.cinematic) return; 
+    
+            if (window.Skills) {
+                const dhDmg = Skills.useDoubleHit();
+                if (dhDmg > 0) {
+                    battle.enemy.hp -= dhDmg;
+                    popDamage(dhDmg, 'e-box', true);
+                }
+                Skills.useFocus();
+                const kbDmg = Skills.useKameBlast();
+                if (kbDmg > 0) {
+                    battle.enemy.hp -= kbDmg;
+                    popDamage(kbDmg, 'e-box', true);
+                }
             }
-        }
-
-        // 2. Normal Attack Logic
-        if(player.charge >= 100) {
-            executeSpecial();
-        } else {
-            executeStrike('p');
-        }
-
-        updateBars();
-
-        // 3. Randomize next attack (Fast: 150ms to 450ms)
-        const nextAttackDelay = Math.floor(Math.random() * 300) + 150; 
-        battle.pInterval = setTimeout(playerCombatLoop, nextAttackDelay);
-    }
-
-    // NEW: Recursive Enemy Loop
-    function enemyCombatLoop() {
-        if(!battle.active) return;
-        if(battle.cinematic) { setTimeout(enemyCombatLoop, 100); return; }
-
-        executeStrike('e');
-
-        // Randomize enemy attack (Slightly slower than player to be fair: 300ms to 700ms)
-        const nextAttackDelay = Math.floor(Math.random() * 400) + 300; 
-        battle.eInterval = setTimeout(enemyCombatLoop, nextAttackDelay);
+    
+            if(player.charge >= 100) {
+                executeSpecial();
+            } else {
+                executeStrike('p');
+            }
+    
+            updateBars();
+        }, 400);
+    
+        battle.eInterval = setInterval(() => {
+            if(!battle.active || battle.cinematic) return; 
+            executeStrike('e');
+        }, 500);
     }
 
     function spawnPersistentEnemy() {
-        // SCALING MATH UPDATE:
-        // 1. We reduce the exponent (1.8 -> 1.5) so stats don't break the game at stage 10.
-        // 2. We multiply by World (25 -> 10) to control difficulty spikes.
-        const difficultyMult = Math.pow(1.5, battle.stage) * Math.pow(5, battle.world - 1);
-        
+        const scale = Math.pow(1.8, battle.stage) * Math.pow(25, battle.world - 1);
         const charIdx = (battle.stage + (battle.world * 3)) % apiData.characters.length;
         let dat = apiData.characters[charIdx] || {name:"Guardian", image:""};
         
-        // BALANCING:
-        // Enemy HP starts high (3000) so fights last 15-30 seconds.
-        // Enemy Atk starts moderate (60) so Goku (1000 HP) can take ~15-20 hits.
-        const eHp = Math.floor(3000 * difficultyMult);
-        const eAtk = Math.floor(60 * difficultyMult);
-
-        battle.enemy = { 
-            name: dat.name, 
-            hp: eHp, 
-            maxHp: eHp, 
-            atk: eAtk, 
-            i: dat.image 
-        };
+        battle.enemy = { name: dat.name, hp: 250 * scale, maxHp: 250 * scale, atk: 30 * scale, i: dat.image };
         
         document.getElementById('e-img').src = battle.enemy.i;
         document.getElementById('e-name').innerText = battle.enemy.name;
@@ -1041,38 +1059,21 @@
 
         const isP = (side === 'p');
         const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
-        const targetStats = isP ? battle.enemy : player;
+        const target = isP ? battle.enemy : player;
+        const targetId = isP ? 'e-box' : 'p-box';
         
-        // DOM Elements
-        const attackerEl = document.getElementById(isP ? 'p-box' : 'e-box');
-        const victimEl = document.getElementById(isP ? 'e-box' : 'p-box');
-        const victimId = isP ? 'e-box' : 'p-box';
-
-        // Charge Logic
-        if(isP) player.charge += 26; // Increased charge gain slightly due to speed
+        if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
-        // Damage Calculation
-        const dmg = Math.floor(atkVal * (0.8 + Math.random() * 0.4));
-        targetStats.hp -= dmg;
+        const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
+        target.hp -= dmg;
         
-        popDamage(dmg, victimId);
+        popDamage(dmg, targetId);
         updateBars();
         
-        // --- NEW VISUAL LOGIC ---
-        
-        // 1. Add Attacker Lunge
-        const lungeClass = isP ? 'attacking-right' : 'attacking-left';
-        attackerEl.classList.remove(lungeClass);
-        void attackerEl.offsetWidth; // Trigger Reflow to restart animation
-        attackerEl.classList.add(lungeClass);
-
-        // 2. Add Victim Shake/Flash
-        victimEl.classList.remove('hit-shake');
-        void victimEl.offsetWidth; 
-        victimEl.classList.add('hit-shake');
-        
-        // ------------------------
+        const el = document.getElementById(isP ? 'p-box' : 'e-box');
+        el.style.transform = isP ? 'translateX(30px)' : 'translateX(-30px)';
+        setTimeout(() => el.style.transform = 'translateX(0)', 50);
 
         if(battle.enemy.hp <= 0) {
             stopCombat();
@@ -1091,21 +1092,17 @@
         player.charge = 0; 
         updateBars();
 
-        // 1. Show Cut-In
         const cutInWrap = document.getElementById('cutin-overlay');
         const cutInImg = document.getElementById('cutin-img');
         cutInImg.src = (player.rank >= 1) ? 'charged_s.png' : 'charged_b.png';
         cutInWrap.style.display = 'flex';
 
-        // 2. Wait for partial cut-in (450ms)
         await new Promise(r => setTimeout(r, 450)); 
 
-        // 3. Fire Beam (Crossfade)
         const beam = document.getElementById('fx-beam');
         beam.style.opacity = '1';
-        beam.style.width = '90%'; // Fill screen horizontally
+        beam.style.width = '90%'; 
 
-        // 4. Wait a bit more, then hide cut-in
         await new Promise(r => setTimeout(r, 200)); 
         cutInWrap.style.display = 'none';
 
@@ -1117,20 +1114,18 @@
         updateBars();
 
         setTimeout(() => {
-            beam.style.transition = "opacity 0.2s ease-out"; // Only animate opacity
+            beam.style.transition = "opacity 0.2s ease-out"; 
             beam.style.opacity = '0'; 
             
-            // Wait for fade to finish, then reset width instantly
             setTimeout(() => {
-                beam.style.transition = "none"; // Disable animation for reset
+                beam.style.transition = "none"; 
                 beam.style.width = "0"; 
                 
-                // Restore original transition for next time
                 setTimeout(() => {
                     beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
                 }, 50);
 
-                battle.cinematic = false; // Resume combat
+                battle.cinematic = false; 
             }, 200);
             
         }, 300);
@@ -1143,7 +1138,6 @@
     }
 
     function handleWin() {
-        // RESET TITLE & BUTTON STYLE
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "STAGE CLEARED!";
         tEl.style.color = "var(--dbz-yellow)";
@@ -1155,18 +1149,11 @@
         
         document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
         
-        // --- DROP LOGIC (SCALED BY WORLD) ---
         let dropText = "NONE";
         let dropCount = 0;
-        
-        // Drop chance loop (0 to 3 items)
         const qty = Math.floor(Math.random() * 4); 
 
-        // Determine Rarity based on World (World 1 = Rarity 1, World 2 = Rarity 2, etc)
-        // Cap at 6 (SSS)
         let dropRarity = Math.min(6, battle.world);
-        
-        // Standardized Values (Must match mergeItems logic for stacking)
         let baseVal = 700;
         let baseName = "Saiyan Gear";
 
@@ -1187,32 +1174,15 @@
         }
 
         if(dropCount > 0) {
-            // Show rarity color in text
             let rColor = "#fff";
-            if(dropRarity === 2) rColor = "#00d2ff"; // Rare
-            if(dropRarity === 3) rColor = "#ff00ff"; // Legendary
-            if(dropRarity >= 4) rColor = "#e74c3c";  // S+
+            if(dropRarity === 2) rColor = "#00d2ff"; 
+            if(dropRarity === 3) rColor = "#ff00ff"; 
+            if(dropRarity >= 4) rColor = "#e74c3c";  
             
             dropText = `<span style="color:${rColor}">+${dropCount} ${baseName.toUpperCase()}</span>`;
         }
-        // -------------------------------------
         
-        if(player.xp >= player.nextXp) {
-            player.lvl++; 
-            player.xp -= player.nextXp; 
-            player.nextXp = Math.floor(player.nextXp * 1.3); // Increased XP req slightly
-            
-            // NEW STAT GROWTH:
-            player.bHp += 250; 
-            player.bAtk += 5; 
-            player.bDef += 2;
-            
-            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-            player.hp = maxHp; // Full heal on level up
-            
-            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
-        }
-
+        checkLevelUp();
         syncUI();
         
         if (window.Skills) {
@@ -1221,7 +1191,7 @@
         
         document.getElementById('r-xp').innerText = xpGain;
         document.getElementById('r-coins').innerText = coinGain;
-        document.getElementById('r-drops').innerHTML = dropText; // Changed to innerHTML for color
+        document.getElementById('r-drops').innerHTML = dropText; 
 
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
@@ -1244,21 +1214,17 @@
         }, 1000);
     }
 
-    // UPDATED DEFEAT HANDLER
     function handleDefeat() {
         stopCombat();
         
-        // AUTO HEAL so player can restart immediately
         const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
         player.hp = maxHp; 
         syncUI();
 
-        // Change Title
         const tEl = document.getElementById('menu-title');
         tEl.innerText = "DEFEATED";
-        tEl.style.color = "#c0392b"; // Red
+        tEl.style.color = "#c0392b"; 
 
-        // Show Stats (No gains)
         document.getElementById('r-lvl').innerText = player.lvl;
         document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
         const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
@@ -1268,17 +1234,14 @@
         document.getElementById('r-coins').innerText = "0";
         document.getElementById('r-drops').innerText = "NONE";
 
-        // Update Buttons for Defeat
         const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
-        btnNext.onclick = restartGame; // Change function
+        btnNext.onclick = restartGame; 
         
-        let time = 5; // Longer time for defeat
+        let time = 5; 
         btnNext.innerText = `RESTART (STAGE 1) (${time})`;
         
-        // Show Menu
         document.getElementById('battle-menu').style.display = 'flex';
 
-        // Auto restart timer
         battle.autoTimerId = setInterval(() => {
             time--;
             btnNext.innerText = `RESTART (STAGE 1) (${time})`;
@@ -1299,20 +1262,35 @@
     function popDamage(dmg, id, isSpecial = false) {
         const d = document.createElement('div');
         d.className = 'pop';
-        d.innerText = "-" + Math.floor(dmg);
         
-        if(isSpecial) {
-            d.style.color = 'cyan';
-            d.style.fontSize = '3rem';
-            d.style.zIndex = 30;
+        if (typeof dmg === 'string') {
+            d.innerText = dmg; 
+            d.style.color = '#00ff00'; 
+            d.style.fontSize = '1.5rem';
+        } else {
+            d.innerText = "-" + Math.floor(dmg);
+            if(isSpecial) {
+                d.style.color = 'cyan';
+                d.style.fontSize = '3rem';
+                d.style.zIndex = 30;
+            }
         }
 
         const randomX = (Math.random() * 40) - 20; 
         const randomY = (Math.random() * 40) - 20;
-        d.style.left = `calc(50% + ${randomX}px)`;
-        d.style.top = `calc(20% + ${randomY}px)`;
+        
+        // Use relative positioning if in Hub
+        if(id === 'view-char') {
+             d.style.left = `50%`;
+             d.style.top = `40%`;
+        } else {
+             d.style.left = `calc(50% + ${randomX}px)`;
+             d.style.top = `calc(20% + ${randomY}px)`;
+        }
 
-        document.getElementById(id).appendChild(d);
+        const container = document.getElementById(id);
+        if(container) container.appendChild(d);
+        
         setTimeout(() => d.remove(), 600);
     }
 </script>
