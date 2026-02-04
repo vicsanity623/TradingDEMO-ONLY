@@ -26,8 +26,8 @@
             const multiplier = (player.rank || 0) + 1;
             
             // Calc Gains
-            pendingOfflineXp = offlineMinutes * 53 * multiplier;
-            pendingOfflineGold = offlineMinutes * 100 * multiplier;
+            pendingOfflineXp = offlineMinutes * 225 * multiplier;
+            pendingOfflineGold = offlineMinutes * 500 * multiplier;
 
             // Item Logic: ~50% chance every 30 mins
             pendingItems = [];
