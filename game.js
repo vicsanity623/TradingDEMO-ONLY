@@ -1,4 +1,5 @@
-// Wrap logic in an IIFE to prevent global namespace pollution and cheating
+// Wrap logic in an IIFE to keep helper functions private, 
+// but expose State Objects to the Window so other scripts can see them.
 (function() {
     
     // --- CONSTANTS & CONFIG ---
@@ -19,20 +20,21 @@
     const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
     const RARITY_NAMES = {1:"B", 2:"R", 3:"L", 4:"S", 5:"SS", 6:"SSS"};
 
-    // --- STATE MANAGEMENT ---
-    // 'isDirty' prevents writing to storage if nothing has changed
-    let isDirty = false; 
-
-    let apiData = { characters: [], planets: [] };
+    // --- STATE MANAGEMENT (GLOBAL) ---
+    // We attach these to 'window' so battle.js, gear.js, and strategy.js can access them.
     
-    let player = {
+    window.isDirty = false; 
+
+    window.apiData = { characters: [], planets: [] };
+    
+    window.player = {
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
         bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1,
         lastCapsule: 0
     };
 
-    let battle = { 
+    window.battle = { 
         stage: 1, 
         world: 1, 
         maxStage: 1, 
@@ -51,16 +53,16 @@
         });
     }
 
-    // Expose GameState for external scripts (like battle.js) to read safely
+    // Expose GameState for readable derived stats
     window.GameState = {
-        get gokuLevel() { return player.lvl; },
+        get gokuLevel() { return window.player.lvl; },
         get gokuPower() {
-            return (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0));
+            return (window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0));
         },
-        get gokuHP() { return player.hp; },
-        set gokuHP(v) { player.hp = v; },
+        get gokuHP() { return window.player.hp; },
+        set gokuHP(v) { window.player.hp = v; },
         get gokuMaxHP() {
-            return player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            return window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
         },
         inBattle: false
     };
@@ -72,7 +74,7 @@
             const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
             
             if (cachedData) {
-                apiData = JSON.parse(cachedData);
+                window.apiData = JSON.parse(cachedData);
             } else {
                 // If not in cache, fetch from network
                 const [charRes, planRes] = await Promise.all([
@@ -83,11 +85,11 @@
                 const charJson = await charRes.json();
                 const planJson = await planRes.json();
                 
-                apiData.characters = charJson.items;
-                apiData.planets = planJson.items;
+                window.apiData.characters = charJson.items;
+                window.apiData.planets = planJson.items;
 
                 // Save to cache to save bandwidth on next load
-                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(apiData));
+                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(window.apiData));
             }
             
             loadGame();
@@ -97,7 +99,7 @@
             
             syncUI();
             
-            // Ensure external scripts exist before calling
+            // Initialize External Modules if they exist
             if(typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if(typeof window.initStrategy === 'function') window.initStrategy();
         
@@ -113,22 +115,22 @@
     // --- CORE LOGIC ---
 
     function showLevelUp(oldLvl, newLvl) {
-        if(battle.active) {
-            battle.cinematic = true;
+        if(window.battle.active) {
+            window.battle.cinematic = true;
         }
 
         document.getElementById('lvl-up-old').innerText = oldLvl;
         document.getElementById('lvl-up-new').innerText = newLvl;
         
-        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-        const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
-        const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
+        const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
+        const atk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
+        const def = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
 
         document.getElementById('lvl-stats-hp').innerText = maxHp;
         document.getElementById('lvl-stats-atk').innerText = atk;
         document.getElementById('lvl-stats-def').innerText = def;
 
-        const img = (player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
+        const img = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         document.getElementById('lvl-up-img').src = img;
 
         document.getElementById('levelup-modal').style.display = 'flex';
@@ -136,33 +138,33 @@
 
     function closeLevelUp() {
         document.getElementById('levelup-modal').style.display = 'none';
-        if(window.GameState.inBattle && battle.active) {
-            battle.cinematic = false;
+        if(window.GameState.inBattle && window.battle.active) {
+            window.battle.cinematic = false;
         }
     }
 
     function checkLevelUp() {
         let leveledUp = false;
-        const oldLvl = player.lvl;
+        const oldLvl = window.player.lvl;
 
-        while(player.xp >= player.nextXp) {
-            player.lvl++; 
-            player.xp -= player.nextXp; 
-            player.nextXp = Math.floor(player.nextXp * 1.3);
+        while(window.player.xp >= window.player.nextXp) {
+            window.player.lvl++; 
+            window.player.xp -= window.player.nextXp; 
+            window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
             
-            player.bHp += 250; 
-            player.bAtk += 5; 
-            player.bDef += 2;
+            window.player.bHp += 250; 
+            window.player.bAtk += 5; 
+            window.player.bDef += 2;
             
-            const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-            player.hp = maxHp;
+            const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
+            window.player.hp = maxHp;
             
-            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+            if(window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
             leveledUp = true;
         }
 
         if(leveledUp) {
-            showLevelUp(oldLvl, player.lvl);
+            showLevelUp(oldLvl, window.player.lvl);
             syncUI();
             saveGame(); // Force save on level up
         }
@@ -171,8 +173,8 @@
     function claimSupply() {
         const now = Date.now();
         
-        if(!player.lastCapsule) player.lastCapsule = 0;
-        const diff = now - player.lastCapsule;
+        if(!window.player.lastCapsule) window.player.lastCapsule = 0;
+        const diff = now - window.player.lastCapsule;
         
         if(diff < CONFIG.CAPSULE_COOLDOWN) {
             const rem = Math.ceil((CONFIG.CAPSULE_COOLDOWN - diff) / 1000);
@@ -180,15 +182,15 @@
             return;
         }
         
-        player.lastCapsule = now;
+        window.player.lastCapsule = now;
         
-        const base = 50 * (player.lvl || 1);
+        const base = 50 * (window.player.lvl || 1);
         const xpGain = Math.floor(base * (0.8 + Math.random() * 0.4));
         const coinGain = Math.floor(base * 0.5);
         
-        player.xp += xpGain;
-        player.coins += coinGain;
-        isDirty = true;
+        window.player.xp += xpGain;
+        window.player.coins += coinGain;
+        window.isDirty = true;
         
         let msg = `SUPPLY DROP RECEIVED!\n\n+${xpGain} XP\n+${coinGain} Coins`;
         
@@ -218,7 +220,7 @@
         if(!btn) return;
         
         const now = Date.now();
-        const diff = now - (player.lastCapsule || 0);
+        const diff = now - (window.player.lastCapsule || 0);
         
         if(diff >= CONFIG.CAPSULE_COOLDOWN) {
             btn.innerHTML = "<i>🎁</i> Supply Ready!";
@@ -233,12 +235,12 @@
     }
 
     function tapTrain() {
-        const xpGain = Math.ceil(player.lvl / 2);
+        const xpGain = Math.ceil(window.player.lvl / 2);
         const coinGain = 1;
         
-        player.xp += xpGain;
-        player.coins += coinGain;
-        isDirty = true;
+        window.player.xp += xpGain;
+        window.player.coins += coinGain;
+        window.isDirty = true;
         
         popDamage(`+${xpGain} XP`, 'view-char', true);
         
@@ -247,16 +249,15 @@
     }
 
     function saveGame() {
-        // OPTIMIZATION: Only save if data has changed (Dirty Flag)
-        if (!isDirty) return;
+        if (!window.isDirty) return;
 
-        player.lastSave = Date.now(); 
+        window.player.lastSave = Date.now(); 
         const saveData = {
-            player: player,
-            battle: { stage: battle.stage, world: battle.world, maxStage: battle.maxStage }
+            player: window.player,
+            battle: { stage: window.battle.stage, world: window.battle.world, maxStage: window.battle.maxStage }
         };
         localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(saveData));
-        isDirty = false; // Reset flag
+        window.isDirty = false;
     }
 
     function loadGame() {
@@ -264,19 +265,20 @@
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                if(parsed.player) player = parsed.player;
+                if(parsed.player) window.player = parsed.player;
                 if(parsed.battle) {
-                    battle.stage = parsed.battle.stage || 1;
-                    battle.world = parsed.battle.world || 1;
-                    battle.maxStage = parsed.battle.maxStage || 1;
+                    window.battle.stage = parsed.battle.stage || 1;
+                    window.battle.world = parsed.battle.world || 1;
+                    window.battle.maxStage = parsed.battle.maxStage || 1;
                 }
-                player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
+                // Ensure inventory quantity integrity
+                window.player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
             } catch (e) { console.error("Save file corrupted", e); }
         }
     }
 
     window.addEventListener('beforeunload', () => {
-        isDirty = true; // Force save on exit
+        window.isDirty = true; // Force save on exit
         saveGame();
     });
 
@@ -291,7 +293,7 @@
         if(tab) tab.classList.add('active');
         
         if(t === 'battle') {
-            if(!battle.active) {
+            if(!window.battle.active) {
                 const prompt = document.getElementById('start-prompt');
                 const eImg = document.getElementById('e-img');
                 const eName = document.getElementById('e-name');
@@ -311,18 +313,18 @@
     }
 
     function addToInventory(item) {
-        const found = player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
+        const found = window.player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) {
             found.qty++;
         } else {
             item.qty = 1;
-            player.inv.push(item);
+            window.player.inv.push(item);
         }
-        isDirty = true;
+        window.isDirty = true;
     }
 
     function syncUI() {
-        const sprite = (player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
+        const sprite = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         
         const uiSprite = document.getElementById('ui-sprite');
         const btlSprite = document.getElementById('btl-p-sprite');
@@ -330,11 +332,11 @@
 
         if(uiSprite) uiSprite.src = sprite;
         if(btlSprite) btlSprite.src = sprite;
-        if(uiAura) uiAura.style.display = (player.rank >= 1) ? "block" : "none";
+        if(uiAura) uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
         
-        const maxHp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
-        const atk = player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0);
-        const def = player.bDef + (player.rank * 150) + (player.gear.a?.val || 0);
+        const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
+        const atk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
+        const def = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
 
         const els = {
             rank: document.getElementById('ui-rank-badge'),
@@ -351,17 +353,17 @@
             equipBtn: document.getElementById('btn-action')
         };
 
-        if(els.rank) els.rank.innerText = RANKS[player.rank].substring(0,2);
-        if(els.name) els.name.innerText = player.rank > 0 ? "Goku " + RANKS[player.rank] : "Goku";
-        if(els.lvl) els.lvl.innerText = player.lvl;
+        if(els.rank) els.rank.innerText = RANKS[window.player.rank].substring(0,2);
+        if(els.name) els.name.innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
+        if(els.lvl) els.lvl.innerText = window.player.lvl;
         if(els.atk) els.atk.innerText = atk;
         if(els.def) els.def.innerText = def;
-        if(els.coins) els.coins.innerText = player.coins;
-        if(els.hp) els.hp.innerText = `${Math.floor(player.hp)}`;
+        if(els.coins) els.coins.innerText = window.player.coins;
+        if(els.hp) els.hp.innerText = `${Math.floor(window.player.hp)}`;
         if(els.power) els.power.innerText = (atk * 30 + maxHp).toLocaleString();
         
         if(els.xpBar) {
-            const xpPct = (player.xp / player.nextXp) * 100;
+            const xpPct = (window.player.xp / window.player.nextXp) * 100;
             els.xpBar.style.width = xpPct + "%";
         }
         
@@ -373,7 +375,7 @@
             if(els.mergeBtn) els.mergeBtn.style.display = 'none';
             if(els.equipBtn) els.equipBtn.style.display = 'flex'; 
 
-            player.inv.forEach((item, i) => {
+            window.player.inv.forEach((item, i) => {
                 const d = document.createElement('div');
                 let rClass = 'item-basic';
                 if(item.rarity === 2) rClass = 'item-rare';
@@ -382,13 +384,13 @@
                 if(item.rarity === 5) rClass = 'item-ss';
                 if(item.rarity === 6) rClass = 'item-sss';
                 
-                d.className = `inv-item ${rClass} ${player.selected === i ? 'selected' : ''}`;
+                d.className = `inv-item ${rClass} ${window.player.selected === i ? 'selected' : ''}`;
                 let rName = RARITY_NAMES[item.rarity] || "B";
                 
                 let qtyHtml = item.qty > 1 ? `<div class="qty-badge">x${item.qty}</div>` : '';
                 
                 d.innerHTML = `<span>${item.type === 'w' ? '⚔️' : '🛡️'}</span><span>${rName}</span>${qtyHtml}`;
-                d.onclick = () => { player.selected = i; syncUI(); };
+                d.onclick = () => { window.player.selected = i; syncUI(); };
                 fragment.appendChild(d);
             });
             
@@ -398,11 +400,11 @@
         updateVisualSlot('w', 'slot-w');
         updateVisualSlot('a', 'slot-a');
 
-        if(player.selected !== -1 && els.mergeBtn && els.equipBtn) {
-            const sItem = player.inv[player.selected];
+        if(window.player.selected !== -1 && els.mergeBtn && els.equipBtn) {
+            const sItem = window.player.inv[window.player.selected];
             
             let totalCount = 0;
-            player.inv.forEach(i => {
+            window.player.inv.forEach(i => {
                 if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) {
                     totalCount += i.qty;
                 }
@@ -424,7 +426,7 @@
         const el = document.getElementById(id);
         if(!el) return;
 
-        const item = player.gear[type];
+        const item = window.player.gear[type];
         if(item) {
             el.className = 'slot-box slot-filled';
             let rColor = '#333';
@@ -444,32 +446,32 @@
     }
 
     function mergeItems() {
-        if(player.selected === -1) return;
-        const sItem = player.inv[player.selected];
+        if(window.player.selected === -1) return;
+        const sItem = window.player.inv[window.player.selected];
         const cost = sItem.rarity * 500;
         
-        if(player.coins < cost) { alert("Not enough coins!"); return; }
+        if(window.player.coins < cost) { alert("Not enough coins!"); return; }
 
         let totalCount = 0;
-        player.inv.forEach(i => {
+        window.player.inv.forEach(i => {
             if(i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty;
         });
 
         if(totalCount >= 3) {
-            player.coins -= cost;
+            window.player.coins -= cost;
             
             let needed = 3;
-            for(let i = player.inv.length - 1; i >= 0; i--) {
+            for(let i = window.player.inv.length - 1; i >= 0; i--) {
                 if(needed <= 0) break;
-                let item = player.inv[i];
+                let item = window.player.inv[i];
                 if(item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) {
                     if(item.qty >= needed) {
                         item.qty -= needed;
                         needed = 0;
-                        if(item.qty === 0) player.inv.splice(i, 1);
+                        if(item.qty === 0) window.player.inv.splice(i, 1);
                     } else {
                         needed -= item.qty;
-                        player.inv.splice(i, 1);
+                        window.player.inv.splice(i, 1);
                     }
                 }
             }
@@ -487,17 +489,17 @@
 
             addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             
-            player.selected = -1;
-            isDirty = true;
+            window.player.selected = -1;
+            window.isDirty = true;
             syncUI();
         }
     }
 
     function train(s) {
-        if(player.coins >= 100) {
-            player.coins -= 100;
-            if(s === 'atk') player.bAtk += 20; else player.bDef += 10;
-            isDirty = true;
+        if(window.player.coins >= 100) {
+            window.player.coins -= 100;
+            if(s === 'atk') window.player.bAtk += 20; else window.player.bDef += 10;
+            window.isDirty = true;
             syncUI();
         } else {
             alert("Need 100 Coins to Train!");
@@ -505,9 +507,9 @@
     }
 
     function doEquip() {
-        if(player.selected === -1) return;
+        if(window.player.selected === -1) return;
         
-        const stackItem = player.inv[player.selected]; 
+        const stackItem = window.player.inv[window.player.selected]; 
         const itemToEquip = { 
             n: stackItem.n, 
             type: stackItem.type, 
@@ -516,17 +518,17 @@
             qty: 1 
         };
 
-        const old = player.gear[stackItem.type]; 
-        player.gear[stackItem.type] = itemToEquip;
+        const old = window.player.gear[stackItem.type]; 
+        window.player.gear[stackItem.type] = itemToEquip;
         stackItem.qty--;
         if(stackItem.qty <= 0) {
-            player.inv.splice(player.selected, 1);
+            window.player.inv.splice(window.player.selected, 1);
         }
         if(old) {
             addToInventory(old);
         }
-        player.selected = -1;
-        isDirty = true;
+        window.player.selected = -1;
+        window.isDirty = true;
         syncUI();
     }
 
@@ -566,8 +568,6 @@
     }
 
     // --- EXPOSE NECESSARY FUNCTIONS TO WINDOW ---
-    // This allows HTML onclick attributes (like onclick="train('atk')") to find these functions
-    // while keeping everything else private.
     window.initGame = initGame;
     window.showTab = showTab;
     window.claimSupply = claimSupply;
@@ -576,5 +576,9 @@
     window.doEquip = doEquip;
     window.mergeItems = mergeItems;
     window.closeLevelUp = closeLevelUp;
+    window.checkLevelUp = checkLevelUp; // Needed by battle.js
+    window.addToInventory = addToInventory; // Needed by battle.js
+    window.syncUI = syncUI; // Needed by battle.js
+    window.popDamage = popDamage; // Needed by battle.js and skills.js
 
 })();
