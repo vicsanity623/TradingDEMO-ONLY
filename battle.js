@@ -28,26 +28,24 @@
         if(viewBattle) {
             let currentPos = viewBattle.style.backgroundPositionX || '50%';
             let currentVal = parseInt(currentPos) || 50;
-            let shift = direction === 'left' ? -3 : 3; // Subtle shift
+            let shift = direction === 'left' ? -3 : 3; 
             viewBattle.style.backgroundPositionX = (currentVal + shift) + '%';
         }
     }
 
-    // FIXED: Now separates the Container (Movement) from the Sprite (Visuals)
     async function teleportVisual(container, targetX, targetY = 0) {
-        // Find the sprite image INSIDE the container so we don't fade the bars
         const sprite = container.querySelector('img');
         
         return new Promise(resolve => {
-            // 1. Flash/Fade the sprite only
+            // 1. Flash/Fade the sprite only (keeps bars visible)
             if(sprite) {
                 sprite.classList.add('teleport-flash');
-                sprite.style.opacity = '0'; // Vanish sprite
+                sprite.style.opacity = '0'; 
             }
 
             // 2. Move the container instantly while sprite is invisible
             setTimeout(() => {
-                container.style.transition = 'none'; // Snap movement
+                container.style.transition = 'none'; 
                 container.style.transform = `translate(${targetX}px, ${targetY}px)`;
                 
                 // 3. Reappear
@@ -57,7 +55,7 @@
                         sprite.classList.remove('teleport-flash');
                     }
                     resolve();
-                }, 80); // Quick reappear
+                }, 80); 
             }, 100);
         });
     }
@@ -79,6 +77,7 @@
             
             dot.innerText = i;
             dot.onclick = () => {
+                // Logic: Allow clicking any unlocked stage
                 if(i <= battle.maxStage) {
                     battle.stage = i;
                     document.getElementById('battle-menu').style.display = 'none';
@@ -99,9 +98,9 @@
     }
 
     function exitBattle() {
+        stopCombat(); // Stop loop first
         const menu = document.getElementById('battle-menu');
         if (menu) menu.style.display = 'none';
-        clearBattleTimers();
         if (typeof window.showTab === 'function') window.showTab('char');
     }
 
@@ -124,6 +123,7 @@
     }
 
     function restartGame() {
+        stopCombat();
         if (window.GameState) {
             player.hp = GameState.gokuMaxHP;
         } else {
@@ -133,29 +133,29 @@
         player.charge = 0;
         battle.stage = 1;
         document.getElementById('battle-menu').style.display = 'none';
-        clearBattleTimers();
         startBattle();
     }
 
     async function startBattle() {
-        stopCombat();
+        stopCombat(); // Reset state immediately
         battle.active = true;
+        battle.cinematic = false;
         if (window.GameState) GameState.inBattle = true;
         
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         
+        // Reset Visuals
         const eImg = document.getElementById('e-img');
+        const pBox = document.getElementById('p-box');
+        const eBox = document.getElementById('e-box');
+        
         if (eImg) {
             eImg.style.display = 'block';
-            eImg.className = ''; // Clear all classes
+            eImg.className = ''; 
             eImg.style.transform = '';
             eImg.style.opacity = '1';
         }
-        
-        // Reset Positions
-        const pBox = document.getElementById('p-box');
-        const eBox = document.getElementById('e-box');
         if(pBox) pBox.style.transform = 'translate(0,0)';
         if(eBox) eBox.style.transform = 'translate(0,0)';
 
@@ -179,6 +179,10 @@
             banner.style.display = "block";
             banner.innerText = "READY?";
             await new Promise(r => setTimeout(r, 1000));
+            
+            // Check if user exited during the "Ready" screen
+            if(!battle.active) { banner.style.display = 'none'; return; }
+            
             banner.innerText = "FIGHT!";
             await new Promise(r => setTimeout(r, 600));
             banner.style.display = "none";
@@ -192,16 +196,12 @@
 
             if (window.Skills) {
                 const dhDmg = Skills.useDoubleHit(battle);
-                if (dhDmg > 0) {
-                    battle.enemy.hp -= dhDmg;
-                    popDamage(dhDmg, 'e-box', true);
-                }
+                if (dhDmg > 0) applyDamage(dhDmg, 'p');
+                
                 Skills.useFocus();
+                
                 const kbDmg = Skills.useKameBlast();
-                if (kbDmg > 0) {
-                    battle.enemy.hp -= kbDmg;
-                    popDamage(kbDmg, 'e-box', true);
-                }
+                if (kbDmg > 0) applyDamage(kbDmg, 'p');
             }
 
             if(player.charge >= 100) {
@@ -209,7 +209,6 @@
             } else {
                 executeStrike('p');
             }
-            updateBars();
         }, 600); 
 
         // Enemy Loop
@@ -243,92 +242,96 @@
         if (eName) eName.innerText = battle.enemy.name;
     }
 
-    // --- REFINED COMBAT VISUALS ---
+    // --- CENTRALIZED DAMAGE HANDLER (FIXES RACE CONDITION) ---
+    function applyDamage(amt, sourceSide) {
+        if(!battle.active) return; // Prevent "Zombie" damage
+
+        const target = (sourceSide === 'p') ? battle.enemy : player;
+        const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
+        
+        target.hp -= amt;
+        popDamage(amt, targetId);
+        updateBars();
+
+        // Check Death Immediately
+        if(battle.enemy.hp <= 0) {
+            stopCombat(); // STOP EVERYTHING IMMEDIATELY
+            const eImg = document.getElementById('e-img');
+            if (eImg) eImg.classList.add('dead-anim');
+            setTimeout(handleWin, 800);
+        } else if(player.hp <= 0) {
+            stopCombat(); // STOP EVERYTHING IMMEDIATELY
+            handleDefeat();
+        }
+    }
+
     async function executeStrike(side) {
         if(!battle.active) return;
 
         const isP = (side === 'p');
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
-        const victimBox = document.getElementById(isP ? 'e-box' : 'p-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
 
         const atkVal = isP ? (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) : battle.enemy.atk;
-        const target = isP ? battle.enemy : player;
-        const targetId = isP ? 'e-box' : 'p-box';
         
         if(isP) player.charge += 12; 
         if(player.charge > 100) player.charge = 100;
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
-        
-        // LOGIC: Teleport only happens rarely (Ambush) or if distance is huge (not implemented yet, keeping it RNG for flair)
-        // Reduced chance to 20% to make it feel special, not chaotic
         const isAmbush = Math.random() > 0.8; 
 
         if(isAmbush) {
             // -- TELEPORT ATTACK --
-            // 1. Vanish (Move container to enemy side)
             await teleportVisual(attackerBox, isP ? 80 : -80); 
             
-            // 2. Hit
-            target.hp -= (dmg * 1.5); // Crit
-            popDamage("CRIT!", targetId);
-            popDamage(Math.floor(dmg * 1.5), targetId);
+            // Safety Check: Did battle end during teleport?
+            if(!battle.active) return;
+
+            // Visuals
             triggerShake();
-            
-            // 3. Visual impact on victim
             if(victimImg) {
                 victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
                 setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
             }
+            
+            // Apply Damage Logic
+            popDamage("CRIT!", isP ? 'e-box' : 'p-box');
+            applyDamage(Math.floor(dmg * 1.5), side);
 
-            // 4. Return to start
+            // Return to start
             setTimeout(() => {
-                teleportVisual(attackerBox, 0); 
+                if(battle.active) teleportVisual(attackerBox, 0); 
             }, 250);
 
         } else {
-            // -- STANDARD LUNGE (Simpler, cleaner) --
-            // 1. Quick Dash
+            // -- STANDARD LUNGE --
             attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
-            attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)'; // Less distance so it doesn't overlap weirdly
+            attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)';
 
             setTimeout(() => {
-                // 2. Hit
-                target.hp -= dmg;
-                popDamage(dmg, targetId);
-                
-                // Small Shake
+                // Safety Check: Did battle end during lunge?
+                if(!battle.active) return;
+
+                // Visuals
                 if(Math.random() > 0.5) triggerShake();
-                
-                // Knockback victim slightly
                 if(victimImg) {
                     victimImg.style.transition = "transform 0.1s";
                     victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
                     setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
                 }
                 
-                // 3. Retreat
+                // Apply Damage Logic
+                applyDamage(dmg, side);
+
+                // Retreat
                 setTimeout(() => {
-                    attackerBox.style.transition = "transform 0.2s ease-out";
-                    attackerBox.style.transform = 'translateX(0)';
+                    if(battle.active) {
+                        attackerBox.style.transition = "transform 0.2s ease-out";
+                        attackerBox.style.transform = 'translateX(0)';
+                    }
                 }, 100);
 
             }, 100);
-        }
-        
-        updateBars();
-
-        if(battle.enemy.hp <= 0) {
-            stopCombat();
-            const eImg = document.getElementById('e-img');
-            if (eImg) {
-                eImg.classList.add('dead-anim');
-            }
-            setTimeout(handleWin, 800);
-        } else if(player.hp <= 0) {
-            stopCombat();
-            handleDefeat();
         }
     }
 
@@ -357,21 +360,17 @@
         await new Promise(r => setTimeout(r, 200)); 
         if (cutInWrap) cutInWrap.style.display = 'none';
 
+        // Check if battle exited during cutscene
         if(!battle.active) { battle.cinematic = false; return; }
         
         const dmg = (player.bAtk + (player.rank * 400) + (player.gear.w?.val || 0)) * 6;
-        battle.enemy.hp -= dmg;
-        
         popDamage("ULTIMATE!", 'e-box', true);
-        popDamage(dmg, 'e-box', true);
         
         const eImg = document.getElementById('e-img');
-        if(eImg) {
-            // Apply knockback to image only
-            eImg.classList.add('knockback-right');
-        }
+        if(eImg) eImg.classList.add('knockback-right');
         
-        updateBars();
+        // Apply Damage
+        applyDamage(dmg, 'p');
 
         setTimeout(() => {
             if (beam) {
@@ -382,7 +381,7 @@
                     beam.style.transition = "none"; 
                     beam.style.width = "0"; 
                     
-                    if(battle.enemy.hp > 0 && eImg) {
+                    if(battle.active && battle.enemy.hp > 0 && eImg) {
                          eImg.classList.remove('knockback-right');
                     }
 
@@ -396,16 +395,14 @@
                 battle.cinematic = false;
             }
         }, 500);
-
-        if(battle.enemy.hp <= 0) {
-            stopCombat();
-            if (eImg) eImg.classList.add('dead-anim');
-            setTimeout(handleWin, 600);
-        }
     }
 
-    // --- REWARDS (Standard) ---
+    // --- REWARDS & MENUS (GUARDED) ---
     function handleWin() {
+        // GUARD: Prevent infinite looping if menu is already open
+        const menu = document.getElementById('battle-menu');
+        if(menu && menu.style.display === 'flex') return;
+
         const tEl = document.getElementById('menu-title');
         if (tEl) {
             tEl.innerText = "STAGE CLEARED!";
@@ -494,7 +491,6 @@
             }
         }
 
-        const menu = document.getElementById('battle-menu');
         if (menu) menu.style.display = 'flex';
 
         const rBar = document.getElementById('r-bar-xp');
@@ -511,11 +507,18 @@
 
         const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
         if (btnNext) {
-            btnNext.innerText = "NEXT STAGE (3)";
-            btnNext.onclick = autoStartNext; 
+            // Logic: Auto start in 3s, or click to start immediately
+            btnNext.onclick = () => {
+                if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+                autoStartNext();
+            }; 
             
             let time = 3;
             btnNext.innerText = `NEXT STAGE (${time})`;
+            
+            // Clear any old timer just in case
+            if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
+
             battle.autoTimerId = setInterval(() => {
                 time--;
                 btnNext.innerText = `NEXT STAGE (${time})`;
@@ -528,7 +531,10 @@
     }
 
     function handleDefeat() {
-        stopCombat();
+        // GUARD
+        const menu = document.getElementById('battle-menu');
+        if(menu && menu.style.display === 'flex') return;
+
         if (window.GameState) {
             player.hp = GameState.gokuMaxHP;
         } else {
@@ -559,7 +565,10 @@
             btnNext.onclick = restartGame; 
             let time = 5; 
             btnNext.innerText = `RESTART (STAGE 1) (${time})`;
-            document.getElementById('battle-menu').style.display = 'flex';
+            
+            if (menu) menu.style.display = 'flex';
+            
+            if(battle.autoTimerId) clearTimeout(battle.autoTimerId);
             battle.autoTimerId = setInterval(() => {
                 time--;
                 btnNext.innerText = `RESTART (STAGE 1) (${time})`;
