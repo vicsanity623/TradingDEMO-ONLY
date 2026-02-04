@@ -455,3 +455,21 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     50% { opacity: 1; }
     100% { opacity: 0.4; }
 }
+
+/* --- STRATEGY MODAL STYLES --- */
+.grav-spinner {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px dashed #FFD700;
+    animation: spinGrav 4s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px #FFD700;
+}
+
+@keyframes spinGrav {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
