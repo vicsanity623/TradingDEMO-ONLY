@@ -1,23 +1,17 @@
 /* ============================
-   SKILLS.JS – SELF CONTAINED
+   SKILLS.JS – OPTIMIZED
    RPG SKILL SYSTEM
    ============================ */
 
-(() => {
+(function() {
 
     /* -------------------------
-       GLOBAL EXPORT
+       CONSTANTS
     ------------------------- */
-    window.Skills = {};
-
-    /* -------------------------
-       INTERNAL STATE
-    ------------------------- */
-    const now = () => Date.now();
-
     const STORAGE_KEY = 'GOKU_SKILLS_V1';
-
-    const defaultSkills = {
+    
+    // Default Skill Data
+    const DEFAULT_SKILLS = {
         doubleHit: {
             id: 'doubleHit',
             name: 'Double Hit',
@@ -50,25 +44,38 @@
         }
     };
 
-    let skills = JSON.parse(localStorage.getItem(STORAGE_KEY)) || structuredClone(defaultSkills);
+    /* -------------------------
+       INTERNAL STATE
+    ------------------------- */
+    const now = () => Date.now();
+    let skills = loadSkills();
+
+    function loadSkills() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            return saved ? JSON.parse(saved) : structuredClone(DEFAULT_SKILLS);
+        } catch (e) {
+            console.error("Failed to load skills", e);
+            return structuredClone(DEFAULT_SKILLS);
+        }
+    }
 
     function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(skills));
     }
 
     /* -------------------------
-       UNLOCK CHECKS
+       HELPER FUNCTIONS
     ------------------------- */
     function updateUnlocks() {
+        if (!window.GameState) return;
+        
         if (GameState.gokuLevel >= 30) skills.doubleHit.unlocked = true;
         if (GameState.gokuLevel >= 50) skills.focus.unlocked = true;
         if (GameState.gokuLevel >= 70) skills.kameBlast.unlocked = true;
         save();
     }
 
-    /* -------------------------
-       XP & LEVEL UP
-    ------------------------- */
     function gainXP(skill, amount) {
         skill.xp += amount;
         if (skill.xp >= skill.xpToNext) {
@@ -76,86 +83,75 @@
             skill.level++;
             skill.xpToNext = Math.floor(skill.xpToNext * 1.25);
 
+            // Cooldown Reduction Logic
             if (skill.id === 'doubleHit') {
                 skill.cooldown = Math.max(1000, skill.cooldown - 150);
-            }
-            if (skill.id === 'focus') {
+            } else if (skill.id === 'focus') {
                 skill.cooldown = Math.max(2000, skill.cooldown - 300);
-            }
-            if (skill.id === 'kameBlast') {
+            } else if (skill.id === 'kameBlast') {
                 skill.cooldown = Math.max(4000, skill.cooldown - 500);
             }
         }
         save();
     }
 
-    /* -------------------------
-       COOLDOWN CHECK
-    ------------------------- */
     function canUse(skill) {
         return now() - skill.lastUsed >= skill.cooldown;
     }
 
     /* -------------------------
-       SKILL LOGIC
+       SKILL LOGIC EXPORTS
     ------------------------- */
+    const Skills = {};
 
     Skills.useDoubleHit = function (battleRef) {
         const s = skills.doubleHit;
-        // Check if unlocked, off cooldown, and if battle is valid
-        if (!s.unlocked || !canUse(s) || !battleRef || !battleRef.active) return 0;
+        
+        if (!s.unlocked || !canUse(s) || !battleRef || !battleRef.active || !battleRef.enemy) return 0;
 
         s.lastUsed = now();
         gainXP(s, 15);
 
-        // 1. Show "Double HIT!" Text
-        const floatText = document.createElement('div');
-        floatText.className = 'pop'; // Reuse existing pop class for animation
-        floatText.innerText = "DOUBLE HIT!";
-        floatText.style.color = '#ff9900'; // Orange color
-        floatText.style.fontSize = '2.5rem';
-        floatText.style.left = '50%';
-        floatText.style.top = '25%';
-        floatText.style.zIndex = 100;
-        // Text Shadow for readability
-        floatText.style.textShadow = '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
-        document.body.appendChild(floatText);
-        setTimeout(() => floatText.remove(), 1000);
+        // Visual Feedback
+        if (window.popDamage) {
+            const floatText = document.createElement('div');
+            floatText.className = 'pop skill-text'; 
+            floatText.innerText = "DOUBLE HIT!";
+            floatText.style.color = '#ff9900';
+            floatText.style.fontSize = '2.5rem';
+            floatText.style.left = '50%';
+            floatText.style.top = '25%';
+            floatText.style.zIndex = 100;
+            floatText.style.textShadow = '2px 2px 0 #000';
+            document.body.appendChild(floatText);
+            setTimeout(() => floatText.remove(), 1000);
+        }
 
-        // 2. Rapid Fire Logic (Non-stop for 3 seconds)
         const duration = 3000; 
-        const hitsPerSecond = 10; // Very fast
+        const hitsPerSecond = 10;
         const intervalTime = 1000 / hitsPerSecond;
-        
-        // Damage per rapid hit (Total damage / number of hits approx)
-        // Let's make each rapid hit deal 40% of normal power
-        const dmgPerHit = Math.ceil(GameState.gokuPower * 0.4); 
+        const dmgPerHit = Math.ceil((window.GameState ? GameState.gokuPower : 10) * 0.4); 
 
         const rapidInterval = setInterval(() => {
-            // Stop if battle ends or enemy dies
-            if (!GameState.inBattle || !battleRef.active || battleRef.enemy.hp <= 0) {
+            if (!window.GameState || !GameState.inBattle || !battleRef.active || battleRef.enemy.hp <= 0) {
                 clearInterval(rapidInterval);
                 return;
             }
 
-            // Apply Damage
             battleRef.enemy.hp -= dmgPerHit;
-            
-            // Visual Pop for damage
             if (window.popDamage) window.popDamage(dmgPerHit, 'e-box');
 
         }, intervalTime);
 
-        // Stop after 3 seconds
         setTimeout(() => clearInterval(rapidInterval), duration);
 
         save();
-        return 0; // Return 0 so index.html doesn't apply instant damage on top
+        return 0; // Damage handled internally via interval
     };
 
     Skills.useFocus = function () {
         const s = skills.focus;
-        if (!s.unlocked || !canUse(s)) return 0;
+        if (!s.unlocked || !canUse(s) || !window.GameState) return 0;
 
         s.lastUsed = now();
         gainXP(s, 12);
@@ -165,13 +161,23 @@
 
         GameState.gokuHP = Math.min(GameState.gokuMaxHP, GameState.gokuHP + healAmount);
 
+        // Visual
+        const floatText = document.createElement('div');
+        floatText.className = 'pop';
+        floatText.innerText = "FOCUS HEAL!";
+        floatText.style.color = '#2ecc71'; 
+        floatText.style.left = '50%';
+        floatText.style.top = '40%';
+        document.body.appendChild(floatText);
+        setTimeout(() => floatText.remove(), 1000);
+
         save();
         return healAmount;
     };
 
     Skills.useKameBlast = function () {
         const s = skills.kameBlast;
-        if (!s.unlocked || !canUse(s)) return 0;
+        if (!s.unlocked || !canUse(s) || !window.GameState) return 0;
 
         s.lastUsed = now();
         gainXP(s, 20);
@@ -183,15 +189,13 @@
         return damage;
     };
 
-    /* -------------------------
-       AUTO BATTLE HANDLER
-    ------------------------- */
-    Skills.autoBattleTick = function () {
+    // Called every frame/tick by battle.js
+    Skills.autoBattleTick = function (battleRef) {
         updateUnlocks();
-        if (!GameState.inBattle) return;
+        if (!window.GameState || !GameState.inBattle) return;
 
         if (skills.doubleHit.unlocked && canUse(skills.doubleHit)) {
-            Skills.useDoubleHit();
+            Skills.useDoubleHit(battleRef);
         }
 
         if (skills.focus.unlocked && canUse(skills.focus) && GameState.gokuHP < GameState.gokuMaxHP * 0.6) {
@@ -199,98 +203,73 @@
         }
 
         if (skills.kameBlast.unlocked && canUse(skills.kameBlast)) {
-            Skills.useKameBlast();
+            if(battleRef && battleRef.active && battleRef.enemy) {
+                 const dmg = Skills.useKameBlast();
+                 if(dmg > 0) {
+                     battleRef.enemy.hp -= dmg;
+                     if(window.popDamage) window.popDamage(dmg, 'e-box', true);
+                 }
+            }
         }
     };
 
     /* -------------------------
-       UI – SKILLS SCREEN
+       UI MANAGEMENT
     ------------------------- */
     Skills.openSkillScreen = function () {
         updateUnlocks();
-
-        let overlay = document.getElementById('skillsOverlay');
-        if (overlay) overlay.remove();
-
-        overlay = document.createElement('div');
-        overlay.id = 'skillsOverlay';
-        overlay.style = `
-            position:fixed; inset:0;
-            background:rgba(0,0,0,0.9);
-            z-index:9999;
-            color:#fff;
-            font-family:Arial;
-            overflow-y:auto;
-        `;
-
-        overlay.innerHTML = `
-            <h1 style="text-align:center;margin:20px;">🔥 Goku Skills 🔥</h1>
-            <div style="max-width:900px;margin:auto;">
+        
+        const overlay = document.getElementById('skills-overlay');
+        if(!overlay) return; 
+        
+        const container = document.getElementById('skills-list-container');
+        if(container) {
+            container.innerHTML = `
                 ${renderSkillCard(skills.doubleHit, 'Level 30')}
                 ${renderSkillCard(skills.focus, 'Level 50')}
                 ${renderSkillCard(skills.kameBlast, 'Level 70')}
-            </div>
-            <button style="display:block;margin:30px auto;padding:15px 30px;font-size:18px;" onclick="document.getElementById('skillsOverlay').remove()">Close</button>
-        `;
+            `;
+        }
 
-        document.body.appendChild(overlay);
+        overlay.style.display = 'flex';
+    };
+
+    Skills.closeSkillScreen = function() {
+        const overlay = document.getElementById('skills-overlay');
+        if(overlay) overlay.style.display = 'none';
     };
 
     function renderSkillCard(skill, unlockText) {
         const locked = !skill.unlocked;
         const cd = (skill.cooldown / 1000).toFixed(1);
-
+        const progress = Math.min(100, (skill.xp / skill.xpToNext) * 100);
+        
         return `
-        <div style="
-            background:#111;
-            border:2px solid ${locked ? '#444' : '#f5c542'};
-            border-radius:14px;
-            padding:20px;
-            margin:20px;
-            box-shadow:0 0 20px rgba(255,215,0,0.15);
-        ">
-            <h2>${skill.name} ${locked ? '🔒' : ''}</h2>
-            <p>${locked ? `Unlocks at ${unlockText}` : `Level ${skill.level}`}</p>
-            <div style="background:#333;height:14px;border-radius:7px;">
-                <div style="
-                    width:${Math.min(100, (skill.xp / skill.xpToNext) * 100)}%;
-                    height:100%;
-                    background:linear-gradient(90deg,#ffcc00,#ff6600);
-                    border-radius:7px;
-                "></div>
+        <div class="skill-card ${locked ? 'locked' : ''}">
+            <div class="skill-header">
+                <h2>${skill.name} ${locked ? '🔒' : ''}</h2>
+                <span class="skill-lvl">${locked ? `Unlocks: ${unlockText}` : `Level ${skill.level}`}</span>
             </div>
-            <p>XP: ${skill.xp} / ${skill.xpToNext}</p>
-            <p>Cooldown: ${cd}s</p>
+            
+            <div class="skill-bar-bg">
+                <div class="skill-bar-fill" style="width:${progress}%;"></div>
+            </div>
+            
+            <div class="skill-stats">
+                <span>XP: ${Math.floor(skill.xp)} / ${skill.xpToNext}</span>
+                <span>CD: ${cd}s</span>
+            </div>
         </div>
         `;
     }
 
-    /* -------------------------
-       KAME BLAST VISUAL
-    ------------------------- */
     function triggerKameVisual() {
         const beam = document.createElement('div');
-        beam.style = `
-            position:fixed;
-            inset:0;
-            background:radial-gradient(circle,#00ccff 0%,#0044ff 40%,#000 70%);
-            animation:flash 0.3s infinite;
-            z-index:9998;
-        `;
-
+        beam.className = 'kame-visual-beam';
         document.body.appendChild(beam);
-
         setTimeout(() => beam.remove(), 3000);
-
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes flash {
-                0% { opacity:0.4 }
-                50% { opacity:1 }
-                100% { opacity:0.4 }
-            }
-        `;
-        document.head.appendChild(style);
     }
+
+    window.Skills = Skills;
 
 })();
