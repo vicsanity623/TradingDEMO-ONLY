@@ -2,6 +2,7 @@ const CACHE_NAME = 'goku-rpg-v3.7'; // UPDATED: Version bump forces cache clear
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './style.css',
   './strategy.js',
   './skills.js',
   './gear.js',
