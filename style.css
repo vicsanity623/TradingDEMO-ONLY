@@ -473,3 +473,49 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+/* --- DBZ BATTLE EFFECTS --- */
+
+/* The Instant Transmission Blur */
+.teleport-blur {
+    animation: teleportAnim 0.3s ease-in-out;
+    opacity: 0.6;
+    filter: blur(10px) brightness(1.5);
+    transform: scaleX(0.1) !important; /* Skinny stretch effect */
+}
+
+@keyframes teleportAnim {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0; transform: scale(0.1, 2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Screen Shake for Heavy Hits */
+.shake-screen {
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-4px, 0, 0); }
+    20%, 80% { transform: translate3d(8px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-12px, 0, 0); }
+    40%, 60% { transform: translate3d(12px, 0, 0); }
+}
+
+/* Knockback animations */
+.knockback-right {
+    transition: transform 0.2s cubic-bezier(0,1.5,.5,1);
+    transform: translateX(80px) rotate(5deg) !important;
+    filter: brightness(2) drop-shadow(0 0 10px red);
+}
+
+.knockback-left {
+    transition: transform 0.2s cubic-bezier(0,1.5,.5,1);
+    transform: translateX(-80px) rotate(-5deg) !important;
+    filter: brightness(2) drop-shadow(0 0 10px red);
+}
+
+/* When appearing behind enemy */
+.ambush-pos {
+    z-index: 5;
+    filter: contrast(1.2);
+}
