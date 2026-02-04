@@ -19,7 +19,6 @@
     <link rel="stylesheet" href="style.css">
 
     <!-- ASSET PRELOADING (Performance Boost) -->
-    <!-- Tells browser to download critical images immediately -->
     <link rel="preload" as="image" href="IMG_0061.png">
     <link rel="preload" as="image" href="IMG_0054.png">
     <link rel="preload" as="image" href="hb_b.png">
@@ -224,5 +223,38 @@
 
         <div id="log">Battle Log initialized...</div>
     </div>
+
+    <!-- GEAR SYSTEM OVERLAY (Moved from JS injection to Static HTML) -->
+    <div id="gear-overlay" style="display:none;">
+        <div class="g-header">
+            <h2>GEAR BACKPACK</h2>
+            <div class="g-close" id="g-close-btn">✕</div>
+        </div>
+        
+        <div class="g-content">
+            <p style="font-size: 0.7rem; color: #888; margin-bottom: 10px;">Tap an item to manage...</p>
+            <div class="g-grid" id="gear-list"></div>
+        </div>
+
+        <div class="g-footer">
+            <div class="g-preview-box">
+                <div id="g-display-name" class="g-item-name">EMPTY SLOT</div>
+                <div id="g-display-stats" class="g-item-stats">Select item to view potential power...</div>
+            </div>
+            <div class="g-btn-row">
+                <button id="g-details-btn" class="g-btn g-btn-blue" disabled>DETAILS</button>
+                <button id="g-sell-btn" class="g-btn g-btn-green" disabled>SELL ITEM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GEAR DETAILS MODAL -->
+    <div id="g-modal" style="display:none;">
+        <h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3>
+        <div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div>
+        <div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div>
+        <button id="g-modal-close" class="g-btn g-btn-blue" style="width:100%">GOT IT</button>
+    </div>
+
 </body>
 </html>
