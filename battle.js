@@ -226,13 +226,17 @@ function handleWin() {
     tEl.innerText = "STAGE CLEARED!";
     tEl.style.color = "var(--dbz-yellow)";
 
+    let startPct = (player.xp / player.nextXp) * 100;
+    if(isNaN(startPct)) startPct = 0;
+    let oldLvl = player.lvl; // Capture level to check if we leveled up later
+
     const xpGain = 100 * battle.stage * battle.world;
     const coinGain = 250;
     player.xp += xpGain; 
     player.coins += coinGain;
-    
+        
     document.getElementById('log').innerHTML = `<div style="color:cyan">> WON! +${xpGain} XP</div>`;
-    
+        
     let dropText = "NONE";
     let dropCount = 0;
     const qty = Math.floor(Math.random() * 4); 
@@ -262,33 +266,67 @@ function handleWin() {
         if(dropRarity === 2) rColor = "#00d2ff"; 
         if(dropRarity === 3) rColor = "#ff00ff"; 
         if(dropRarity >= 4) rColor = "#e74c3c";  
-        
+            
         dropText = `<span style="color:${rColor}">+${dropCount} ${baseName.toUpperCase()}</span>`;
     }
-    
-    checkLevelUp();
+
+    if(typeof checkLevelUp === 'function') {
+        checkLevelUp(); // Keeps your external logic if it exists
+    } else {
+
+        while(player.xp >= player.nextXp) {
+            player.lvl++; 
+            player.xp -= player.nextXp; 
+            player.nextXp = Math.floor(player.nextXp * 1.3);
+            player.bHp += 250; player.bAtk += 5; player.bDef += 2;
+            player.hp = player.bHp + (player.rank * 2500) + (player.gear.a?.val || 0);
+            if(player.lvl >= 100) { player.lvl = 1; player.rank++; }
+        }
+    }
+
+    let leveledUp = (player.lvl > oldLvl);
+
     syncUI();
     
     if (window.Skills) {
         Skills.autoBattleTick();
     }
-    
+
     document.getElementById('r-xp').innerText = xpGain;
     document.getElementById('r-coins').innerText = coinGain;
     document.getElementById('r-drops').innerHTML = dropText; 
 
     document.getElementById('r-lvl').innerText = player.lvl;
-    document.getElementById('r-xp-text').innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
-    const xpPct = Math.min(100, (player.xp / player.nextXp) * 100);
-    document.getElementById('r-bar-xp').style.width = xpPct + "%";
+
+    const xpTextEl = document.getElementById('r-xp-text');
+    if(leveledUp) {
+        xpTextEl.innerText = "LEVEL UP!";
+        xpTextEl.style.color = "#00ff00";
+        xpTextEl.style.textShadow = "0 0 5px #00ff00";
+    } else {
+        xpTextEl.innerText = `${Math.floor(player.xp)} / ${Math.floor(player.nextXp)}`;
+        xpTextEl.style.color = "white";
+        xpTextEl.style.textShadow = "none";
+    }
+
+    const rBar = document.getElementById('r-bar-xp');
+
+    let endPct = leveledUp ? 100 : (player.xp / player.nextXp) * 100;
+
+    rBar.style.transition = 'none';
+    rBar.style.width = startPct + "%";
+
+    void rBar.offsetWidth; 
+    rBar.style.transition = 'width 3s ease-out';
+    rBar.style.width = endPct + "%";
 
     const menu = document.getElementById('battle-menu');
     menu.style.display = 'flex';
-    
+        
     const btnNext = document.querySelector('#battle-menu .menu-btn:first-of-type');
     btnNext.innerText = "NEXT STAGE (3)";
     btnNext.onclick = autoStartNext; 
-    
+        
     let time = 3;
     btnNext.innerText = `NEXT STAGE (${time})`;
     battle.autoTimerId = setInterval(() => {
