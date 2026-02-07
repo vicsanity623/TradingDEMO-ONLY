@@ -140,9 +140,13 @@
         handleReward: function() {
             this.killCount++;
             
-            // Small XP/Gold
-            window.player.xp += 10;
-            window.player.coins += 5;
+            // Reward Values
+            const xpReward = 10;
+            const goldReward = 5; // Gold per kill
+
+            // Apply to Player State
+            window.player.xp += xpReward;
+            window.player.coins += goldReward;
             
             // Souls Logic: 5 kills = 2 souls
             if(this.killCount % 5 === 0) {
@@ -153,12 +157,24 @@
                     // Show Floating Text
                     this.showFloat("+2 SOULS", "#00ffff");
                 }
+            } else {
+                // Show Floating Text for Gold occasionally to reduce clutter
+                // or show every kill if desired
+                this.showFloat(`+${goldReward} G`, "#f1c40f");
             }
             
+            // --- UI UPDATE ---
+            // 1. Update XP Bar
             const xpBar = document.getElementById('bar-xp');
             if(xpBar) {
                 const xpPct = (window.player.xp / window.player.nextXp) * 100;
                 xpBar.style.width = xpPct + "%";
+            }
+
+            // 2. Update Coin Display Immediately
+            const coinEl = document.getElementById('ui-coins');
+            if(coinEl) {
+                coinEl.innerText = window.player.coins.toLocaleString();
             }
         },
         
