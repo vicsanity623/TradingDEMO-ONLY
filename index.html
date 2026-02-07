@@ -21,22 +21,21 @@
     <!-- ASSET PRELOADING -->
     <link rel="preload" as="image" href="IMG_0061.png">
     <link rel="preload" as="image" href="IMG_0081.png">
-    <link rel="preload" as="image" href="IMG_0206.png">
     <link rel="preload" as="image" href="hb_b.png">
-    <!-- You will need a frieza image, defaulting to a placeholder color if missing, or use a URL -->
-    
+    <link rel="preload" as="image" href="IMG_0206.png">
+
     <!-- GAME SCRIPTS -->
     <script src="strategy.js" defer></script>
     <script src="skills.js" defer></script>
     <script src="gear.js" defer></script>
     <script src="soul.js" defer></script>
     <script src="battle.js" defer></script>
-    <script src="hub.js" defer></script> <!-- NEW FILE -->
+    <script src="hub.js" defer></script>
     <script src="game.js" defer></script>
 </head>
 <body onload="initGame()">
 
-    <!-- Fallback if JS is disabled -->
+    <!-- Fallback -->
     <noscript>
         <div style="color: red; text-align: center; padding: 20px;">
             FATAL ERROR: Scouter indicates JavaScript is disabled. Please enable it to play!
@@ -51,20 +50,16 @@
     <!-- LEVEL UP MODAL -->
     <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
         <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
-        
         <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
             <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
             <img id="lvl-up-img" src="IMG_0061.png" alt="Level Up Form" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
         </div>
-
         <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
-
         <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
             <div style="color:#ff3e3e; margin:5px 0;">HP: <span id="lvl-stats-hp"></span> <span style="color:#00ff00;">(+250)</span></div>
             <div style="color:#3498db; margin:5px 0;">ATK: <span id="lvl-stats-atk"></span> <span style="color:#00ff00;">(+5)</span></div>
             <div style="color:#2ecc71; margin:5px 0;">DEF: <span id="lvl-stats-def"></span> <span style="color:#00ff00;">(+2)</span></div>
         </div>
-
         <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
     </div>
 
@@ -75,10 +70,11 @@
         <button id="tab-battle" onclick="showTab('battle')">BATTLE</button>
     </nav>
 
-    <!-- GACHA STYLE HUB SCREEN -->
+    <!-- HUB SCREEN -->
     <div id="view-char" class="screen active-screen">
         <div class="hub-overlay">
-            <div class="rank-badge" id="ui-rank-badge">B</div>
+            <!-- UPDATED: Added onclick to open details -->
+            <div class="rank-badge" id="ui-rank-badge" onclick="openDetails()">B</div>
             <div class="info-stack">
                 <div class="char-name" id="ui-name">Goku</div>
                 <div class="power-pill">⚡ <span id="ui-power">0</span></div>
@@ -86,15 +82,8 @@
         </div>
 
         <div class="side-menu">
-            <div class="side-btn" id="btn-supply" onclick="claimSupply()">
-                <i>🎁</i> Supply
-            </div>
-            
-            <div class="side-btn" onclick="openStrategy()">
-                <i>💊</i> Strategy
-            </div>
-            
-            <!-- SOUL GAUGE BUTTON -->
+            <div class="side-btn" id="btn-supply" onclick="claimSupply()"><i>🎁</i> Supply</div>
+            <div class="side-btn" onclick="openStrategy()"><i>💊</i> Strategy</div>
             <div class="side-btn soul-btn-container" id="btn-soul" onclick="SoulSystem.openModal()">
                 <div class="soul-progress-ring" id="soul-ring"></div>
                 <div class="soul-content">
@@ -103,17 +92,11 @@
                     <div id="soul-btn-lvl" style="font-size:0.6rem; color:#aaa;">Lv.1</div>
                 </div>
             </div>
-
-            <div class="side-btn" id="btn-rebirth">
-                <i>♻️</i> Rebirth
-            </div>
+            <div class="side-btn" id="btn-rebirth"><i>♻️</i> Rebirth</div>
         </div>
 
-        <!-- REPLACED STATIC IMAGE WITH HUB ARENA -->
         <div class="gacha-view" id="hub-view-container" onclick="tapTrain()">
-            <div id="hub-arena">
-                <!-- Mini Goku and Enemies will be injected here by hub.js -->
-            </div>
+            <div id="hub-arena"></div>
         </div>
 
         <div class="bottom-panel">
@@ -132,50 +115,25 @@
                     <div class="stat-row"><span class="stat-icon">⚔️</span> <span id="ui-atk">40</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('atk')">[+]</small></div>
                     <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('def')">[+]</small></div>
                 </div>
-
                 <div class="equip-slots">
-                    <div class="slot-box" id="slot-w">
-                        <span>⚔️</span>
-                        <div class="slot-label">WEAPON</div>
-                    </div>
-                    <div class="slot-box" id="slot-a">
-                        <span>🛡️</span>
-                        <div class="slot-label">ARMOR</div>
-                    </div>
+                    <div class="slot-box" id="slot-w"><span>⚔️</span><div class="slot-label">WEAPON</div></div>
+                    <div class="slot-box" id="slot-a"><span>🛡️</span><div class="slot-label">ARMOR</div></div>
                 </div>
             </div>
 
-            <button class="action-btn" id="btn-action" onclick="doEquip()">
-                <span>EQUIP SELECTED</span>
-            </button>
-            <button class="action-btn" id="btn-merge" style="display:none; background: linear-gradient(to bottom, #8e44ad, #9b59b6);" onclick="mergeItems()">
-                <span>MERGE (3)</span>
-            </button>
+            <button class="action-btn" id="btn-action" onclick="doEquip()"><span>EQUIP SELECTED</span></button>
+            <button class="action-btn" id="btn-merge" style="display:none; background: linear-gradient(to bottom, #8e44ad, #9b59b6);" onclick="mergeItems()"><span>MERGE (3)</span></button>
 
             <div style="font-size:0.75rem; color:#777; margin-bottom:5px; display:flex; justify-content:space-between;">
-                <span>GEAR INVENTORY</span>
-                <span style="font-size:0.7rem;">Tap to Select</span>
+                <span>GEAR INVENTORY</span><span style="font-size:0.7rem;">Tap to Select</span>
             </div>
             <div id="inv-grid" class="inv-scroll"></div>
 
             <div class="bot-nav">
-                <div class="nav-icon" onclick="train('atk')">
-                    <div class="nav-circle" style="color:#e74c3c;">💪</div>
-                    Training
-                </div>
-                <div class="nav-icon" onclick="Skills.openSkillScreen()">
-                    <div class="nav-circle" style="color:#f1c40f;">🌟</div>
-                    Skills
-                </div>
-
-                <div class="nav-icon" onclick="GearSystem.open()">
-                    <div class="nav-circle" style="color:#3498db;">🎒</div>
-                    Gear
-                </div>
-                <div class="nav-icon">
-                    <div class="nav-circle" style="color:#9b59b6;">⬆️</div>
-                    Advance
-                </div>
+                <div class="nav-icon" onclick="train('atk')"><div class="nav-circle" style="color:#e74c3c;">💪</div>Training</div>
+                <div class="nav-icon" onclick="Skills.openSkillScreen()"><div class="nav-circle" style="color:#f1c40f;">🌟</div>Skills</div>
+                <div class="nav-icon" onclick="GearSystem.open()"><div class="nav-circle" style="color:#3498db;">🎒</div>Gear</div>
+                <div class="nav-icon"><div class="nav-circle" style="color:#9b59b6;">⬆️</div>Advance</div>
             </div>
         </div>
     </div>
@@ -221,24 +179,21 @@
         <div id="log">Battle Log initialized...</div>
     </div>
 
-    <!-- GEAR SYSTEM OVERLAY -->
+    <!-- MODALS -->
+    <!-- Gear Overlay -->
     <div id="gear-overlay" style="display:none;">
         <div class="g-header"><h2>GEAR BACKPACK</h2><div class="g-close" id="g-close-btn">✕</div></div>
         <div class="g-content"><p style="font-size: 0.7rem; color: #888; margin-bottom: 10px;">Tap an item to manage...</p><div class="g-grid" id="gear-list"></div></div>
         <div class="g-footer"><div class="g-preview-box"><div id="g-display-name" class="g-item-name">EMPTY SLOT</div><div id="g-display-stats" class="g-item-stats">Select item to view potential power...</div></div><div class="g-btn-row"><button id="g-details-btn" class="g-btn g-btn-blue" disabled>DETAILS</button><button id="g-sell-btn" class="g-btn g-btn-green" disabled>SELL ITEM</button></div></div>
     </div>
+    <div id="g-modal" style="display:none;"><h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3><div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div><div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div><button id="g-modal-close" class="g-btn g-btn-blue" style="width:100%">GOT IT</button></div>
 
-    <!-- GEAR DETAILS MODAL -->
-    <div id="g-modal" style="display:none;">
-        <h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3><div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div><div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div><button id="g-modal-close" class="g-btn g-btn-blue" style="width:100%">GOT IT</button>
-    </div>
-
-    <!-- SKILLS OVERLAY -->
+    <!-- Skills Overlay -->
     <div id="skills-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:9999; color:#fff; flex-direction:column; overflow-y:auto;">
         <div class="g-header" style="background:transparent; border:none; box-shadow:none;"><h1 style="color:var(--dbz-orange);">🔥 SKILLS 🔥</h1><div class="g-close" onclick="Skills.closeSkillScreen()" style="color:#fff;">✕</div></div><div id="skills-list-container" style="padding:20px; max-width:800px; margin:0 auto; width:100%;"></div><button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;" onclick="Skills.closeSkillScreen()">CLOSE</button>
     </div>
     
-    <!-- STRATEGY MODAL -->
+    <!-- Strategy Modal -->
     <div id="strategy-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
         <div style="width:90%; max-width:400px; background:linear-gradient(135deg, #2c3e50, #000); border:2px solid #00d2ff; border-radius:15px; padding:20px; text-align:center; box-shadow:0 0 20px #00d2ff; position:relative;">
             <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:2px 2px black;">GRAVITRON CHAMBER</div>
@@ -251,7 +206,7 @@
         </div>
     </div>
 
-    <!-- SOUL LIBERATION MODAL -->
+    <!-- Soul Modal -->
     <div id="soul-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
         <div style="width:90%; max-width:400px; background:#1a1a1a; border:2px solid #e74c3c; border-radius:15px; padding:20px; box-shadow:0 0 25px rgba(231,76,60,0.5); color:white; font-family:'Orbitron'; position:relative;">
             <div class="g-close" onclick="SoulSystem.closeModal()" style="position:absolute; top:10px; right:15px; color:#aaa;">✕</div>
@@ -259,6 +214,27 @@
             <div style="display:flex; justify-content:space-around; margin-bottom:20px;"><div style="text-align:center;"><div class="grav-spinner" style="width:80px; height:80px; border-color:#00ffff; box-shadow:0 0 10px #00ffff;"><span id="sm-pct" style="font-size:1.2rem; font-weight:bold;">0%</span></div></div><div style="flex:1; margin-left:15px;"><div style="font-size:0.8rem; color:#aaa;">SOUL ABILITIES</div><div id="sm-stats" style="font-size:0.75rem; line-height:1.6; margin-top:5px; color:#00d2ff;"></div></div></div>
             <button id="btn-liberate" onclick="SoulSystem.liberate()" style="width:100%; padding:15px; background:#444; border:none; border-radius:8px; color:#777; font-family:'Bangers'; font-size:1.5rem; cursor:default;">SOUL LIBERATION</button>
             <div id="sm-req" style="text-align:center; font-size:0.7rem; color:#555; margin-top:5px;">Requires 100% Soul Gauge</div>
+        </div>
+    </div>
+
+    <!-- NEW DETAILS MODAL -->
+    <div id="details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="width:90%; max-width:400px; background:#111; border:2px solid #aaa; border-radius:15px; padding:0; overflow:hidden; box-shadow:0 0 30px black;">
+            <div style="background:#222; padding:15px; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:'Bangers'; font-size:1.5rem; color:white;">BATTLE STATS</span>
+                <span onclick="closeDetails()" style="color:#aaa; font-size:1.5rem; cursor:pointer;">✕</span>
+            </div>
+            <div style="padding:20px; font-family:'Orbitron'; font-size:0.9rem; color:#ddd;">
+                <div class="stat-row"><span>🔥 Total Power</span><span id="det-power" style="color:var(--dbz-yellow)">0</span></div>
+                <div class="stat-row"><span>❤️ Max HP</span><span id="det-hp" style="color:#ff3e3e">0</span></div>
+                <hr style="border-color:#333; margin:10px 0;">
+                <div class="stat-row"><span>⚔️ Attack</span><span id="det-atk">0</span></div>
+                <div class="stat-row"><span>🛡️ Defense</span><span id="det-def">0</span></div>
+                <div class="stat-row"><span>⚡ Crit Chance</span><span id="det-crit">0%</span></div>
+                <hr style="border-color:#333; margin:10px 0;">
+                <div class="stat-row"><span>💎 Soul Boost</span><span id="det-soul" style="color:#00ffff">x1.0</span></div>
+                <div class="stat-row"><span>💰 Coins</span><span id="det-coins" style="color:#f1c40f">0</span></div>
+            </div>
         </div>
     </div>
 
