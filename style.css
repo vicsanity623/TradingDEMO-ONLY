@@ -626,3 +626,14 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     0% { transform: translateY(0) scale(0.5); opacity: 1; }
     100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
 }
+
+/* --- DETAILS MODAL STYLES --- */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+}
+.stat-row:last-child {
+    border-bottom: none;
+}
