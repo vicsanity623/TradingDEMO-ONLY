@@ -13,7 +13,7 @@
 
     const ASSETS = {
         BASE: "IMG_0061.png",
-        SSJ: "IMG_0062.png",
+        SSJ: "IMG_0081.png",
         BEAM: "hb_b.png"
     };
 
@@ -36,9 +36,15 @@
     };
 
     window.battle = { 
-        stage: 1, world: 1, maxStage: 1, 
-        active: false, enemy: null, 
-        autoTimerId: null, pInterval: null, eInterval: null, cinematic: false 
+        stage: 1, 
+        world: 1, 
+        maxStage: 1, 
+        active: false, 
+        enemy: null,
+        autoTimerId: null,
+        pInterval: null,
+        eInterval: null,
+        cinematic: false 
     };
 
     if ('serviceWorker' in navigator) {
@@ -68,12 +74,11 @@
         inBattle: false
     };
 
-    // --- NEW: NUMBER FORMATTER (1M, 1B, 1T, 1A, 1AA...) ---
+    // --- NUMBER FORMATTER (1M, 1B, 1T, 1A, 1AA...) ---
     window.formatNumber = function(num) {
         if (num < 1000000) return Math.floor(num).toLocaleString();
 
         const suffixes = ["", "K", "M", "B", "T"];
-        // Calculate magnitude (log1000)
         let suffixNum = Math.floor(("" + Math.floor(num)).length / 3);
         
         let shortValue = parseFloat((num / Math.pow(1000, suffixNum)).toPrecision(3));
@@ -87,12 +92,7 @@
         if (suffixNum < suffixes.length) {
             suffix = suffixes[suffixNum];
         } else {
-            // Generate A, AA, AB logic for numbers > Trillion
             let alphaNum = suffixNum - suffixes.length; 
-            // 0 = A, 1 = AA isn't standard, usually A, B, C or aa, ab.
-            // Let's do: A, B, C... then AA, AB...
-            
-            // Simple Single/Double char generator
             const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             if (alphaNum < 26) {
                 suffix = alphabet[alphaNum];
@@ -106,7 +106,7 @@
         return shortValue + suffix;
     };
 
-    // --- NEW: DETAILS MODAL ---
+    // --- DETAILS MODAL LOGIC ---
     window.openDetails = function() {
         const modal = document.getElementById('details-modal');
         if(!modal) return;
@@ -118,16 +118,14 @@
         const baseDef = p.bDef + (p.rank * 150);
         const gearDef = p.gear.a?.val || 0;
         
-        // Populate
         document.getElementById('det-power').innerText = window.formatNumber(window.GameState.gokuPower);
         document.getElementById('det-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
         document.getElementById('det-atk').innerText = window.formatNumber(baseAtk + gearAtk);
         document.getElementById('det-def').innerText = window.formatNumber(baseDef + gearDef);
-        document.getElementById('det-soul').innerText = `x${sMult.toFixed(1)} (+${(sMult-1)*100}%)`;
+        document.getElementById('det-soul').innerText = `x${sMult.toFixed(1)} (+${Math.floor((sMult-1)*100)}%)`;
         document.getElementById('det-crit').innerText = `${(1 + p.rank * 0.5).toFixed(1)}%`;
         document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
         
-        // Show
         modal.style.display = 'flex';
     };
 
@@ -152,10 +150,13 @@
             }
             
             loadGame();
+            
             if(!window.player.soulLevel) window.player.soulLevel = 1;
             if(!window.player.souls) window.player.souls = 0;
 
-            document.getElementById('loader').style.display = 'none';
+            const loader = document.getElementById('loader');
+            if(loader) loader.style.display = 'none';
+            
             syncUI();
             
             if(typeof window.buildStageSelector === 'function') window.buildStageSelector();
@@ -216,7 +217,6 @@
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
         const def = Math.floor(rawDef * getSoulMult());
 
-        // Use Formatter here
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
         document.getElementById('ui-coins').innerText = window.formatNumber(window.player.coins);
@@ -231,7 +231,7 @@
         
         document.getElementById('lvl-stats-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
         document.getElementById('lvl-stats-atk').innerText = window.formatNumber(window.GameState.gokuPower);
-        // Calc def
+        
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
         document.getElementById('lvl-stats-def').innerText = window.formatNumber(Math.floor(rawDef * getSoulMult()));
 
@@ -308,10 +308,11 @@
     }
 
     function tapTrain() {
-        window.player.xp += Math.ceil(window.player.lvl / 2);
+        const gain = Math.ceil(window.player.lvl / 2);
+        window.player.xp += gain;
         window.player.coins += 1;
         window.isDirty = true;
-        popDamage(`+${Math.ceil(window.player.lvl / 2)} XP`, 'view-char', true);
+        popDamage(`+${gain} XP`, 'view-char', true);
         checkLevelUp();
         syncUI();
     }
@@ -339,7 +340,7 @@
                     window.battle.maxStage = parsed.battle.maxStage || 1;
                 }
                 window.player.inv.forEach(i => { if(!i.qty) i.qty = 1; });
-            } catch (e) { console.error("Corrupted Save"); }
+            } catch (e) { console.error("Save file corrupted"); }
         }
     }
 
@@ -552,6 +553,7 @@
         }
     }
 
+    // --- EXPOSE NECESSARY FUNCTIONS TO WINDOW ---
     window.initGame = initGame;
     window.showTab = showTab;
     window.claimSupply = claimSupply;
