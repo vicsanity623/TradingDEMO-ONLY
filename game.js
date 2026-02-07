@@ -30,7 +30,10 @@
         lvl: 1, rank: 0, xp: 0, nextXp: 100, coins: 500,
         bAtk: 40, bDef: 25, bHp: 500, hp: 500, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1,
-        lastCapsule: 0
+        lastCapsule: 0,
+        // NEW SOUL STATS
+        soulLevel: 1,
+        souls: 0
     };
 
     window.battle = { 
@@ -51,15 +54,23 @@
         });
     }
 
+    // --- MATH & STATS (UPDATED FOR SOUL) ---
+    function getSoulMult() {
+        const lvl = window.player.soulLevel || 1;
+        return 1 + (lvl * 1.0); // Base 100% + 100% per level
+    }
+
     window.GameState = {
         get gokuLevel() { return window.player.lvl; },
         get gokuPower() {
-            return (window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0));
+            const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
+            return Math.floor(rawAtk * getSoulMult());
         },
         get gokuHP() { return window.player.hp; },
         set gokuHP(v) { window.player.hp = v; },
         get gokuMaxHP() {
-            return window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
+            const rawHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
+            return Math.floor(rawHp * getSoulMult());
         },
         inBattle: false
     };
@@ -88,16 +99,19 @@
             
             loadGame();
             
+            // Ensure Soul Data Exists if loading old save
+            if(!window.player.soulLevel) window.player.soulLevel = 1;
+            if(!window.player.souls) window.player.souls = 0;
+
             const loader = document.getElementById('loader');
             if(loader) loader.style.display = 'none';
             
             syncUI();
             
-            // Initialize External Modules
             if(typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if(typeof window.initStrategy === 'function') window.initStrategy();
+            if(window.SoulSystem) window.SoulSystem.updateBtnUI(); // Init Soul Button
             
-            // Initialize Tap and Hold Logic
             setupRebirthHandler();
         
             setInterval(saveGame, CONFIG.SAVE_INTERVAL);
@@ -109,24 +123,6 @@
         }
     }
 
-    // --- HELPER: Lightweight UI Update for Rapid Fire ---
-    function updateStatsOnly() {
-        const p = window.player;
-        const maxHp = p.bHp + (p.rank * 2500) + (p.gear.a?.val || 0);
-        const atk = p.bAtk + (p.rank * 400) + (p.gear.w?.val || 0);
-        const def = p.bDef + (p.rank * 150) + (p.gear.a?.val || 0);
-
-        const elAtk = document.getElementById('ui-atk');
-        const elDef = document.getElementById('ui-def');
-        const elCoins = document.getElementById('ui-coins');
-        const elPower = document.getElementById('ui-power');
-        
-        if(elAtk) elAtk.innerText = atk;
-        if(elDef) elDef.innerText = def;
-        if(elCoins) elCoins.innerText = p.coins;
-        if(elPower) elPower.innerText = (atk * 30 + maxHp).toLocaleString();
-    }
-
     // --- REBIRTH TAP & HOLD HANDLER ---
     function setupRebirthHandler() {
         const btn = document.getElementById('btn-rebirth');
@@ -136,44 +132,25 @@
         let timeoutId = null;
 
         const performAction = () => {
-            // Cost is 100 per train. Rebirth calls both ATK and DEF (Total 200)
             let didTrain = false;
-
-            // Try ATK
-            if (window.player.coins >= 100) {
-                train('atk', true); // Skip full sync
-                didTrain = true;
-            }
-
-            // Try DEF (only if still have coins)
-            if (window.player.coins >= 100) {
-                train('def', true); // Skip full sync
-                didTrain = true;
-            }
+            if (window.player.coins >= 100) { train('atk', true); didTrain = true; }
+            if (window.player.coins >= 100) { train('def', true); didTrain = true; }
 
             if (didTrain) {
-                // UPDATE: Update specific stats elements immediately so user sees progress
                 updateStatsOnly();
             } else {
-                // Out of coins, stop auto
                 if (intervalId) {
                     clearInterval(intervalId);
                     intervalId = null;
-                    syncUI(); // Full sync to ensure correct final state
+                    syncUI();
                 }
             }
         };
 
         const start = (e) => {
             if(e.cancelable && e.type === 'touchstart') e.preventDefault();
-            
-            // Execute once immediately
             performAction();
-            syncUI();
-
-            // Delay before rapid fire (0.3s hold)
             timeoutId = setTimeout(() => {
-                // 0.02s Interval (20ms) -> 50 times per second
                 intervalId = setInterval(performAction, 20); 
             }, 300);
         };
@@ -185,16 +162,32 @@
                 clearInterval(intervalId);
                 intervalId = null;
             }
-            syncUI(); // Final full sync
+            syncUI();
         };
 
-        // Events
         btn.addEventListener('mousedown', start);
         btn.addEventListener('mouseup', end);
         btn.addEventListener('mouseleave', end);
         btn.addEventListener('touchstart', start, {passive: false});
         btn.addEventListener('touchend', end);
         btn.addEventListener('touchcancel', end);
+    }
+
+    function updateStatsOnly() {
+        const atk = window.GameState.gokuPower; // Use calculated power
+        // Calculate raw def for display or use multiplier if defense should scale too
+        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+        const def = Math.floor(rawDef * getSoulMult());
+
+        const elAtk = document.getElementById('ui-atk');
+        const elDef = document.getElementById('ui-def');
+        const elCoins = document.getElementById('ui-coins');
+        const elPower = document.getElementById('ui-power');
+        
+        if(elAtk) elAtk.innerText = atk.toLocaleString();
+        if(elDef) elDef.innerText = def.toLocaleString();
+        if(elCoins) elCoins.innerText = window.player.coins;
+        if(elPower) elPower.innerText = (atk * 30 + window.GameState.gokuMaxHP).toLocaleString();
     }
 
     // --- CORE LOGIC ---
@@ -207,13 +200,15 @@
         document.getElementById('lvl-up-old').innerText = oldLvl;
         document.getElementById('lvl-up-new').innerText = newLvl;
         
-        const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
-        const atk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
-        const def = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+        // Show Stats (Calculated with Soul Mult)
+        const maxHp = window.GameState.gokuMaxHP;
+        const atk = window.GameState.gokuPower;
+        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+        const def = Math.floor(rawDef * getSoulMult());
 
-        document.getElementById('lvl-stats-hp').innerText = maxHp;
-        document.getElementById('lvl-stats-atk').innerText = atk;
-        document.getElementById('lvl-stats-def').innerText = def;
+        document.getElementById('lvl-stats-hp').innerText = maxHp.toLocaleString();
+        document.getElementById('lvl-stats-atk').innerText = atk.toLocaleString();
+        document.getElementById('lvl-stats-def').innerText = def.toLocaleString();
 
         const img = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         document.getElementById('lvl-up-img').src = img;
@@ -241,8 +236,8 @@
             window.player.bAtk += 5; 
             window.player.bDef += 2;
             
-            const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
-            window.player.hp = maxHp;
+            // Heal fully on level up
+            window.player.hp = window.GameState.gokuMaxHP;
             
             if(window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
             leveledUp = true;
@@ -417,9 +412,10 @@
         if(btlSprite) btlSprite.src = sprite;
         if(uiAura) uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
         
-        const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
-        const atk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
-        const def = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+        const maxHp = window.GameState.gokuMaxHP;
+        const atk = window.GameState.gokuPower;
+        const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
+        const def = Math.floor(rawDef * getSoulMult());
 
         const els = {
             rank: document.getElementById('ui-rank-badge'),
@@ -439,8 +435,8 @@
         if(els.rank) els.rank.innerText = RANKS[window.player.rank].substring(0,2);
         if(els.name) els.name.innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
         if(els.lvl) els.lvl.innerText = window.player.lvl;
-        if(els.atk) els.atk.innerText = atk;
-        if(els.def) els.def.innerText = def;
+        if(els.atk) els.atk.innerText = atk.toLocaleString();
+        if(els.def) els.def.innerText = def.toLocaleString();
         if(els.coins) els.coins.innerText = window.player.coins;
         if(els.hp) els.hp.innerText = `${Math.floor(window.player.hp)}`;
         if(els.power) els.power.innerText = (atk * 30 + maxHp).toLocaleString();
@@ -502,6 +498,9 @@
         } else if (els.equipBtn) {
             els.equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
         }
+        
+        // Update Soul Button
+        if(window.SoulSystem) window.SoulSystem.updateBtnUI();
     }
 
     function updateVisualSlot(type, id) {
@@ -584,7 +583,6 @@
             window.isDirty = true;
             if(!skipSync) syncUI();
         } else {
-            // Only alert if we are tapping normally (not holding) to prevent spam
             if(!skipSync) alert("Need 100 Coins to Train!");
         }
     }
