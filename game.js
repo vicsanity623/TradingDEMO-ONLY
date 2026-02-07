@@ -46,6 +46,9 @@
         eInterval: null,
         cinematic: false 
     };
+    
+    // Auto Merge State
+    let isAutoMerging = false;
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -74,7 +77,7 @@
         inBattle: false
     };
 
-    // --- NUMBER FORMATTER (1M, 1B, 1T, 1A, 1AA...) ---
+    // --- NUMBER FORMATTER ---
     window.formatNumber = function(num) {
         if (num < 1000000) return Math.floor(num).toLocaleString();
 
@@ -371,32 +374,29 @@
         const found = window.player.inv.find(i => i.n === item.n && i.type === item.type && i.val === item.val && i.rarity === item.rarity && i.qty < 99);
         if(found) found.qty++; else { item.qty = 1; window.player.inv.push(item); }
         window.isDirty = true;
+        // Trigger Auto Merge Check on new item
+        if(isAutoMerging) setTimeout(processAutoMerge, 200);
+        else syncUI();
     }
 
     function syncUI() {
         const sprite = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         
-        // 1. Try to update the static UI sprite (if it exists)
         const uiSprite = document.getElementById('ui-sprite');
         if (uiSprite) uiSprite.src = sprite;
 
-        // 2. Try to update the Battle sprite
         const btlSprite = document.getElementById('btl-p-sprite');
         if (btlSprite) btlSprite.src = sprite;
 
-        // 3. --- NEW: UPDATE HUB BATTLE SPRITE ---
         if (window.HubBattle && typeof window.HubBattle.updateSprite === 'function') {
             window.HubBattle.updateSprite(sprite);
         }
-        // ----------------------------------------
 
-        // 4. Update Aura (if it exists)
         const uiAura = document.getElementById('ui-aura');
         if (uiAura) {
             uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
         }
 
-        // --- Standard Stat Updates ---
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
@@ -422,9 +422,26 @@
         
         const mergeBtn = document.getElementById('btn-merge');
         const equipBtn = document.getElementById('btn-action');
+        const autoMergeBtn = document.getElementById('btn-auto-merge');
         
         if(mergeBtn) mergeBtn.style.display = 'none';
         if(equipBtn) equipBtn.style.display = 'flex'; 
+
+        // Auto Merge Button Logic
+        if(autoMergeBtn) {
+            if(window.player.inv.length > 0) {
+                autoMergeBtn.style.display = 'flex';
+                if(isAutoMerging) {
+                    autoMergeBtn.innerHTML = `<span>⚡ STOP MERGING</span>`;
+                    autoMergeBtn.classList.add('merging');
+                } else {
+                    autoMergeBtn.innerHTML = `<span>⚡ AUTO MERGE</span>`;
+                    autoMergeBtn.classList.remove('merging');
+                }
+            } else {
+                autoMergeBtn.style.display = 'none';
+            }
+        }
 
         window.player.inv.forEach((item, i) => {
             const d = document.createElement('div');
@@ -488,6 +505,7 @@
         }
     }
 
+    // --- MANUAL MERGE ---
     function mergeItems() {
         if(window.player.selected === -1) return;
         const sItem = window.player.inv[window.player.selected];
@@ -499,15 +517,8 @@
 
         if(totalCount >= 3) {
             window.player.coins -= cost;
-            let needed = 3;
-            for(let i = window.player.inv.length - 1; i >= 0; i--) {
-                if(needed <= 0) break;
-                let item = window.player.inv[i];
-                if(item.n === sItem.n && item.type === sItem.type && item.rarity === sItem.rarity) {
-                    if(item.qty >= needed) { item.qty -= needed; needed = 0; if(item.qty === 0) window.player.inv.splice(i, 1); }
-                    else { needed -= item.qty; window.player.inv.splice(i, 1); }
-                }
-            }
+            removeItems(sItem, 3);
+            
             const newRarity = sItem.rarity + 1;
             let newVal = Math.floor(sItem.val * 2);
             let newName = "Saiyan Gear";
@@ -521,6 +532,86 @@
             window.player.selected = -1;
             window.isDirty = true;
             syncUI();
+        }
+    }
+
+    // --- AUTO MERGE SYSTEM ---
+    function toggleAutoMerge() {
+        isAutoMerging = !isAutoMerging;
+        syncUI();
+        if(isAutoMerging) processAutoMerge();
+    }
+
+    function processAutoMerge() {
+        if(!isAutoMerging) return;
+
+        let mergedSomething = false;
+
+        // Iterate backwards so we can modify the array safely if needed
+        // but we actually need to restart scan if we merge something to handle cascading merges
+        for(let i = 0; i < window.player.inv.length; i++) {
+            const item = window.player.inv[i];
+            
+            // Skip max rarity
+            if(item.rarity >= 6) continue;
+
+            // Calculate cost
+            const cost = item.rarity * 500;
+            if(window.player.coins < cost) continue;
+
+            // Count Total
+            let count = 0;
+            window.player.inv.forEach(x => {
+                if(x.n === item.n && x.type === item.type && x.rarity === item.rarity) count += x.qty;
+            });
+
+            if(count >= 3) {
+                // Perform Merge
+                window.player.coins -= cost;
+                removeItems(item, 3);
+
+                const newRarity = item.rarity + 1;
+                let newVal = Math.floor(item.val * 2);
+                let newName = "Saiyan Gear";
+                if (newRarity === 2) { newVal = 1500; newName = "Elite Gear"; }      
+                else if (newRarity === 3) { newVal = 3500; newName = "Legendary Gear"; } 
+                else if (newRarity === 4) { newVal = 8500; newName = "God Gear"; }       
+                else if (newRarity === 5) { newVal = 20000; newName = "Angel Gear"; }    
+                else if (newRarity === 6) { newVal = 50000; newName = "Omni Gear"; }     
+
+                window.addToInventory({ n: newName, type: item.type, val: newVal, rarity: newRarity });
+                mergedSomething = true;
+                break; // Stop and restart scan
+            }
+        }
+
+        window.isDirty = true;
+        syncUI();
+
+        if(mergedSomething && isAutoMerging) {
+            // Delay slightly for animation effect
+            setTimeout(processAutoMerge, 200);
+        } else if(!mergedSomething) {
+            // Nothing left to merge
+            // We keep it active so new drops trigger it, but we stop the loop
+        }
+    }
+
+    function removeItems(templateItem, qtyToRemove) {
+        let needed = qtyToRemove;
+        for(let i = window.player.inv.length - 1; i >= 0; i--) {
+            if(needed <= 0) break;
+            let item = window.player.inv[i];
+            if(item.n === templateItem.n && item.type === templateItem.type && item.rarity === templateItem.rarity) {
+                if(item.qty >= needed) { 
+                    item.qty -= needed; 
+                    needed = 0; 
+                    if(item.qty === 0) window.player.inv.splice(i, 1); 
+                } else { 
+                    needed -= item.qty; 
+                    window.player.inv.splice(i, 1); 
+                }
+            }
         }
     }
 
@@ -584,5 +675,6 @@
     window.addToInventory = addToInventory;
     window.syncUI = syncUI;
     window.popDamage = popDamage;
+    window.toggleAutoMerge = toggleAutoMerge; // Exposed for button click
 
 })();
