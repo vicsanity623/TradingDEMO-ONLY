@@ -3,6 +3,7 @@
 
     // --- UTILS ---
     function clearBattleTimers() {
+        if (!window.battle) return;
         if (window.battle.pInterval) clearInterval(window.battle.pInterval);
         if (window.battle.eInterval) clearInterval(window.battle.eInterval);
         if (window.battle.autoTimerId) clearTimeout(window.battle.autoTimerId);
@@ -63,6 +64,8 @@
     function buildStageSelector() {
         const container = document.getElementById('ui-stage-selector');
         if (!container) return;
+        // Safety check: ensure battle object exists
+        if (!window.battle) return;
 
         container.innerHTML = '';
         const fragment = document.createDocumentFragment();
@@ -92,8 +95,8 @@
     }
 
     function stopCombat() {
-        window.battle.active = false;
-        if (window.GameState) GameState.inBattle = false;
+        if(window.battle) window.battle.active = false;
+        if (window.GameState) window.GameState.inBattle = false;
         clearBattleTimers();
     }
 
@@ -125,7 +128,7 @@
     function restartGame() {
         stopCombat();
         if (window.GameState) {
-            window.player.hp = GameState.gokuMaxHP;
+            window.player.hp = window.GameState.gokuMaxHP;
         } else {
             const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
             window.player.hp = maxHp;
@@ -140,7 +143,7 @@
         stopCombat(); 
         window.battle.active = true;
         window.battle.cinematic = false;
-        if (window.GameState) GameState.inBattle = true;
+        if (window.GameState) window.GameState.inBattle = true;
         
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
@@ -165,7 +168,7 @@
         buildStageSelector();
 
         const viewBattle = document.getElementById('view-battle');
-        if(window.apiData.planets.length > 0 && viewBattle) {
+        if(window.apiData && window.apiData.planets && window.apiData.planets.length > 0 && viewBattle) {
             const pIdx = (window.battle.world - 1) % window.apiData.planets.length;
             viewBattle.style.backgroundImage = `url('${window.apiData.planets[pIdx].image}')`;
             viewBattle.style.backgroundPositionX = '50%';
@@ -223,6 +226,12 @@
         // Difficulty Scaling
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
         
+        // Safety: If API data isn't ready, use default
+        if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
+            window.battle.enemy = { name: "Loading...", hp: 100, maxHp: 100, atk: 10, i: "" };
+            return;
+        }
+
         // --- BOSS LOGIC (Stage 20) ---
         if (window.battle.stage === 20) {
             window.battle.bossPhase = 1; // Start Phase 1
@@ -290,7 +299,7 @@
             eImg.style.transform = "scale(0.1) rotate(360deg)"; // Shrink to transform
         }
         
-        if (window.popDamage) popDamage("FINAL FORM!", 'e-box', true);
+        if (window.popDamage) window.popDamage("FINAL FORM!", 'e-box', true);
         triggerShake('heavy');
 
         await new Promise(r => setTimeout(r, 1000));
@@ -323,7 +332,7 @@
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
         
         target.hp -= amt;
-        if (window.popDamage) popDamage(amt, targetId);
+        if (window.popDamage) window.popDamage(amt, targetId);
         updateBars();
 
         // --- DEATH CHECK ---
@@ -375,7 +384,7 @@
                 victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
                 setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
             }
-            if (window.popDamage) popDamage("CRIT!", isP ? 'e-box' : 'p-box');
+            if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
             applyDamage(Math.floor(dmg * 1.5), side);
             setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
         } else {
@@ -427,43 +436,32 @@
 
         if(!window.battle.active) { window.battle.cinematic = false; return; }
         
-        // --- FIXED LOGIC HERE ---
-        // 1. Calculate Damage
         const soulLvl = window.player.soulLevel || 1;
         const power = window.GameState ? window.GameState.gokuPower : 100;
         const soulBonus = 1 + (soulLvl * 0.1); 
         const dmg = Math.floor(power * 6 * soulBonus);
         
-        // 2. Visuals
-        if (window.popDamage) popDamage("ULTIMATE!", 'e-box', true);
+        if (window.popDamage) window.popDamage("ULTIMATE!", 'e-box', true);
+        
         const eImg = document.getElementById('e-img');
         if(eImg) eImg.classList.add('knockback-right');
         
-        // 3. APPLY DAMAGE (This will trigger death check if needed)
         applyDamage(dmg, 'p');
 
-        // 4. CLEANUP (Even if enemy died, we clear the beam visuals)
         setTimeout(() => {
             if (beam) {
                 beam.style.transition = "opacity 0.2s ease-out"; 
                 beam.style.opacity = '0'; 
-                
                 setTimeout(() => {
                     beam.style.transition = "none"; 
                     beam.style.width = "0"; 
-                    
-                    // Only reset enemy class if still alive
                     if(window.battle.active && window.battle.enemy.hp > 0 && eImg) {
                          eImg.classList.remove('knockback-right');
                     }
-                    
                     setTimeout(() => {
-                         beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
+                        beam.style.transition = "width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1), opacity 0.2s ease-in";
                     }, 50);
-
-                    // End cinematic state
                     window.battle.cinematic = false; 
-                    
                 }, 200);
             } else {
                 window.battle.cinematic = false;
@@ -615,7 +613,7 @@
         if(menu && menu.style.display === 'flex') return;
 
         if (window.GameState) {
-            window.player.hp = GameState.gokuMaxHP;
+            window.player.hp = window.GameState.gokuMaxHP;
         } else {
             const maxHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
             window.player.hp = maxHp; 
