@@ -14,7 +14,7 @@
         animFrame: null,
         
         // Settings
-        spawnRate: 800, // ms
+        spawnRate: 400, // ms
         speed: 2,
         
         init: function() {
@@ -27,7 +27,7 @@
             // Create Mini Goku
             this.playerEl = document.createElement('img');
             
-            // --- FIX: Use current player rank sprite if available, else default ---
+            // Use current player rank sprite if available, else default
             const currentSprite = (window.player && window.player.rank >= 1) ? "IMG_0081.png" : "IMG_0061.png";
             this.playerEl.src = currentSprite; 
             
@@ -37,13 +37,12 @@
             this.start();
         },
 
-        // --- NEW FUNCTION: ALLOWS GAME.JS TO UPDATE THE SPRITE ---
+        // Allow game.js to update the sprite when transforming
         updateSprite: function(src) {
             if (this.playerEl && src) {
                 this.playerEl.src = src;
             }
         },
-        // ---------------------------------------------------------
 
         start: function() {
             if(this.running) return;
@@ -71,10 +70,7 @@
             if(!this.running || document.hidden) return;
             
             const el = document.createElement('img');
-            
-            // Enemy Sprite
             el.src = "IMG_0206.png"; 
-
             el.className = "hub-enemy";
             el.onerror = function() { this.style.display='none'; }; 
             
@@ -106,7 +102,6 @@
                 e.el.style.left = e.x + "px";
 
                 // Auto-Attack Logic (Goku Teleport)
-                // Goku picks the closest enemy to the left side
                 if (e.x < 250 && e.state === 'move') {
                     this.gokuAttack(e);
                 }
@@ -129,7 +124,6 @@
             this.playerEl.style.top = (enemy.y - 10) + "px";
             this.playerEl.style.left = (enemy.x - 40) + "px";
             this.playerEl.classList.add('hub-flash');
-            
             this.playerEl.style.transform = "scale(1.2)";
 
             // Impact
@@ -159,21 +153,27 @@
             // Apply to Player State
             window.player.xp += xpReward;
             window.player.coins += goldReward;
+
+            // --- THIS IS THE FIX ---
+            // Trigger the global level-up check from game.js
+            if(window.checkLevelUp) {
+                window.checkLevelUp(); 
+            }
+            // -----------------------
             
             // Souls Logic: 5 kills = 2 souls
             if(this.killCount % 5 === 0) {
                 if(window.SoulSystem) {
                     window.SoulSystem.gainSoul();
-                    window.SoulSystem.gainSoul(); // +2
+                    window.SoulSystem.gainSoul(); 
                     this.showFloat("+2 SOULS", "#00ffff");
                 }
             } else {
                 this.showFloat(`+${goldReward} G`, "#f1c40f");
             }
             
-            // Sync UI logic
-            // Note: calling syncUI() here might create an infinite loop if not careful.
-            // Instead, update DOM directly for performance or throttle syncUI.
+            // Update UI Bars directly for smoothness
+            // (checkLevelUp will handle full UI sync if a level up actually happens)
             const xpBar = document.getElementById('bar-xp');
             if(xpBar) {
                 const xpPct = (window.player.xp / window.player.nextXp) * 100;
@@ -181,7 +181,7 @@
             }
             const coinEl = document.getElementById('ui-coins');
             if(coinEl) {
-                coinEl.innerText = window.player.coins.toLocaleString();
+                coinEl.innerText = window.formatNumber ? window.formatNumber(window.player.coins) : window.player.coins;
             }
         },
         
@@ -197,7 +197,6 @@
         }
     };
 
-    // Expose
     window.HubBattle = HubBattle;
 
 })();
