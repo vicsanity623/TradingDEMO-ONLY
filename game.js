@@ -375,17 +375,26 @@
 
     function syncUI() {
         const sprite = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
+        
+        // 1. SAFE CHECK: Only update 'ui-sprite' if it actually exists in HTML
         const uiSprite = document.getElementById('ui-sprite');
-        if (uiSprite) uiSprite.src = sprite;
+        if (uiSprite) {
+            uiSprite.src = sprite;
+        }
 
+        // 2. Update Battle Sprite (This exists in your HTML at line 158)
         const btlSprite = document.getElementById('btl-p-sprite');
-        if (btlSprite) btlSprite.src = sprite;
+        if (btlSprite) {
+            btlSprite.src = sprite;
+        }
 
+        // 3. SAFE CHECK: Only update aura if it exists (It is currently missing from your HTML)
         const uiAura = document.getElementById('ui-aura');
         if (uiAura) {
             uiAura.style.display = (window.player.rank >= 1) ? "block" : "none";
         }
         
+        // --- The rest of the logic remains exactly the same ---
         const atk = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
@@ -395,7 +404,6 @@
         document.getElementById('ui-name').innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
         document.getElementById('ui-lvl').innerText = window.player.lvl;
         
-        // USE FORMATTER HERE
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
         document.getElementById('ui-coins').innerText = window.formatNumber(window.player.coins);
@@ -405,15 +413,17 @@
         const xpPct = (window.player.xp / window.player.nextXp) * 100;
         document.getElementById('bar-xp').style.width = xpPct + "%";
         
-        // Inventory Grid
+        // Inventory Grid Logic
         const grid = document.getElementById('inv-grid');
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
         
         const mergeBtn = document.getElementById('btn-merge');
         const equipBtn = document.getElementById('btn-action');
-        mergeBtn.style.display = 'none';
-        equipBtn.style.display = 'flex'; 
+        
+        // Safety check for buttons, in case they are hidden/removed in future
+        if(mergeBtn) mergeBtn.style.display = 'none';
+        if(equipBtn) equipBtn.style.display = 'flex'; 
 
         window.player.inv.forEach((item, i) => {
             const d = document.createElement('div');
@@ -436,7 +446,7 @@
         updateVisualSlot('w', 'slot-w');
         updateVisualSlot('a', 'slot-a');
 
-        if(window.player.selected !== -1) {
+        if(window.player.selected !== -1 && equipBtn && mergeBtn) {
             const sItem = window.player.inv[window.player.selected];
             let totalCount = 0;
             window.player.inv.forEach(i => {
@@ -450,7 +460,7 @@
             } else {
                 equipBtn.innerHTML = `<span>EQUIP ${sItem.type === 'w' ? 'WEAPON' : 'ARMOR'}</span>`;
             }
-        } else {
+        } else if (equipBtn) {
             equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
         }
         
