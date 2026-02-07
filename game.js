@@ -109,6 +109,24 @@
         }
     }
 
+    // --- HELPER: Lightweight UI Update for Rapid Fire ---
+    function updateStatsOnly() {
+        const p = window.player;
+        const maxHp = p.bHp + (p.rank * 2500) + (p.gear.a?.val || 0);
+        const atk = p.bAtk + (p.rank * 400) + (p.gear.w?.val || 0);
+        const def = p.bDef + (p.rank * 150) + (p.gear.a?.val || 0);
+
+        const elAtk = document.getElementById('ui-atk');
+        const elDef = document.getElementById('ui-def');
+        const elCoins = document.getElementById('ui-coins');
+        const elPower = document.getElementById('ui-power');
+        
+        if(elAtk) elAtk.innerText = atk;
+        if(elDef) elDef.innerText = def;
+        if(elCoins) elCoins.innerText = p.coins;
+        if(elPower) elPower.innerText = (atk * 30 + maxHp).toLocaleString();
+    }
+
     // --- REBIRTH TAP & HOLD HANDLER ---
     function setupRebirthHandler() {
         const btn = document.getElementById('btn-rebirth');
@@ -123,25 +141,25 @@
 
             // Try ATK
             if (window.player.coins >= 100) {
-                train('atk', true); // Skip Sync
+                train('atk', true); // Skip full sync
                 didTrain = true;
             }
 
             // Try DEF (only if still have coins)
             if (window.player.coins >= 100) {
-                train('def', true); // Skip Sync
+                train('def', true); // Skip full sync
                 didTrain = true;
             }
 
             if (didTrain) {
-                // We sync UI once at end of interaction, not here
-                // unless we want visual feedback during hold (optional)
+                // UPDATE: Update specific stats elements immediately so user sees progress
+                updateStatsOnly();
             } else {
                 // Out of coins, stop auto
                 if (intervalId) {
                     clearInterval(intervalId);
                     intervalId = null;
-                    syncUI(); // Ensure UI updates final state
+                    syncUI(); // Full sync to ensure correct final state
                 }
             }
         };
@@ -167,7 +185,7 @@
                 clearInterval(intervalId);
                 intervalId = null;
             }
-            syncUI(); // Final sync to show updated stats
+            syncUI(); // Final full sync
         };
 
         // Events
