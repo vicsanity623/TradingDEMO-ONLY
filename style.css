@@ -637,3 +637,39 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 .stat-row:last-child {
     border-bottom: none;
 }
+
+/* --- AUTO MERGE BUTTON --- */
+#btn-auto-merge {
+    position: absolute;
+    top: -65px; /* Positioned above the Select Gear button */
+    right: 15px; /* Aligned to the right */
+    background: linear-gradient(to bottom, #3498db, #2980b9);
+    border: 2px solid #fff;
+    border-radius: 20px;
+    padding: 8px 15px;
+    color: white;
+    font-family: 'Bangers';
+    font-size: 1.2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: transform 0.1s;
+}
+
+#btn-auto-merge:active {
+    transform: scale(0.95);
+}
+
+#btn-auto-merge.merging {
+    background: linear-gradient(to bottom, #2ecc71, #27ae60);
+    animation: pulseMerge 1s infinite;
+}
+
+@keyframes pulseMerge {
+    0% { box-shadow: 0 0 5px #2ecc71; }
+    50% { box-shadow: 0 0 15px #2ecc71; }
+    100% { box-shadow: 0 0 5px #2ecc71; }
+}
