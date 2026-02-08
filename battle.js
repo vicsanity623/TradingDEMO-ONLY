@@ -391,11 +391,30 @@
     }
 
     async function executeStrike(side) {
-        let critChance = 0.1 + (window.player.rank * 0.05);
-        if(window.player.advanceLevel >= 5) critChance += 0.05 + (window.player.advanceLevel * 0.005);
-        const isAmbush = Math.random() > (1.0 - critChance);
         if(!window.battle.active) return;
+
         const isP = (side === 'p');
+
+        // --- CALCULATE AMBUSH/CRIT CHANCE ---
+        let threshold = 0.8; // Default for Enemy (20% chance)
+
+        if (isP) {
+            // Player Logic: Base 10% + 5% per Rank
+            let critChance = 0.1 + (window.player.rank * 0.05);
+            
+            // Advance Level Bonus
+            if(window.player.advanceLevel && window.player.advanceLevel >= 5) {
+                critChance += 0.05 + (window.player.advanceLevel * 0.005);
+            }
+            
+            // Convert percentage to threshold (e.g. 30% chance means > 0.7)
+            threshold = 1.0 - critChance;
+        }
+
+        // Declare isAmbush ONLY ONCE here
+        const isAmbush = Math.random() > threshold;
+        // -------------------------------------
+
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
         const atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
@@ -408,31 +427,39 @@
         }
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
-        const isAmbush = Math.random() > 0.8; 
 
         if(isAmbush) {
             await teleportVisual(attackerBox, isP ? 80 : -80); 
             if(!window.battle.active) return;
+            
             triggerShake();
+            
             if(victimImg) {
                 victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
                 setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
             }
+            
             if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
             applyDamage(Math.floor(dmg * 1.5), side);
+            
             setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
         } else {
             attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
             attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)';
+            
             setTimeout(() => {
                 if(!window.battle.active) return;
+                
                 if(Math.random() > 0.5) triggerShake();
+                
                 if(victimImg) {
                     victimImg.style.transition = "transform 0.1s";
                     victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
                     setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
                 }
+                
                 applyDamage(dmg, side);
+                
                 setTimeout(() => {
                     if(window.battle.active) {
                         attackerBox.style.transition = "transform 0.2s ease-out";
