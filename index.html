@@ -32,6 +32,7 @@
     <script src="battle.js" defer></script>
     <script src="hub.js" defer></script>
     <script src="game.js" defer></script>
+    <script src="advance.js" defer></script>
 </head>
 <body onload="initGame()">
 
@@ -177,7 +178,7 @@
                     <div class="nav-circle" style="color:#3498db;">🎒</div>
                     Gear
                 </div>
-                <div class="nav-icon">
+                <div class="nav-icon" onclick="AdvanceSystem.open()">
                     <div class="nav-circle" style="color:#9b59b6;">⬆️</div>
                     Advance
                 </div>
@@ -442,6 +443,30 @@
                 <button class="menu-btn exit" onclick="closeStageDetails()" style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
                 <button class="menu-btn" onclick="confirmStart()" style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
             </div>
+        </div>
+    </div>
+    
+    <div id="advance-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
+        <div class="g-close" onclick="AdvanceSystem.close()" style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
+        <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px cyan;">GEAR ADVANCEMENT</div>
+        
+        <div style="display:flex; width:90%; max-width:400px; align-items:center; margin-bottom:20px;">
+            <img src="bulma_guide.png" onerror="this.style.display='none'" style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin-right:10px; object-fit:cover;">
+            <div id="bulma-speech" style="background:white; color:black; padding:10px; border-radius:10px; font-family:'Orbitron'; font-size:0.8rem; position:relative;">Use Dragon Shards to break your limits!<div style="position:absolute; left:-6px; top:50%; width:10px; height:10px; background:white; transform:rotate(45deg);"></div></div>
+        </div>
+    
+        <div id="adv-visual-container" style="background:#222; border:2px solid #555; border-radius:15px; padding:20px; width:90%; max-width:400px; text-align:center;">
+            <div style="color:white; font-family:'Bangers'; font-size:1.5rem; margin-bottom:15px;">ADVANCE LEVEL: <span id="adv-current-lvl" style="color:#00ff00;">0</span></div>
+            <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
+                <div class="slot-box" id="adv-slot-w"></div>
+                <div class="slot-box" id="adv-slot-a"></div>
+            </div>
+            <div id="adv-stats-list" style="background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; text-align:left; font-family:'Orbitron'; font-size:0.8rem; color:#aaa; margin-bottom:15px;"></div>
+            <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.9rem; margin-bottom:15px; border-top:1px solid #444; padding-top:10px;">
+                <div>💎 Shards: <span id="adv-shard-count" style="color:#00d2ff;">0</span></div>
+                <div>💰 Gold: <span id="adv-gold-count" style="color:#f1c40f;">0</span></div>
+            </div>
+            <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn" style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
         </div>
     </div>
 
