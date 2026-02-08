@@ -58,17 +58,17 @@
     // --- STAGE SELECTION & MODAL LOGIC ---
 
     // 1. Show the Modal with details
-    window.openStageDetails = function(stageNum) {
-        window.battle.selectedStage = stageNum; // Store selection
+    function openStageDetails(stageNum) {
+        window.battle.selectedStage = stageNum; 
         
         const modal = document.getElementById('stage-details-modal');
         if(!modal) return;
 
-        // Calculate potential stats based on stage logic
+        // Calculate potential stats
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
         const estAtk = Math.floor(30 * scale);
-        const recPower = Math.floor((estAtk * 15) + estHp); // Rough formula for recommended power
+        const recPower = Math.floor((estAtk * 15) + estHp); 
 
         // Rewards
         const xp = 100 * stageNum * window.battle.world;
@@ -81,10 +81,8 @@
         let imgUrl = "";
         let name = "Enemy";
         
-        // Check if API is ready
         if (window.apiData && window.apiData.characters) {
             if(stageNum === 20) {
-                // Boss Logic
                 let bossName = "Frieza";
                 const wMod = window.battle.world % 3;
                 if(wMod === 2) bossName = "Cell";
@@ -95,7 +93,6 @@
                 imgUrl = charData ? charData.image : "";
                 name = "BOSS " + (charData ? charData.name : "Titan");
             } else {
-                // Normal Logic
                 const charIdx = (stageNum + (window.battle.world * 3)) % window.apiData.characters.length;
                 let dat = window.apiData.characters[charIdx];
                 if(dat) {
@@ -105,7 +102,6 @@
             }
         }
 
-        // Update DOM
         document.getElementById('sd-num').innerText = stageNum;
         document.getElementById('sd-enemy-img').src = imgUrl;
         document.getElementById('sd-enemy-name').innerText = name;
@@ -114,25 +110,24 @@
         document.getElementById('sd-coins').innerText = coins;
         document.getElementById('sd-drops').innerText = drops;
 
-        // Aura Color for Boss
         const aura = document.querySelector('.enemy-aura');
         if(aura) {
             aura.style.background = (stageNum === 20) 
-                ? "radial-gradient(circle, rgba(255,0,0,0.8), transparent 70%)" // Red for Boss
-                : "radial-gradient(circle, rgba(0,255,255,0.6), transparent 70%)"; // Blue for Normal
+                ? "radial-gradient(circle, rgba(255,0,0,0.8), transparent 70%)" 
+                : "radial-gradient(circle, rgba(0,255,255,0.6), transparent 70%)"; 
         }
 
         modal.style.display = 'flex';
-    };
+    }
 
     // 2. Hide Modal
-    window.closeStageDetails = function() {
+    function closeStageDetails() {
         const modal = document.getElementById('stage-details-modal');
         if(modal) modal.style.display = 'none';
-    };
+    }
 
     // 3. Actually Start Battle
-    window.confirmStart = function() {
+    function confirmStart() {
         closeStageDetails();
         if(window.battle.selectedStage) {
             window.battle.stage = window.battle.selectedStage;
@@ -141,7 +136,7 @@
             startBattle();
             buildStageSelector();
         }
-    };
+    }
 
     // --- CORE BATTLE FUNCTIONS ---
 
@@ -161,7 +156,6 @@
 
             dot.innerText = i;
             dot.onclick = () => {
-                // FIXED: Now opens modal instead of auto-starting
                 if(i <= window.battle.maxStage) {
                     openStageDetails(i);
                 }
@@ -200,7 +194,6 @@
              window.battle.stage++;
         }
         
-        // For auto-start next, we skip the modal and just fight
         startBattle();
     }
 
@@ -574,7 +567,6 @@
         }
         if(shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
         
-        // Add healing logic if level >= 10
         if(window.player.advanceLevel >= 10) {
             const healAmt = window.GameState.gokuMaxHP * 0.15;
             window.player.hp = Math.min(window.player.hp + healAmt, window.GameState.gokuMaxHP);
@@ -710,10 +702,14 @@
         if (btlPCharge) btlPCharge.style.width = window.player.charge + "%";
     }
 
+    // --- EXPOSE NECESSARY FUNCTIONS ---
     window.startBattle = startBattle;
     window.stopCombat = stopCombat;
     window.exitBattle = exitBattle;
     window.autoStartNext = autoStartNext;
     window.buildStageSelector = buildStageSelector;
+    window.openStageDetails = openStageDetails;
+    window.closeStageDetails = closeStageDetails;
+    window.confirmStart = confirmStart;
 
 })();
