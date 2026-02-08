@@ -76,6 +76,11 @@
         let drops = "Common";
         if(stageNum % 5 === 0) drops = "High";
         if(stageNum === 20) drops = "LEGENDARY";
+        
+        // Add Shard indicator for eligible stages
+        if ((window.battle.world === 1 && stageNum >= 15) || window.battle.world > 1) {
+            drops += " + 💎"; 
+        }
 
         // Determine Enemy Image & Name
         let imgUrl = "";
