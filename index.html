@@ -385,6 +385,41 @@
             </div>
         </div>
     </div>
+    
+    <!-- STAGE DETAILS MODAL -->
+    <div id="stage-details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center;">
+        <div class="stage-card">
+            <div class="stage-header">STAGE <span id="sd-num">1</span></div>
+            
+            <div class="enemy-preview-container">
+                <div class="enemy-aura"></div>
+                <img id="sd-enemy-img" src="" alt="Enemy">
+            </div>
+            <div id="sd-enemy-name" style="font-family:'Bangers'; color:#ff5e57; font-size:1.2rem; margin-bottom:5px;"></div>
+    
+            <div class="stage-stats">
+                <div style="color:#f1c40f; font-size:0.9rem;">⚠️ REC. POWER</div>
+                <div id="sd-power" style="font-family:'Bangers'; font-size:1.8rem; color:white;">1,000</div>
+            </div>
+    
+            <div class="stage-rewards">
+                <div class="reward-item">
+                    <span>🌟 XP:</span> <span id="sd-xp" style="color:cyan">100</span>
+                </div>
+                <div class="reward-item">
+                    <span>💰 Gold:</span> <span id="sd-coins" style="color:gold">250</span>
+                </div>
+                <div class="reward-item">
+                    <span>🎁 Drops:</span> <span id="sd-drops" style="color:#e74c3c">Normal</span>
+                </div>
+            </div>
+    
+            <div style="display:flex; gap:10px; width:100%; margin-top:15px;">
+                <button class="menu-btn exit" onclick="closeStageDetails()" style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
+                <button class="menu-btn" onclick="confirmStart()" style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
