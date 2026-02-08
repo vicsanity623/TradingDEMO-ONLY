@@ -220,17 +220,27 @@
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + window.GameState.gokuMaxHP);
     }
 
-    // --- CORE LOGIC ---
-    function showLevelUp(oldLvl, newLvl) {
+    // --- UPDATED LEVEL UP LOGIC (DYNAMIC SCALING) ---
+    function showLevelUp(oldLvl, newLvl, hpGain, atkGain, defGain) {
         if(window.battle.active) window.battle.cinematic = true;
         document.getElementById('lvl-up-old').innerText = oldLvl;
         document.getElementById('lvl-up-new').innerText = newLvl;
         
-        document.getElementById('lvl-stats-hp').innerText = window.formatNumber(window.GameState.gokuMaxHP);
-        document.getElementById('lvl-stats-atk').innerText = window.formatNumber(window.GameState.gokuPower);
-        
+        // Dynamic Stats Calculation
+        const maxHp = window.GameState.gokuMaxHP;
+        const power = window.GameState.gokuPower;
         const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
-        document.getElementById('lvl-stats-def').innerText = window.formatNumber(Math.floor(rawDef * getSoulMult()));
+        const def = Math.floor(rawDef * getSoulMult());
+
+        // Update the HTML to show the REAL dynamic gains instead of hardcoded numbers
+        const hpEl = document.getElementById('lvl-stats-hp');
+        if(hpEl) hpEl.parentElement.innerHTML = `HP: <span id="lvl-stats-hp">${window.formatNumber(maxHp)}</span> <span style="color:#00ff00;">(+${window.formatNumber(hpGain)})</span>`;
+
+        const atkEl = document.getElementById('lvl-stats-atk');
+        if(atkEl) atkEl.parentElement.innerHTML = `ATK: <span id="lvl-stats-atk">${window.formatNumber(power)}</span> <span style="color:#00ff00;">(+${window.formatNumber(atkGain)})</span>`;
+
+        const defEl = document.getElementById('lvl-stats-def');
+        if(defEl) defEl.parentElement.innerHTML = `DEF: <span id="lvl-stats-def">${window.formatNumber(def)}</span> <span style="color:#00ff00;">(+${window.formatNumber(defGain)})</span>`;
 
         const img = (window.player.rank >= 1) ? ASSETS.SSJ : ASSETS.BASE;
         document.getElementById('lvl-up-img').src = img;
@@ -245,17 +255,43 @@
     function checkLevelUp() {
         let leveledUp = false;
         const oldLvl = window.player.lvl;
+        
+        // Track accumulated gains in case of multiple levels at once
+        let totalHpGain = 0;
+        let totalAtkGain = 0;
+        let totalDefGain = 0;
+
         while(window.player.xp >= window.player.nextXp) {
             window.player.lvl++; 
             window.player.xp -= window.player.nextXp; 
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
-            window.player.bHp += 250; window.player.bAtk += 5; window.player.bDef += 2;
+            
+            // --- DYNAMIC SCALING FORMULA ---
+            // Formula: Base + (CurrentLevel * Multiplier)
+            // Lvl 1: +750 HP
+            // Lvl 29: +14,750 HP
+            const levelMult = window.player.lvl;
+            
+            const hpGain = 250 + (levelMult * 500); 
+            const atkGain = 5 + (levelMult * 10);
+            const defGain = 2 + (levelMult * 5);
+
+            window.player.bHp += hpGain; 
+            window.player.bAtk += atkGain; 
+            window.player.bDef += defGain;
+            
+            totalHpGain += hpGain;
+            totalAtkGain += atkGain;
+            totalDefGain += defGain;
+
             window.player.hp = window.GameState.gokuMaxHP;
+            
             if(window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
             leveledUp = true;
         }
+
         if(leveledUp) {
-            showLevelUp(oldLvl, window.player.lvl);
+            showLevelUp(oldLvl, window.player.lvl, totalHpGain, totalAtkGain, totalDefGain);
             syncUI();
             saveGame();
         }
@@ -463,7 +499,6 @@
         if(window.player.selected !== -1) {
             const sItem = window.player.inv[window.player.selected];
             
-            // FIX: Ensure item exists before checking
             if(sItem) {
                 let totalCount = 0;
                 window.player.inv.forEach(i => {
@@ -480,7 +515,6 @@
                     equipBtn.innerHTML = `<span>EQUIP ${sItem.type === 'w' ? 'WEAPON' : 'ARMOR'}</span>`;
                 }
             } else {
-                // If item doesn't exist (deleted), reset
                 window.player.selected = -1;
                 equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
             }
@@ -515,7 +549,7 @@
     function mergeItems() {
         if(window.player.selected === -1) return;
         const sItem = window.player.inv[window.player.selected];
-        if(!sItem) return; // FIX
+        if(!sItem) return; 
 
         const cost = sItem.rarity * 500;
         if(window.player.coins < cost) { alert("Not enough coins!"); return; }
