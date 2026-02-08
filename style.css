@@ -760,89 +760,120 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 /* --- Modal Overlay --- */
 #strategy-modal {
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.85);
     z-index: 1000;
-    display: flex;         /* Works with your JS setting display:flex */
+
+    /* IMPORTANT: start hidden, JS toggles to flex */
+    display: none;
+
     align-items: center;
     justify-content: center;
+
     backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 }
 
 /* --- Main Box Container --- */
 .strategy-box {
     display: flex;
-    flex-direction: row; /* Side by side layout */
+    flex-direction: row;
     width: 700px;
     max-width: 95%;
-    background: #1a1a2e; /* Dark Blue/Purple bg */
+    min-height: 360px;
+
+    background: #1a1a2e;
     border: 2px solid #4e4e80;
     border-radius: 15px;
     overflow: hidden;
+
     box-shadow: 0 0 20px rgba(0, 200, 255, 0.2);
+
+    /* iOS repaint fix */
+    transform: translateZ(0);
 }
 
 /* --- Left Side: Visuals --- */
 .strategy-visuals {
     width: 40%;
+    min-height: 100%;
     background: linear-gradient(180deg, #2a2a4e 0%, #16213e 100%);
     position: relative;
+
     display: flex;
-    align-items: flex-end; /* Push Bulma to bottom */
+    align-items: flex-end;
     justify-content: center;
+
     border-right: 2px solid #333;
+
+    /* Prevent Safari from collapsing image area */
+    overflow: hidden;
 }
 
-/* The Bulma Image */
+/* --- Bulma Sprite (HARDENED FOR MOBILE SAFARI) --- */
 .bulma-sprite {
     width: 100%;
     max-height: 350px;
     object-fit: contain;
-    /* Keeps image anchored to bottom */
-    display: block; 
+    display: block;
+
+    /* iOS Safari decode + paint fixes */
+    image-rendering: auto;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    will-change: transform;
+
+    /* Prevent flicker when modal opens */
+    opacity: 1;
 }
 
-/* --- The Comic Bubble --- */
+/* --- Comic Bubble --- */
 .comic-bubble {
     position: absolute;
     top: 20px;
     left: 10px;
     right: 10px;
+
     background: #ffffff;
     color: #000;
     padding: 15px;
     border-radius: 15px;
+
     font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
     font-size: 14px;
     font-weight: bold;
     text-align: center;
     line-height: 1.2;
+
     box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
-    z-index: 2;
     border: 2px solid #000;
+
+    z-index: 2;
 }
 
-/* The Bubble Tail (Triangle) */
+/* Bubble Tail */
 .comic-bubble::after {
     content: '';
     position: absolute;
-    bottom: -10px; /* Push below bubble */
+    bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
     border-width: 10px 10px 0;
     border-style: solid;
-    border-color: #000 transparent transparent transparent; /* Black border look */
+    border-color: #000 transparent transparent transparent;
 }
+
 .comic-bubble::before {
     content: '';
     position: absolute;
-    bottom: -6px; 
+    bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
     border-width: 8px 8px 0;
     border-style: solid;
-    border-color: #fff transparent transparent transparent; /* White inner fill */
+    border-color: #fff transparent transparent transparent;
     z-index: 1;
 }
 
@@ -850,9 +881,11 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 .strategy-details {
     width: 60%;
     padding: 20px;
+
     display: flex;
     flex-direction: column;
     justify-content: center;
+
     text-align: center;
     color: white;
 }
@@ -869,6 +902,7 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     justify-content: space-between;
     margin-bottom: 8px;
     font-size: 1.1em;
+
     background: rgba(255,255,255,0.05);
     padding: 8px;
     border-radius: 5px;
@@ -889,7 +923,7 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
 
 .xp-text { color: #ffe600; }
 .gold-text { color: #ffab00; }
-.item-text { color: #00ff00; font-size: 0.9em; margin-top: 10px;}
+.item-text { color: #00ff00; font-size: 0.9em; margin-top: 10px; }
 
 /* Buttons */
 .strat-claim-btn {
@@ -902,10 +936,11 @@ nav button.active { color: var(--dbz-yellow); background: rgba(255,140,0,0.1); }
     font-size: 16px;
     cursor: pointer;
     border-radius: 5px;
-    transition: transform 0.1s;
 }
 
-.strat-claim-btn:active { transform: scale(0.98); }
+.strat-claim-btn:active {
+    transform: scale(0.98);
+}
 
 .strat-close-btn {
     background: transparent;
