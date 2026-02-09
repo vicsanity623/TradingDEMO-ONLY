@@ -166,7 +166,7 @@
     function stopCombat() {
         if(window.battle) {
             window.battle.active = false;
-            window.battle.zenkaiUsed = false; // Reset Zenkai
+            window.battle.zenkaiUsed = false;
         }
         if (window.GameState) window.GameState.inBattle = false;
         clearBattleTimers();
@@ -216,7 +216,7 @@
         stopCombat(); 
         window.battle.active = true;
         window.battle.cinematic = false;
-        window.battle.zenkaiUsed = false; // Reset perk
+        window.battle.zenkaiUsed = false; 
         if (window.GameState) window.GameState.inBattle = true;
         
         document.getElementById('start-prompt').style.display = 'none';
@@ -290,8 +290,14 @@
     function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
         
+        // GIVE ENEMY DEFENSE
+        // Rough formula: 40% of HP
+        const eHP = 250 * scale;
+        const eATK = 30 * scale;
+        const eDEF = eHP * 0.4; // Base Defense
+
         if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
-            window.battle.enemy = { name: "Loading...", hp: 100, maxHp: 100, atk: 10, i: "" };
+            window.battle.enemy = { name: "Loading...", hp: 100, maxHp: 100, atk: 10, def: 5, i: "" };
             return;
         }
 
@@ -310,6 +316,7 @@
                 hp: 2000 * scale,
                 maxHp: 2000 * scale, 
                 atk: 80 * scale,
+                def: (2000 * scale) * 0.35, // Boss has high defense
                 i: charData ? charData.image : ""
             };
 
@@ -327,9 +334,10 @@
             
             window.battle.enemy = { 
                 name: dat.name, 
-                hp: 250 * scale, 
-                maxHp: 250 * scale, 
-                atk: 30 * scale, 
+                hp: eHP, 
+                maxHp: eHP, 
+                atk: eATK, 
+                def: eDEF,
                 i: dat.image 
             };
             const eName = document.getElementById('e-name');
@@ -359,6 +367,7 @@
         window.battle.enemy.maxHp = window.battle.enemy.maxHp * 1.5; 
         window.battle.enemy.hp = window.battle.enemy.maxHp; 
         window.battle.enemy.atk = window.battle.enemy.atk * 1.5; 
+        window.battle.enemy.def = window.battle.enemy.def * 1.5; // Buff Defense too
         
         if(eImg) {
             eImg.style.transform = "scale(1.4)"; 
@@ -371,12 +380,37 @@
         window.battle.cinematic = false;
     }
 
-    function applyDamage(amt, sourceSide) {
+    // --- DAMAGE MITIGATION LOGIC ---
+    function applyDamage(rawDmg, sourceSide) {
         if(!window.battle.active) return; 
+        
         const target = (sourceSide === 'p') ? window.battle.enemy : window.player;
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
-        target.hp -= amt;
-        if (window.popDamage) window.popDamage(amt, targetId);
+        
+        // --- DEFENSE CALCULATION ---
+        let defense = 0;
+        if (sourceSide === 'p') {
+            // Enemy is target
+            defense = window.battle.enemy.def || 1;
+        } else {
+            // Player is target
+            defense = window.GameState ? window.GameState.gokuDefense : 10;
+        }
+
+        // --- ABSORPTION FORMULA ---
+        // Damage = RawDamage / (Defense / 50)
+        // If Defense is high, denominator is large, reducing damage significantly.
+        let denominator = defense / 50;
+        if (denominator < 1) denominator = 1; // Prevent division by zero or weird boosts
+
+        let actualDmg = Math.floor(rawDmg / denominator);
+
+        // Minimum Damage Clamp
+        if (actualDmg < 10) actualDmg *= 12;
+
+        target.hp -= actualDmg;
+        
+        if (window.popDamage) window.popDamage(actualDmg, targetId);
         updateBars();
 
         if(window.battle.enemy.hp <= 0) {
@@ -409,28 +443,26 @@
 
         const isP = (side === 'p');
 
-        // --- EVASION PERK (Lvl 15/50) ---
-        // If Player is being hit (side is 'e' meaning Enemy is attacking)
+        // --- EVASION PERK ---
         if(!isP) {
             let dodgeChance = 0;
-            if(window.player.advanceLevel >= 50) dodgeChance = 0.15; // Ultra Instinct
+            if(window.player.advanceLevel >= 50) dodgeChance = 0.15; 
             else if(window.player.advanceLevel >= 15) dodgeChance = 0.05 + ((window.player.advanceLevel-15) * 0.002);
             
             if(Math.random() < dodgeChance) {
                 if(window.popDamage) window.popDamage("MISS!", 'p-box');
-                // Visual Dodge Effect
                 const pSprite = document.getElementById('btl-p-sprite');
                 if(pSprite) { 
                     pSprite.style.opacity='0.5'; 
                     pSprite.style.transform='translateX(-20px)'; 
                     setTimeout(()=>{pSprite.style.opacity='1'; pSprite.style.transform='translateX(0)'}, 200); 
                 }
-                return; // Exit, no damage
+                return; 
             }
         }
 
         // --- CALCULATE AMBUSH/CRIT CHANCE ---
-        let threshold = 0.8; // Default for Enemy
+        let threshold = 0.8; 
 
         if (isP) {
             let critChance = 0.1 + (window.player.rank * 0.05);
@@ -447,12 +479,12 @@
         let atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
         
         if(isP) {
-            // PERK: Rage Mode (Lvl 35)
+            // PERK: Rage Mode
             if(window.player.advanceLevel >= 35 && (window.player.hp / window.GameState.gokuMaxHP) < 0.2) {
                 atkVal *= 2;
                 if(window.popDamage && Math.random() > 0.7) window.popDamage("RAGE!", 'p-box');
             }
-            // PERK: Boss Slayer (Lvl 45)
+            // PERK: Boss Slayer
             if(window.player.advanceLevel >= 45 && window.battle.stage === 20) {
                 atkVal *= 1.2;
             }
@@ -481,6 +513,8 @@
                 }
                 
                 if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
+                
+                // Crit Multiplier
                 applyDamage(Math.floor(dmg * 1.5), side);
                 
                 setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
@@ -511,17 +545,15 @@
             }
         };
 
-        // Perform the first hit
         await performHit();
 
-        // PERK: Double Strike (Lvl 20)
+        // PERK: Double Strike
         if(isP && window.player.advanceLevel >= 20) {
-            // Chance increases with level: 5% + 0.5% per level above 20
             let doubleChance = 0.05 + ((window.player.advanceLevel - 20) * 0.005);
             if(Math.random() < doubleChance) {
                 setTimeout(() => {
                     if(window.popDamage) window.popDamage("DOUBLE!", 'p-box');
-                    performHit(true); // Recursive call for second hit (never crit)
+                    performHit(true); 
                 }, 300);
             }
         }
@@ -608,11 +640,11 @@
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
 
-        // PERK: Gold Boost (Lvl 25)
+        // PERK: Gold Boost
         if(window.player.advanceLevel >= 25) {
             coinGain *= (1 + (0.10 + ((window.player.advanceLevel-25)*0.01)));
         }
-        // PERK: XP Boost (Lvl 30)
+        // PERK: XP Boost
         if(window.player.advanceLevel >= 30) {
             xpGain *= (1 + (0.10 + ((window.player.advanceLevel-30)*0.01)));
         }
@@ -660,7 +692,7 @@
         }
         if(shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
         
-        // PERK: Life Steal (Lvl 10)
+        // PERK: Life Steal
         if(window.player.advanceLevel >= 10) {
             const healMult = 0.15 + ((window.player.advanceLevel - 10) * 0.01);
             const healAmt = window.GameState.gokuMaxHP * healMult;
