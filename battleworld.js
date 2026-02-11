@@ -3,8 +3,8 @@
     const ASSETS = {
         // Updated to use your local files
         GROUND_TILE: "IMG_0287.png", // Grass Tile
-        HOUSE: "IMG_0289.png",       // House
-        TREE: "IMG_0290.png",        // Tree
+        HOUSE: "IMG_0299.png",       // House
+        TREE: "IMG_0300.png",        // Tree
         NPC: "IMG_0292.png",         // NPC/Villager
         
         // Fallback for Enemies (still uses API, but falls back to this if needed)
