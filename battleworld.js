@@ -1,13 +1,13 @@
 (function() {
     // --- ASSETS & CONFIG ---
     const ASSETS = {
-        // Using a grass tile for the ground to allow seamless tiling
-        GROUND_TILE: "https://i.imgur.com/sji5KLp.jpg", 
-        // Simple sprites for structures (placeholders, you can swap these)
-        HOUSE: "https://i.imgur.com/2Xj3x7s.png", // Placeholder House
-        TREE: "https://i.imgur.com/5u5F7Xj.png", // Placeholder Tree
-        NPC: "https://i.imgur.com/8y7F9rS.jpg", // Placeholder NPC (Villager)
-        // Fallback Enemy
+        // Updated to use your local files
+        GROUND_TILE: "IMG_0296.png", // Grass Tile
+        HOUSE: "IMG_0295.png",       // House
+        TREE: "IMG_0294.png",        // Tree
+        NPC: "IMG_0293.png",         // NPC/Villager
+        
+        // Fallback for Enemies (still uses API, but falls back to this if needed)
         ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png" 
     };
 
@@ -17,7 +17,6 @@
     // World Settings
     const WORLD_WIDTH = 3000;
     const WORLD_HEIGHT = 3000;
-    const TILE_SIZE = 512; // Size of background tile
 
     // Game State
     let isRunning = false;
@@ -25,9 +24,14 @@
     let camera = { x: 0, y: 0 };
     let bgImage = new Image(); 
     
+    // Asset Images
+    let imgHouse = new Image();
+    let imgTree = new Image();
+    let imgNpc = new Image();
+    
     // Stats
     let kills = 0;
-    let currentQuest = { target: 5, progress: 0, desc: "Defeat 5 Enemies" };
+    let currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
 
     // Entities
     let player = { 
@@ -41,7 +45,7 @@
     let bullets = [];
     let particles = [];
     let loots = [];
-    let structures = []; // Houses, trees, walls
+    let structures = []; 
 
     // Inputs
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
@@ -63,13 +67,15 @@
         if(hudSprite && hudSprite.src) player.img.src = hudSprite.src;
         else player.img.src = "IMG_0061.png"; 
 
+        // Load World Assets
+        bgImage.src = ASSETS.GROUND_TILE;
+        imgHouse.src = ASSETS.HOUSE;
+        imgTree.src = ASSETS.TREE;
+        imgNpc.src = ASSETS.NPC;
+
         resize();
         window.addEventListener('resize', resize);
         setupControls();
-
-        // Load BG
-        bgImage.crossOrigin = "Anonymous";
-        bgImage.src = ASSETS.GROUND_TILE;
 
         // Generate World Content
         generateWorld();
@@ -107,7 +113,7 @@
         npcs = [];
 
         // 1. Create Town Center (Safe Zone)
-        // Fountain in middle
+        // Fountain placeholder (Blue Circle)
         structures.push({ type: 'fountain', x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, w: 150, h: 150, color: 'cyan' });
 
         // 2. Houses around center
@@ -118,19 +124,21 @@
                 type: 'house',
                 x: WORLD_WIDTH/2 + Math.cos(angle) * dist,
                 y: WORLD_HEIGHT/2 + Math.sin(angle) * dist,
-                w: 200, h: 150, color: '#8e44ad'
+                w: 200, h: 200, // Adjusted for sprite aspect
+                img: imgHouse
             });
         }
 
-        // 3. Random Trees/Rocks outside town
-        for(let i=0; i<50; i++) {
+        // 3. Random Trees outside town
+        for(let i=0; i<60; i++) {
             const x = Math.random() * WORLD_WIDTH;
             const y = Math.random() * WORLD_HEIGHT;
             // Don't spawn too close to center
             if(Math.hypot(x - WORLD_WIDTH/2, y - WORLD_HEIGHT/2) > 600) {
                 structures.push({
                     type: 'tree',
-                    x: x, y: y, w: 80, h: 80, color: '#27ae60'
+                    x: x, y: y, w: 120, h: 120, 
+                    img: imgTree
                 });
             }
         }
@@ -140,10 +148,10 @@
             npcs.push({
                 x: WORLD_WIDTH/2 + (Math.random()-0.5)*300,
                 y: WORLD_HEIGHT/2 + (Math.random()-0.5)*300,
-                w: 50, h: 50,
-                color: 'white',
+                w: 60, h: 60,
                 name: "Villager",
-                tx: WORLD_WIDTH/2, ty: WORLD_HEIGHT/2 // Target destination
+                img: imgNpc,
+                tx: WORLD_WIDTH/2, ty: WORLD_HEIGHT/2 
             });
         }
     }
@@ -215,9 +223,8 @@
     // --- GAMEPLAY LOGIC ---
 
     function spawnEnemy() {
-        // Spawn far away from player
         const angle = Math.random() * Math.PI * 2;
-        const dist = 800 + Math.random() * 400; // Outside immediate view
+        const dist = 800 + Math.random() * 400; 
         
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
         const isStrong = Math.random() > 0.85;
@@ -239,8 +246,7 @@
             maxHp: isStrong ? gPower * 20 : gPower * 4,
             atk: (window.GameState ? window.GameState.gokuMaxHP : 100) * (isStrong ? 0.15 : 0.05),
             speed: isStrong ? 3 : 5,
-            img: eImg, isStrong: isStrong,
-            state: 'chase' // AI State
+            img: eImg, isStrong: isStrong
         });
     }
 
@@ -260,7 +266,7 @@
     function shoot() {
         let vx = input.x; let vy = input.y;
         if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) {
-            let nearest = null; let minD = 600; // Auto aim range
+            let nearest = null; let minD = 600; 
             enemies.forEach(e => {
                 let d = Math.hypot(e.x - player.x, e.y - player.y);
                 if (d < minD) { minD = d; nearest = e; }
@@ -287,7 +293,6 @@
         let len = Math.sqrt(dx*dx + dy*dy);
         if(len === 0) len = 1;
         player.x += (dx/len) * 300; player.y += (dy/len) * 300;
-        // Keep in bounds
         player.x = Math.max(0, Math.min(WORLD_WIDTH, player.x));
         player.y = Math.max(0, Math.min(WORLD_HEIGHT, player.y));
         
@@ -302,7 +307,7 @@
         setTimeout(() => flash.remove(), 2500);
 
         enemies.forEach(e => {
-            if(Math.hypot(e.x - player.x, e.y - player.y) < 800) { // Screen wipe range
+            if(Math.hypot(e.x - player.x, e.y - player.y) < 800) { 
                 e.hp = 0;
                 for(let i=0; i<10; i++) particles.push({x: e.x, y: e.y, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, life:30, color:'orange'});
             }
@@ -330,7 +335,7 @@
             // Collision with Structures
             let collided = false;
             structures.forEach(s => {
-                if(nextX > s.x - s.w/2 && nextX < s.x + s.w/2 && nextY > s.y - s.h/2 && nextY < s.y + s.h/2) collided = true;
+                if(s.type !== 'fountain' && nextX > s.x - s.w/2 && nextX < s.x + s.w/2 && nextY > s.y - s.h/2 && nextY < s.y + s.h/2) collided = true;
             });
 
             if(!collided) {
@@ -341,7 +346,7 @@
             if(input.x > 0) player.faceRight = true; if(input.x < 0) player.faceRight = false;
         }
 
-        // Camera Follow (Clamped to world bounds)
+        // Camera Follow
         camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, player.x - canvas.width/2));
         camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, player.y - canvas.height/2));
 
@@ -349,45 +354,50 @@
         ctx.save();
         ctx.translate(-camera.x, -camera.y);
 
-        // 1. Draw Tiled Ground
+        // 1. Draw Tiled Ground (Local Asset)
         if(bgImage.complete && bgImage.width > 0) {
             const ptrn = ctx.createPattern(bgImage, 'repeat');
             ctx.fillStyle = ptrn;
-            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); // Only draw visible area for perf
+            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); 
         } else {
             ctx.fillStyle = '#2c3e50';
             ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         }
 
-        // 2. Draw Structures
+        // 2. Draw Structures (Local Assets)
         structures.forEach(s => {
-            ctx.fillStyle = s.color;
-            ctx.shadowBlur = 10; ctx.shadowColor = 'black';
-            ctx.fillRect(s.x - s.w/2, s.y - s.h/2, s.w, s.h);
-            ctx.shadowBlur = 0;
-            // Draw roof/detail
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(s.x - s.w/2 + 5, s.y - s.h/2 + 5, s.w - 10, s.h - 10);
+            if(s.img && s.img.complete) {
+                // Shadow
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.beginPath();
+                ctx.ellipse(s.x, s.y + s.h/2 - 10, s.w/2, s.h/4, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+                
+                ctx.drawImage(s.img, s.x - s.w/2, s.y - s.h/2, s.w, s.h);
+            } else {
+                ctx.fillStyle = s.color;
+                ctx.fillRect(s.x - s.w/2, s.y - s.h/2, s.w, s.h);
+            }
         });
 
-        // 3. NPCs (Wander Logic)
+        // 3. NPCs (Local Assets)
         npcs.forEach(n => {
-            // Simple wandering
             if(Math.random() < 0.02) {
-                n.tx = n.x + (Math.random()-0.5)*200;
-                n.ty = n.y + (Math.random()-0.5)*200;
+                n.tx = n.x + (Math.random()-0.5)*200; n.ty = n.y + (Math.random()-0.5)*200;
             }
             const ang = Math.atan2(n.ty - n.y, n.tx - n.x);
-            const dist = Math.hypot(n.tx - n.x, n.ty - n.y);
-            if(dist > 5) {
-                n.x += Math.cos(ang) * 2;
-                n.y += Math.sin(ang) * 2;
+            if(Math.hypot(n.tx - n.x, n.ty - n.y) > 5) {
+                n.x += Math.cos(ang) * 2; n.y += Math.sin(ang) * 2;
             }
-            // Draw
-            ctx.fillStyle = n.color;
-            ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill();
-            // Name tag
-            ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.fillText(n.name, n.x-20, n.y-25);
+            
+            if(n.img && n.img.complete) {
+                ctx.drawImage(n.img, n.x - n.w/2, n.y - n.h/2, n.w, n.h);
+            } else {
+                ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.fillText(n.name, n.x-20, n.y-35);
         });
 
         // 4. Loot
@@ -408,28 +418,20 @@
             ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // 5. Enemies (AI & Render)
+        // 5. Enemies
         for(let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
-            
-            // AI: Chase Player
             let ang = Math.atan2(player.y - e.y, player.x - e.x);
-            
-            // Collision Avoidance (Structures)
             let nextEX = e.x + Math.cos(ang) * e.speed;
             let nextEY = e.y + Math.sin(ang) * e.speed;
+            
+            // Simple collision avoid with structures
             let blocked = false;
             structures.forEach(s => {
                 if(nextEX > s.x - s.w/2 - 20 && nextEX < s.x + s.w/2 + 20 && nextEY > s.y - s.h/2 - 20 && nextEY < s.y + s.h/2 + 20) blocked = true;
             });
 
-            if(!blocked) {
-                e.x = nextEX; e.y = nextEY;
-            } else {
-                // Slide along wall
-                e.x += Math.cos(ang + 1.5) * e.speed * 0.5;
-                e.y += Math.sin(ang + 1.5) * e.speed * 0.5;
-            }
+            if(!blocked) { e.x = nextEX; e.y = nextEY; }
 
             // Draw Sprite
             try {
@@ -439,16 +441,13 @@
                     if (aspect > 1) drawH = e.size / aspect; else drawW = e.size * aspect;
                     ctx.drawImage(e.img, e.x - drawW/2, e.y - drawH/2, drawW, drawH);
                 } else {
-                    ctx.fillStyle = e.isStrong ? 'red' : 'purple';
-                    ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+                    ctx.fillStyle = e.isStrong ? 'red' : 'purple'; ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
                 }
             } catch(err){}
 
-            // HP Bar
             ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - 50, 60, 6);
             ctx.fillStyle = 'lime'; ctx.fillRect(e.x - 30, e.y - 50, 60 * Math.max(0, e.hp/e.maxHp), 6);
 
-            // Hit logic
             for(let j = bullets.length - 1; j >= 0; j--) {
                 let b = bullets[j];
                 if(Math.hypot(b.x - e.x, b.y - e.y) < (e.size/2 + 10)) {
@@ -457,7 +456,6 @@
                 }
             }
 
-            // Player Damage
             if(Math.hypot(player.x - e.x, player.y - e.y) < (e.size/2 + 20)) {
                 if(player.invincible <= 0) {
                     let dmg = input.charging ? e.atk * 2 : e.atk;
@@ -491,7 +489,6 @@
             ctx.translate(player.x + player.size/2, player.y); ctx.scale(-1, 1); ctx.translate(-(player.x + player.size/2), -player.y);
         }
         if(input.charging) { ctx.shadowColor = 'white'; ctx.shadowBlur = 25; }
-        
         try {
             if(player.img.complete) ctx.drawImage(player.img, player.x - player.size/2, player.y - player.size/2, player.size, player.size);
             else { ctx.fillStyle = 'orange'; ctx.fillRect(player.x - 30, player.y - 30, 60, 60); }
@@ -507,28 +504,21 @@
         }
         ctx.globalAlpha = 1;
 
-        ctx.restore(); // End Camera Transform
+        ctx.restore();
 
-        // --- UI OVERLAY RENDER (Minimap) ---
-        // Draw minimap in corner
+        // --- UI OVERLAY (Minimap) ---
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(canvas.width - 160, 10, 150, 150);
         ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width - 160, 10, 150, 150);
         
-        // Minimap dots
         const mapScale = 150 / WORLD_WIDTH;
-        // Structures
         ctx.fillStyle = 'gray';
         structures.forEach(s => ctx.fillRect((canvas.width-160) + s.x*mapScale, 10 + s.y*mapScale, s.w*mapScale, s.h*mapScale));
-        // Player
         ctx.fillStyle = 'lime';
         ctx.beginPath(); ctx.arc((canvas.width-160) + player.x*mapScale, 10 + player.y*mapScale, 3, 0, Math.PI*2); ctx.fill();
-        // Enemies
         ctx.fillStyle = 'red';
-        enemies.forEach(e => {
-            ctx.beginPath(); ctx.arc((canvas.width-160) + e.x*mapScale, 10 + e.y*mapScale, 2, 0, Math.PI*2); ctx.fill();
-        });
+        enemies.forEach(e => { ctx.beginPath(); ctx.arc((canvas.width-160) + e.x*mapScale, 10 + e.y*mapScale, 2, 0, Math.PI*2); ctx.fill(); });
 
         if(player.invincible > 0) player.invincible--;
 
@@ -542,7 +532,6 @@
 
     function updateHUD() {
         const kc = document.getElementById('hud-kill-count');
-        // Update Quest Text instead of just kills
         if(kc) {
             if(currentQuest.progress >= currentQuest.target) {
                 kc.innerText = "QUEST COMPLETE!";
