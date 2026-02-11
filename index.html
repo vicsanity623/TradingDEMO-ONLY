@@ -44,9 +44,14 @@
         </div>
     </noscript>
 
-    <div id="loader">
-        <div class="load-title">POWERING UP...</div>
-        <div class="load-bar"><div id="load-progress" class="load-fill"></div></div>
+    <!-- NEW LOADING SCREEN (Replaces old #loader) -->
+    <div id="loader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999;">
+        <canvas id="beamCanvas" style="display:block; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></canvas>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; text-align:center; pointer-events:none;">
+            <div style="color:white; font-family:'Courier New', monospace; font-size:24px; font-weight:bold; letter-spacing:2px; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 15px cyan, 0 0 30px blue;">
+                LOADING <span id="percentText" style="color:#afffff">0%</span>
+            </div>
+        </div>
     </div>
 
     <!-- LEVEL UP MODAL -->
@@ -510,6 +515,104 @@
             </div>
         </div>
     </div>
+<script>
+(function() {
+    // --- BEAM LOADER LOGIC ---
+    const CONFIG = { duration: 4000, beamColor: '0, 255, 255', coreColor: '255, 255, 255', particleCount: 60 };
+    const canvas = document.getElementById('beamCanvas');
+    const ctx = canvas.getContext('2d');
+    const percentText = document.getElementById('percentText');
+    const loader = document.getElementById('loader');
+    
+    let width, height, centerY;
+    let startTime = null;
+    let particles = [];
 
+    function resize() {
+        width = window.innerWidth; height = window.innerHeight;
+        centerY = height / 2; canvas.width = width; canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Particle {
+        constructor() { this.active = false; }
+        spawn(x, y) {
+            this.x = x; this.y = y;
+            this.vx = -(Math.random() * 2 + 1); this.vy = (Math.random() - 0.5) * 4;
+            this.size = Math.random() * 2 + 0.5; this.life = 1.0;
+            this.decay = Math.random() * 0.02 + 0.01; this.active = true;
+        }
+        update() {
+            if (!this.active) return;
+            this.x += this.vx; this.y += this.vy; this.life -= this.decay;
+            if (this.life <= 0) this.active = false;
+        }
+        draw() {
+            if (!this.active) return;
+            ctx.beginPath(); ctx.fillStyle = `rgba(${CONFIG.beamColor}, ${this.life})`;
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    particles = Array.from({ length: CONFIG.particleCount }, () => new Particle());
+    let pIndex = 0;
+
+    function emit(x, y) {
+        for (let i = 0; i < 3; i++) {
+            particles[pIndex].spawn(x, y); pIndex = (pIndex + 1) % particles.length;
+        }
+    }
+
+    function animate(t) {
+        if (!loader || loader.style.display === 'none') return; // Stop loop if hidden
+        
+        if (!startTime) startTime = t;
+        let progress = (t - startTime) / CONFIG.duration;
+        if (progress > 1) progress = 1;
+
+        if(percentText) percentText.innerText = Math.floor(progress * 100) + "%";
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.globalCompositeOperation = 'lighter';
+
+        particles.forEach(p => { p.update(); p.draw(); });
+
+        const tipX = width * progress;
+        if (tipX > 0) {
+            const waves = [
+                { w: 40, color: `rgba(0, 100, 255, 0.2)`, amp: 30, freq: 0.01, speed: 0.005 },
+                { w: 10, color: `rgba(${CONFIG.beamColor}, 0.5)`, amp: 15, freq: 0.02, speed: 0.008 },
+                { w: 3,  color: `rgba(${CONFIG.coreColor}, 0.9)`, amp: 5,  freq: 0.03, speed: 0.012 }
+            ];
+            waves.forEach(w => {
+                ctx.beginPath(); ctx.lineWidth = w.w; ctx.strokeStyle = w.color; ctx.lineCap = 'round';
+                ctx.moveTo(0, centerY);
+                for (let x = 0; x <= tipX; x += 10) {
+                    const y = Math.sin(x*w.freq - t*w.speed)*w.amp + Math.sin(x*(w.freq*2) - t*(w.speed*2))*(w.amp*0.5);
+                    ctx.lineTo(x, centerY + y);
+                }
+                ctx.stroke();
+            });
+
+            // Flare
+            const g = ctx.createRadialGradient(tipX, centerY, 0, tipX, centerY, 50);
+            g.addColorStop(0, 'white'); g.addColorStop(0.3, `rgba(${CONFIG.beamColor}, 1)`); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tipX, centerY, 50, 0, Math.PI * 2); ctx.fill();
+            emit(tipX, centerY);
+        }
+
+        if (progress < 1) requestAnimationFrame(animate);
+        else {
+            // Keep looping to animate the waves even at 100% until game hides it
+            requestAnimationFrame((timestamp) => {
+                // Fake the time to keep progress at 1.0 but animation moving
+                startTime = timestamp - CONFIG.duration; 
+                animate(timestamp);
+            });
+        }
+    }
+    requestAnimationFrame(animate);
+})();
+</script>
 </body>
 </html>
