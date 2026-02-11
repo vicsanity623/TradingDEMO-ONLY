@@ -1,4 +1,5 @@
 (function() {
+    // --- ASSETS ---
     const ASSETS = {
         BG: "IMG_0287.png", 
         HOUSE: "IMG_0299.png", 
@@ -28,19 +29,15 @@
     function initExplore() {
         if(isRunning) return;
 
-        // 1. SYNC STATS (Bulletproof)
         if(window.GameState) {
             player.maxHp = window.GameState.gokuMaxHP || 1000;
             player.hp = window.player.hp > 0 ? window.player.hp : player.maxHp; 
         } else {
-            player.maxHp = 1000; player.hp = 1000; // Fallback
+            player.maxHp = 1000; player.hp = 1000; 
         }
 
-        // 2. Load Assets
         const hudSprite = document.getElementById('ui-sprite');
         player.img.src = (hudSprite && hudSprite.src) ? hudSprite.src : "IMG_0061.png";
-        
-        // Update HUD Avatar
         const avatarImg = document.getElementById('rpg-avatar-img');
         if(avatarImg) avatarImg.src = player.img.src;
 
@@ -54,7 +51,7 @@
         sessionLoot = { coins: 0, shards: 0 };
         currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
         
-        updateHUD(); // Initial Paint
+        updateHUD(); 
 
         isRunning = true;
         requestAnimationFrame(loop);
@@ -65,82 +62,57 @@
     function stopExplore() { isRunning = false; }
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
-    // --- CONTROLS (MOUSE + TOUCH FIXED) ---
+    // --- CONTROLS ---
     function setupControls() {
         const joyZone = document.getElementById('joy-zone');
         const stick = document.getElementById('joy-stick');
         let startX, startY, activeId = null;
 
-        // Helper: Update Stick Visual & Input
         const updateStick = (cx, cy) => {
             const maxDist = 50;
-            let dx = cx - startX;
-            let dy = cy - startY;
+            let dx = cx - startX; let dy = cy - startY;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(dist > maxDist) {
-                dx = (dx/dist) * maxDist;
-                dy = (dy/dist) * maxDist;
-            }
-            
+            if(dist > maxDist) { dx = (dx/dist) * maxDist; dy = (dy/dist) * maxDist; }
             stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-            input.x = dx / maxDist;
-            input.y = dy / maxDist;
+            input.x = dx / maxDist; input.y = dy / maxDist;
         };
 
         const startMove = (cx, cy, id) => {
-            activeId = id;
-            startX = cx; startY = cy;
+            activeId = id; startX = cx; startY = cy;
             stick.style.display = 'block';
-            stick.style.left = startX + 'px';
-            stick.style.top = startY + 'px';
+            stick.style.left = startX + 'px'; stick.style.top = startY + 'px';
             stick.style.transform = `translate(-50%, -50%)`;
             input.x = 0; input.y = 0;
         };
 
-        const endMove = () => {
-            activeId = null; input.x = 0; input.y = 0; stick.style.display = 'none';
-        };
+        const endMove = () => { activeId = null; input.x = 0; input.y = 0; stick.style.display = 'none'; };
 
-        // Touch Events
         joyZone.addEventListener('touchstart', e => {
-            e.preventDefault(); // Prevent scrolling
-            if(activeId !== null) return;
+            e.preventDefault(); if(activeId !== null) return;
             startMove(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.changedTouches[0].identifier);
         }, {passive: false});
 
         joyZone.addEventListener('touchmove', e => {
             e.preventDefault();
             for(let i=0; i<e.changedTouches.length; i++) {
-                if(e.changedTouches[i].identifier === activeId) {
-                    updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
-                }
+                if(e.changedTouches[i].identifier === activeId) updateStick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
             }
         }, {passive: false});
 
         joyZone.addEventListener('touchend', endMove);
 
-        // Mouse Events (Desktop Support)
-        joyZone.addEventListener('mousedown', e => {
-            e.preventDefault();
-            startMove(e.clientX, e.clientY, 'mouse');
-        });
-        window.addEventListener('mousemove', e => {
-            if(activeId === 'mouse') { e.preventDefault(); updateStick(e.clientX, e.clientY); }
-        });
+        joyZone.addEventListener('mousedown', e => { e.preventDefault(); startMove(e.clientX, e.clientY, 'mouse'); });
+        window.addEventListener('mousemove', e => { if(activeId === 'mouse') { e.preventDefault(); updateStick(e.clientX, e.clientY); } });
         window.addEventListener('mouseup', () => { if(activeId === 'mouse') endMove(); });
 
-        // Buttons
         document.getElementById('btn-ex-attack').onmousedown = () => { if(!input.charging) shoot(); };
         document.getElementById('btn-ex-attack').ontouchstart = (e) => { e.preventDefault(); if(!input.charging) shoot(); };
-        
         document.getElementById('btn-ex-dodge').onmousedown = () => { if(!input.charging) dodge(); };
         document.getElementById('btn-ex-dodge').ontouchstart = (e) => { e.preventDefault(); if(!input.charging) dodge(); };
         
         const btnCharge = document.getElementById('btn-ex-charge');
         const startC = (e) => { e.preventDefault(); input.charging = true; };
         const endC = (e) => { e.preventDefault(); if(input.chargeVal>=100) unleashUltimate(); input.charging = false; input.chargeVal = 0; document.getElementById('ex-charge-overlay').style.display='none'; };
-        
         btnCharge.onmousedown = startC; btnCharge.onmouseup = endC;
         btnCharge.ontouchstart = startC; btnCharge.ontouchend = endC;
     }
@@ -148,14 +120,14 @@
     // --- GAMEPLAY ---
     function spawnEnemyGroup() {
         const angle = Math.random() * Math.PI * 2;
-        const dist = 1200; // Far spawn
+        const dist = 1200; 
         let cx = player.x + Math.cos(angle) * dist;
         let cy = player.y + Math.sin(angle) * dist;
         cx = Math.max(100, Math.min(WORLD_W-100, cx));
         cy = Math.max(100, Math.min(WORLD_H-100, cy));
 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
-        const eImg = new Image(); eImg.src = ASSETS.ENEMY_FALLBACK; // Or API image
+        const eImg = new Image(); eImg.src = ASSETS.ENEMY_FALLBACK;
 
         for(let i=0; i<3; i++) {
             enemies.push({
@@ -250,7 +222,7 @@
             }
             ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2);
             ctx.fillStyle = l.type==='coin'?'gold' : (l.type==='shard'?'cyan':'lime'); 
-            ctx.fill(); ctx.strokeStyle='white'; ctx.stroke();
+            ctx.fill(); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
         }
 
         // 4. Enemies
@@ -284,7 +256,7 @@
             if(Math.hypot(player.x-e.x, player.y-e.y)<60) {
                 if(player.invincible<=0) { player.hp-=(input.charging?e.atk*2:e.atk); player.invincible=30; updateHUD(); }
             }
-            if(e.hp<=0) { spawnLoot(e.x, e.y, true); enemies.splice(i,1); kills++; currentQuest.progress++; updateHUD(); }
+            if(e.hp<=0) { spawnLoot(e.x, e.y, true); enemies.splice(i,1); kills++; updateHUD(); }
         }
 
         // 5. Bullets
@@ -301,10 +273,58 @@
         if(player.img.complete) ctx.drawImage(player.img, player.x-30, player.y-30, 60, 60);
         ctx.restore();
 
-        ctx.restore();
+        // 7. NPCs
+        npcs.forEach(n => {
+            if(Math.random()<0.02) { n.tx = n.x + (Math.random()-0.5)*200; n.ty = n.y + (Math.random()-0.5)*200; }
+            const ang = Math.atan2(n.ty-n.y, n.tx-n.x);
+            if(Math.hypot(n.tx-n.x, n.ty-n.y)>5) { n.x += Math.cos(ang)*2; n.y += Math.sin(ang)*2; }
+            if(n.img.complete) ctx.drawImage(n.img, n.x-30, n.y-30, 60, 60);
+            ctx.fillStyle='yellow'; ctx.font='bold 14px Arial'; ctx.fillText("!", n.x, n.y-40);
+        });
+
+        for(let i=particles.length-1; i>=0; i--) {
+            let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--;
+            ctx.fillStyle=p.color; ctx.globalAlpha=p.life/20;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+            if(p.life<=0) particles.splice(i,1);
+        }
+        ctx.globalAlpha=1;
         
-        if(player.invincible>0) player.invincible--;
-        if(player.hp<=0) { alert("DEFEATED!"); stopExplore(); if(window.showTab) window.showTab('char'); }
+        ctx.restore(); // End Camera Transform
+
+        // --- UI OVERLAY (Minimap) ---
+        // 150px wide minimap
+        const MM_SIZE = 150;
+        const MM_X = canvas.width - MM_SIZE - 20;
+        const MM_Y = 20;
+
+        ctx.fillStyle='rgba(0,0,0,0.5)'; 
+        ctx.fillRect(MM_X, MM_Y, MM_SIZE, MM_SIZE);
+        ctx.strokeStyle='white'; ctx.lineWidth=2;
+        ctx.strokeRect(MM_X, MM_Y, MM_SIZE, MM_SIZE);
+        
+        const mapScale = MM_SIZE / WORLD_W;
+        
+        // Minimap Dots
+        ctx.fillStyle='gray'; 
+        structures.forEach(s => {
+            ctx.fillRect(MM_X + s.x*mapScale, MM_Y + s.y*mapScale, s.w*mapScale, s.h*mapScale);
+        });
+
+        ctx.fillStyle='lime'; 
+        ctx.beginPath(); 
+        ctx.arc(MM_X + player.x*mapScale, MM_Y + player.y*mapScale, 3, 0, Math.PI*2); 
+        ctx.fill();
+
+        ctx.fillStyle='red';
+        enemies.forEach(e => {
+            ctx.beginPath(); 
+            ctx.arc(MM_X + e.x*mapScale, MM_Y + e.y*mapScale, 2, 0, Math.PI*2); 
+            ctx.fill();
+        });
+
+        if(player.invincible > 0) player.invincible--;
+        if(player.hp <= 0) { alert("GOKU DEFEATED!"); stopExplore(); if(window.showTab) window.showTab('char'); }
         
         requestAnimationFrame(loop);
     }
