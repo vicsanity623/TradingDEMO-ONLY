@@ -354,8 +354,8 @@
         ctx.save();
         ctx.translate(-camera.x, -camera.y);
 
-        // 1. Draw Tiled Ground (Local Asset)
-        if(bgImage.complete && bgImage.width > 0) {
+        // 1. Draw Tiled Ground (Safe Check Added)
+        if(bgImage.complete && bgImage.naturalWidth > 0) {
             const ptrn = ctx.createPattern(bgImage, 'repeat');
             ctx.fillStyle = ptrn;
             ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height); 
@@ -364,9 +364,9 @@
             ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         }
 
-        // 2. Draw Structures (Local Assets)
+        // 2. Draw Structures (Safe Check Added)
         structures.forEach(s => {
-            if(s.img && s.img.complete) {
+            if(s.img && s.img.complete && s.img.naturalWidth > 0) {
                 // Shadow
                 ctx.save();
                 ctx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -377,12 +377,13 @@
                 
                 ctx.drawImage(s.img, s.x - s.w/2, s.y - s.h/2, s.w, s.h);
             } else {
-                ctx.fillStyle = s.color;
+                // Fallback if image failed
+                ctx.fillStyle = s.color || 'brown';
                 ctx.fillRect(s.x - s.w/2, s.y - s.h/2, s.w, s.h);
             }
         });
 
-        // 3. NPCs (Local Assets)
+        // 3. NPCs (Safe Check Added)
         npcs.forEach(n => {
             if(Math.random() < 0.02) {
                 n.tx = n.x + (Math.random()-0.5)*200; n.ty = n.y + (Math.random()-0.5)*200;
@@ -392,10 +393,11 @@
                 n.x += Math.cos(ang) * 2; n.y += Math.sin(ang) * 2;
             }
             
-            if(n.img && n.img.complete) {
+            if(n.img && n.img.complete && n.img.naturalWidth > 0) {
                 ctx.drawImage(n.img, n.x - n.w/2, n.y - n.h/2, n.w, n.h);
             } else {
-                ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = n.color || 'white'; 
+                ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill();
             }
             ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.fillText(n.name, n.x-20, n.y-35);
         });
