@@ -5,7 +5,8 @@
         HOUSE: "IMG_0299.png", 
         TREE: "IMG_0300.png",
         NPC: "IMG_0292.png",
-        ENEMY_FALLBACK: "https://dragonball-api.com/transformations/frieza-final.png"
+        // This is a direct link to an image we know works, or use a local one if you have it
+        ENEMY_FALLBACK: "https://dragonball-api.com/characters/Freezer.webp" 
     };
 
     const canvas = document.getElementById('explore-canvas');
@@ -16,8 +17,10 @@
     let bgImage = new Image(), imgHouse = new Image(), imgTree = new Image(), imgNpc = new Image();
     
     // Stats
+    let kills = 0; // FIXED: Variable declared here
     let sessionLoot = { coins: 0, shards: 0 };
     let currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
+    let activeQuest = null;
 
     // Entities
     let player = { x: WORLD_W/2, y: WORLD_W/2, size: 60, speed: 7, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
@@ -29,6 +32,7 @@
     function initExplore() {
         if(isRunning) return;
 
+        // 1. SYNC STATS
         if(window.GameState) {
             player.maxHp = window.GameState.gokuMaxHP || 1000;
             player.hp = window.player.hp > 0 ? window.player.hp : player.maxHp; 
@@ -36,8 +40,11 @@
             player.maxHp = 1000; player.hp = 1000; 
         }
 
+        // 2. Load Assets
+        // Try to get sprite from HUD, otherwise fallback to IMG_0061 (Base Goku)
         const hudSprite = document.getElementById('ui-sprite');
         player.img.src = (hudSprite && hudSprite.src) ? hudSprite.src : "IMG_0061.png";
+        
         const avatarImg = document.getElementById('rpg-avatar-img');
         if(avatarImg) avatarImg.src = player.img.src;
 
@@ -50,6 +57,7 @@
         enemies = []; bullets = []; particles = []; loots = [];
         sessionLoot = { coins: 0, shards: 0 };
         currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
+        kills = 0; // Reset kills on start
         
         updateHUD(); 
 
@@ -101,12 +109,14 @@
 
         joyZone.addEventListener('touchend', endMove);
 
+        // Mouse (PC) Support
         joyZone.addEventListener('mousedown', e => { e.preventDefault(); startMove(e.clientX, e.clientY, 'mouse'); });
         window.addEventListener('mousemove', e => { if(activeId === 'mouse') { e.preventDefault(); updateStick(e.clientX, e.clientY); } });
         window.addEventListener('mouseup', () => { if(activeId === 'mouse') endMove(); });
 
         document.getElementById('btn-ex-attack').onmousedown = () => { if(!input.charging) shoot(); };
         document.getElementById('btn-ex-attack').ontouchstart = (e) => { e.preventDefault(); if(!input.charging) shoot(); };
+        
         document.getElementById('btn-ex-dodge').onmousedown = () => { if(!input.charging) dodge(); };
         document.getElementById('btn-ex-dodge').ontouchstart = (e) => { e.preventDefault(); if(!input.charging) dodge(); };
         
@@ -127,8 +137,20 @@
         cy = Math.max(100, Math.min(WORLD_H-100, cy));
 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
-        const eImg = new Image(); eImg.src = ASSETS.ENEMY_FALLBACK;
+        
+        // FIXED: Better Image Loading Logic
+        const eImg = new Image();
+        
+        // Use API data if available, else fallback
+        if(window.apiData && window.apiData.characters && window.apiData.characters.length > 0) {
+            const rIdx = Math.floor(Math.random() * window.apiData.characters.length);
+            const char = window.apiData.characters[rIdx];
+            eImg.src = char.image || ASSETS.ENEMY_FALLBACK;
+        } else {
+            eImg.src = ASSETS.ENEMY_FALLBACK;
+        }
 
+        // Spawn 3 enemies
         for(let i=0; i<3; i++) {
             enemies.push({
                 x: cx + (Math.random()-0.5)*100, y: cy + (Math.random()-0.5)*100,
@@ -147,6 +169,21 @@
                 x: x, y: y, type: Math.random()>0.8 ? 'shard' : 'coin',
                 val: 100, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15
             });
+        }
+    }
+
+    function checkQuestProgress() {
+        // Simple logic for the demo quest
+        if(currentQuest && currentQuest.progress < currentQuest.target) {
+            currentQuest.progress++;
+            if(currentQuest.progress >= currentQuest.target) {
+                // Quest Complete
+                if(window.player) {
+                    window.player.coins += 1000;
+                    window.player.xp += 500;
+                    alert("QUEST COMPLETE! +1000 Coins");
+                }
+            }
         }
     }
 
@@ -198,12 +235,15 @@
         ctx.save(); ctx.translate(-camera.x, -camera.y);
 
         // 1. BG
-        if(bgImage.complete) { const p=ctx.createPattern(bgImage,'repeat'); ctx.fillStyle=p; ctx.fillRect(camera.x,camera.y,canvas.width,canvas.height); }
-        else { ctx.fillStyle='#2c3e50'; ctx.fillRect(0,0,WORLD_W,WORLD_H); }
+        if(bgImage.complete && bgImage.naturalWidth > 0) { 
+            const p=ctx.createPattern(bgImage,'repeat'); ctx.fillStyle=p; ctx.fillRect(camera.x,camera.y,canvas.width,canvas.height); 
+        } else { 
+            ctx.fillStyle='#2c3e50'; ctx.fillRect(0,0,WORLD_W,WORLD_H); 
+        }
 
         // 2. Structures
         structures.forEach(s=>{ 
-            if(s.img && s.img.complete) {
+            if(s.img && s.img.complete && s.img.naturalWidth > 0) {
                 ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(s.x,s.y+s.h/2-10,s.w/2,s.h/4,0,0,Math.PI*2); ctx.fill();
                 ctx.drawImage(s.img, s.x-s.w/2, s.y-s.h/2, s.w, s.h);
             } else { ctx.fillStyle=s.color; ctx.fillRect(s.x-s.w/2, s.y-s.h/2, s.w, s.h); }
@@ -213,15 +253,11 @@
         for(let i=loots.length-1; i>=0; i--) {
             let l=loots[i]; l.x+=l.vx; l.y+=l.vy; l.vx*=0.9; l.vy*=0.9;
             if(Math.hypot(player.x-l.x, player.y-l.y)<200) { l.x+=(player.x-l.x)*0.15; l.y+=(player.y-l.y)*0.15; }
-            if(Math.hypot(player.x-l.x, player.y-l.y)<50) { 
-                // Collect
-                if(l.type==='coin') { window.player.coins+=100; sessionLoot.coins+=100; }
-                else if(l.type==='shard') { window.player.dragonShards++; sessionLoot.shards++; }
-                else { window.player.xp+=50; }
+            if(Math.hypot(player.x-l.x, player.y-l.y)<40) { 
+                if(window.player) { if(l.type==='coin') { window.player.coins+=100; sessionLoot.coins+=100; } else if(l.type==='shard') { window.player.dragonShards++; sessionLoot.shards++; } else { window.player.xp+=50; } }
                 loots.splice(i,1); updateHUD(); continue; 
             }
-            ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2);
-            ctx.fillStyle = l.type==='coin'?'gold' : (l.type==='shard'?'cyan':'lime'); 
+            ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2); ctx.fillStyle = l.type==='coin'?'gold' : (l.type==='shard'?'cyan':'lime'); 
             ctx.fill(); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
         }
 
@@ -240,8 +276,19 @@
                 let a=Math.atan2(player.y-e.y, player.x-e.x); e.x+=Math.cos(a)*e.speed; e.y+=Math.sin(a)*e.speed;
             }
 
-            try{ if(e.img.complete) ctx.drawImage(e.img, e.x-40, e.y-40, 80, 80); else { ctx.fillStyle='red'; ctx.fillRect(e.x-25,e.y-25,50,50); } }catch(er){}
-            
+            // --- FIXED DRAWING ---
+            try {
+                if(e.img.complete && e.img.naturalWidth > 0) {
+                    ctx.drawImage(e.img, e.x-40, e.y-40, 80, 80);
+                } else {
+                    ctx.fillStyle = e.state==='chase' ? 'red' : 'purple'; 
+                    ctx.fillRect(e.x-40, e.y-40, 80, 80);
+                }
+            } catch(er){
+                ctx.fillStyle = 'purple';
+                ctx.fillRect(e.x-40, e.y-40, 80, 80);
+            }
+
             // HP
             ctx.fillStyle='red'; ctx.fillRect(e.x-30, e.y-50, 60, 6);
             ctx.fillStyle='lime'; ctx.fillRect(e.x-30, e.y-50, 60*Math.max(0, e.hp/e.maxHp), 6);
@@ -256,7 +303,13 @@
             if(Math.hypot(player.x-e.x, player.y-e.y)<60) {
                 if(player.invincible<=0) { player.hp-=(input.charging?e.atk*2:e.atk); player.invincible=30; updateHUD(); }
             }
-            if(e.hp<=0) { spawnLoot(e.x, e.y, true); enemies.splice(i,1); kills++; updateHUD(); }
+            if(e.hp<=0) { 
+                spawnLoot(e.x, e.y, true); 
+                enemies.splice(i,1); 
+                kills++; // Increment global kills
+                checkQuestProgress(); 
+                updateHUD(); 
+            }
         }
 
         // 5. Bullets
@@ -270,7 +323,9 @@
         // 6. Player
         ctx.save();
         if(!player.faceRight) { ctx.translate(player.x+30, player.y); ctx.scale(-1,1); ctx.translate(-(player.x+30), -player.y); }
-        if(player.img.complete) ctx.drawImage(player.img, player.x-30, player.y-30, 60, 60);
+        if(input.charging) { ctx.shadowColor='white'; ctx.shadowBlur=25; }
+        if(player.img.complete && player.img.naturalWidth > 0) ctx.drawImage(player.img, player.x-30, player.y-30, 60, 60);
+        else { ctx.fillStyle='orange'; ctx.fillRect(player.x-30, player.y-30, 60, 60); }
         ctx.restore();
 
         // 7. NPCs
@@ -278,7 +333,10 @@
             if(Math.random()<0.02) { n.tx = n.x + (Math.random()-0.5)*200; n.ty = n.y + (Math.random()-0.5)*200; }
             const ang = Math.atan2(n.ty-n.y, n.tx-n.x);
             if(Math.hypot(n.tx-n.x, n.ty-n.y)>5) { n.x += Math.cos(ang)*2; n.y += Math.sin(ang)*2; }
-            if(n.img.complete) ctx.drawImage(n.img, n.x-30, n.y-30, 60, 60);
+            
+            if(n.img.complete && n.img.naturalWidth > 0) ctx.drawImage(n.img, n.x-30, n.y-30, 60, 60);
+            else { ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI*2); ctx.fill(); }
+            
             ctx.fillStyle='yellow'; ctx.font='bold 14px Arial'; ctx.fillText("!", n.x, n.y-40);
         });
 
@@ -289,39 +347,16 @@
             if(p.life<=0) particles.splice(i,1);
         }
         ctx.globalAlpha=1;
-        
-        ctx.restore(); // End Camera Transform
+        ctx.restore();
 
-        // --- UI OVERLAY (Minimap) ---
-        // 150px wide minimap
-        const MM_SIZE = 150;
-        const MM_X = canvas.width - MM_SIZE - 20;
-        const MM_Y = 20;
-
-        ctx.fillStyle='rgba(0,0,0,0.5)'; 
-        ctx.fillRect(MM_X, MM_Y, MM_SIZE, MM_SIZE);
-        ctx.strokeStyle='white'; ctx.lineWidth=2;
-        ctx.strokeRect(MM_X, MM_Y, MM_SIZE, MM_SIZE);
-        
-        const mapScale = MM_SIZE / WORLD_W;
-        
-        // Minimap Dots
-        ctx.fillStyle='gray'; 
-        structures.forEach(s => {
-            ctx.fillRect(MM_X + s.x*mapScale, MM_Y + s.y*mapScale, s.w*mapScale, s.h*mapScale);
-        });
-
-        ctx.fillStyle='lime'; 
-        ctx.beginPath(); 
-        ctx.arc(MM_X + player.x*mapScale, MM_Y + player.y*mapScale, 3, 0, Math.PI*2); 
-        ctx.fill();
-
-        ctx.fillStyle='red';
-        enemies.forEach(e => {
-            ctx.beginPath(); 
-            ctx.arc(MM_X + e.x*mapScale, MM_Y + e.y*mapScale, 2, 0, Math.PI*2); 
-            ctx.fill();
-        });
+        // Minimap
+        ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width-160, 10, 150, 150);
+        ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.strokeRect(canvas.width-160, 10, 150, 150);
+        const ms = 150/WORLD_WIDTH;
+        ctx.fillStyle='gray'; structures.forEach(s=>ctx.fillRect((canvas.width-160)+s.x*ms, 10+s.y*ms, s.w*ms, s.h*ms));
+        ctx.fillStyle='lime'; ctx.beginPath(); ctx.arc((canvas.width-160)+player.x*ms, 10+player.y*ms, 3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='red'; enemies.forEach(e=>{ ctx.beginPath(); ctx.arc((canvas.width-160)+e.x*ms, 10+e.y*ms, 2, 0, Math.PI*2); ctx.fill(); });
+        ctx.fillStyle='yellow'; npcs.forEach(n=>{ ctx.beginPath(); ctx.arc((canvas.width-160)+n.x*ms, 10+n.y*ms, 2, 0, Math.PI*2); ctx.fill(); });
 
         if(player.invincible > 0) player.invincible--;
         if(player.hp <= 0) { alert("GOKU DEFEATED!"); stopExplore(); if(window.showTab) window.showTab('char'); }
