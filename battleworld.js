@@ -43,13 +43,16 @@
 
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
 
-    // --- INIT ---
     function initExplore() {
         if(isRunning) return;
         
+        // --- FIX: Force Sync Stats Immediately ---
         if(window.GameState) {
-            player.maxHp = window.GameState.gokuMaxHP || 1000;
-            player.hp = window.GameState.gokuMaxHP || 1000;
+            // Ensure we grab valid numbers, default to 100 if missing
+            player.maxHp = window.GameState.gokuMaxHP || 100;
+            player.hp = window.GameState.gokuHP || player.maxHp; // Use current HP, or Max if undefined
+        } else {
+            player.maxHp = 100; player.hp = 100;
         }
         
         const hudSprite = document.getElementById('ui-sprite');
@@ -69,8 +72,9 @@
         enemies = []; bullets = []; particles = []; loots = [];
         player.x = WORLD_WIDTH/2; player.y = WORLD_HEIGHT/2;
         kills = 0;
-        activeQuest = null; // Reset quest
+        activeQuest = null; 
         
+        // --- FIX: Force UI Update NOW ---
         updateHUD();
 
         isRunning = true;
