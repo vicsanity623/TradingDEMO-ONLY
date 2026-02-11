@@ -485,15 +485,45 @@
     <div id="view-explore" class="screen" style="position:relative; background:black; overflow:hidden;">
         <canvas id="explore-canvas"></canvas>
         
-        <!-- EXPLORE HUD -->
+        <!-- EXPLORE HUD (GENUINE RPG STYLE) -->
         <div id="explore-hud">
-            <div class="hud-stat-bar">
-                <div style="color:#ff3e3e; font-weight:bold;">HP</div>
-                <div class="hud-bar-bg"><div id="hud-hp-bar" style="width:100%; background:#ff3e3e;"></div></div>
-            </div>
             
-            <div style="position:absolute; top:15px; right:15px; color:gold; font-family:'Bangers'; font-size:1.5rem;">
-                KILLS: <span id="hud-kill-count">0</span>
+            <!-- NEW RPG STATUS PANEL (Top Left) -->
+            <div id="rpg-status-panel">
+                <!-- Avatar -->
+                <div class="rpg-avatar-frame">
+                    <img id="rpg-avatar-img" src="IMG_0054.png"> <!-- Matches your player sprite -->
+                </div>
+
+                <!-- Bars Container -->
+                <div class="rpg-bars">
+                    <!-- HP Bar -->
+                    <div class="rpg-bar-row">
+                        <div class="rpg-bar-bg hp-bg">
+                            <div id="rpg-hp-fill" class="rpg-fill hp-fill"></div>
+                            <span id="rpg-hp-text" class="rpg-text">HP 100/100</span>
+                        </div>
+                    </div>
+                    <!-- XP Bar -->
+                    <div class="rpg-bar-row">
+                        <div class="rpg-bar-bg xp-bg">
+                            <div id="rpg-xp-fill" class="rpg-fill xp-fill"></div>
+                            <span id="rpg-xp-text" class="rpg-text">XP 0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOOT TRACKER (Under Bars) -->
+            <div id="rpg-loot-tracker">
+                <div class="loot-item" id="loot-coins">💰 <span>0</span></div>
+                <div class="loot-item" id="loot-shards" style="color:#00ffff;">💎 <span>0</span></div>
+            </div>
+
+            <!-- QUEST TRACKER (Top Right) -->
+            <div id="rpg-quest-box">
+                <div id="quest-title">CURRENT QUEST</div>
+                <div id="quest-desc">Explore the world...</div>
             </div>
 
             <!-- JOYSTICK -->
