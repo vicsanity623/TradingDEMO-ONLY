@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Goku: Saiyan Ascension - RPG</title>
-    
+
     <!-- PWA MANIFEST & SETTINGS -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050505">
@@ -13,8 +15,10 @@
     <link rel="apple-touch-icon" href="IMG_0061.png">
 
     <!-- FONTS -->
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
+
     <!-- STYLES -->
     <link rel="stylesheet" href="style.css">
 
@@ -35,6 +39,7 @@
     <script src="game.js" defer></script>
     <script src="advance.js" defer></script>
 </head>
+
 <body onload="initGame()">
 
     <!-- Fallback if JS is disabled -->
@@ -46,32 +51,47 @@
 
     <!-- NEW LOADING SCREEN (Replaces old #loader) -->
     <div id="loader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999;">
-        <canvas id="beamCanvas" style="display:block; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></canvas>
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; text-align:center; pointer-events:none;">
-            <div style="color:white; font-family:'Courier New', monospace; font-size:24px; font-weight:bold; letter-spacing:2px; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 15px cyan, 0 0 30px blue;">
+        <canvas id="beamCanvas"
+            style="display:block; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></canvas>
+        <div
+            style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; text-align:center; pointer-events:none;">
+            <div
+                style="color:white; font-family:'Courier New', monospace; font-size:24px; font-weight:bold; letter-spacing:2px; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 0 15px cyan, 0 0 30px blue;">
                 LOADING <span id="percentText" style="color:#afffff">0%</span>
             </div>
         </div>
     </div>
 
     <!-- LEVEL UP MODAL -->
-    <div id="levelup-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">LEVEL UP!</div>
-        
+    <div id="levelup-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div
+            style="font-family:'Bangers'; color:#FFD700; font-size:3.5rem; text-shadow:2px 2px black; margin-bottom:20px; animation: popUp 0.5s;">
+            LEVEL UP!</div>
+
         <div style="position:relative; width:150px; height:150px; margin-bottom:20px;">
-            <div style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;"></div>
-            <img id="lvl-up-img" src="IMG_0061.png" alt="Level Up Form" style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
+            <div
+                style="position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, rgba(255,215,0,0.6), transparent); animation:pulseGreen 1.5s infinite;">
+            </div>
+            <img id="lvl-up-img" src="IMG_0061.png" alt="Level Up Form"
+                style="width:100%; height:100%; object-fit:contain; position:relative; z-index:2;">
         </div>
 
-        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
+        <div style="font-family:'Orbitron'; color:white; font-size:1.5rem; margin-bottom:15px;">LV <span
+                id="lvl-up-old">1</span> ➔ <span id="lvl-up-new" style="color:#00ff00;">2</span></div>
 
-        <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
-            <div style="color:#ff3e3e; margin:5px 0;">HP: <span id="lvl-stats-hp"></span> <span style="color:#00ff00;">(+250)</span></div>
-            <div style="color:#3498db; margin:5px 0;">ATK: <span id="lvl-stats-atk"></span> <span style="color:#00ff00;">(+5)</span></div>
-            <div style="color:#2ecc71; margin:5px 0;">DEF: <span id="lvl-stats-def"></span> <span style="color:#00ff00;">(+2)</span></div>
+        <div
+            style="background:rgba(255,255,255,0.1); padding:15px; border-radius:10px; width:80%; max-width:300px; text-align:center; border:1px solid #555;">
+            <div style="color:#ff3e3e; margin:5px 0;">HP: <span id="lvl-stats-hp"></span> <span
+                    style="color:#00ff00;">(+250)</span></div>
+            <div style="color:#3498db; margin:5px 0;">ATK: <span id="lvl-stats-atk"></span> <span
+                    style="color:#00ff00;">(+5)</span></div>
+            <div style="color:#2ecc71; margin:5px 0;">DEF: <span id="lvl-stats-def"></span> <span
+                    style="color:#00ff00;">(+2)</span></div>
         </div>
 
-        <button onclick="closeLevelUp()" style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
+        <button onclick="closeLevelUp()"
+            style="margin-top:25px; padding:10px 40px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">CONTINUE</button>
     </div>
 
     <div id="ready-msg" class="ready-banner">READY?</div>
@@ -97,11 +117,11 @@
             <div class="side-btn" id="btn-supply" onclick="claimSupply()">
                 <i>🎁</i> Supply
             </div>
-            
+
             <div class="side-btn" onclick="openStrategy()">
                 <i>💊</i> Strategy
             </div>
-            
+
             <!-- SOUL GAUGE BUTTON -->
             <div class="side-btn soul-btn-container" id="btn-soul" onclick="SoulSystem.openModal()">
                 <div class="soul-progress-ring" id="soul-ring"></div>
@@ -129,7 +149,9 @@
                 <div class="lvl-badge">LV <span id="ui-lvl">1</span></div>
                 <div style="flex:1; margin: 0 15px;">
                     <div style="font-size:0.7rem; color:#777; margin-bottom:2px;">EXP PROGRESS</div>
-                    <div class="bar-wrap" style="height:8px; background:#bdc3c7;"><div id="bar-xp" class="bar-fill xp-f"></div></div>
+                    <div class="bar-wrap" style="height:8px; background:#bdc3c7;">
+                        <div id="bar-xp" class="bar-fill xp-f"></div>
+                    </div>
                 </div>
                 <div class="coin-display">💰 <span id="ui-coins">0</span></div>
             </div>
@@ -137,8 +159,10 @@
             <div class="stats-container">
                 <div class="stats-col">
                     <div class="stat-row"><span class="stat-icon">❤️</span> <span id="ui-hp-txt">500</span></div>
-                    <div class="stat-row"><span class="stat-icon">⚔️</span> <span id="ui-atk">40</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('atk')">[+]</small></div>
-                    <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small style="color:#27ae60; cursor:pointer;" onclick="train('def')">[+]</small></div>
+                    <div class="stat-row"><span class="stat-icon">⚔️</span> <span id="ui-atk">40</span> <small
+                            style="color:#27ae60; cursor:pointer;" onclick="train('atk')">[+]</small></div>
+                    <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small
+                            style="color:#27ae60; cursor:pointer;" onclick="train('def')">[+]</small></div>
                 </div>
 
                 <div class="equip-slots">
@@ -161,7 +185,8 @@
             <button class="action-btn" id="btn-action" onclick="doEquip()">
                 <span>EQUIP SELECTED</span>
             </button>
-            <button class="action-btn" id="btn-merge" style="display:none; background: linear-gradient(to bottom, #8e44ad, #9b59b6);" onclick="mergeItems()">
+            <button class="action-btn" id="btn-merge"
+                style="display:none; background: linear-gradient(to bottom, #8e44ad, #9b59b6);" onclick="mergeItems()">
                 <span>MERGE (3)</span>
             </button>
 
@@ -196,16 +221,19 @@
     <!-- BATTLE SCREEN -->
     <div id="view-battle" class="screen">
         <div class="battle-overlay"></div>
-        
+
         <div id="cutin-overlay">
             <img id="cutin-img" src="" alt="Special Attack">
         </div>
 
         <div id="battle-menu">
-            <div id="menu-title" style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!</div>
-            
+            <div id="menu-title"
+                style="color:var(--dbz-yellow); font-family:'Bangers'; font-size:3rem; margin-bottom:10px;">VICTORY!
+            </div>
+
             <div style="width:80%; margin-bottom:15px;">
-                <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.8rem;">
+                <div
+                    style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.8rem;">
                     <span>LV <span id="r-lvl">1</span></span>
                     <span id="r-xp-text">0 / 100</span>
                 </div>
@@ -217,7 +245,8 @@
             <div class="rewards-box">
                 <div class="reward-row">XP GAINED: <span id="r-xp" class="reward-val">0</span></div>
                 <div class="reward-row">COINS: <span id="r-coins" class="reward-val">0</span></div>
-                <div class="reward-row">DROPS: <span id="r-drops" style="color:cyan; font-size:0.8rem;">NONE</span></div>
+                <div class="reward-row">DROPS: <span id="r-drops" style="color:cyan; font-size:0.8rem;">NONE</span>
+                </div>
             </div>
             <button class="menu-btn" onclick="autoStartNext()">NEXT STAGE (<span id="auto-timer">3</span>)</button>
             <button class="menu-btn exit" onclick="exitBattle()">EXIT</button>
@@ -231,9 +260,11 @@
             <div id="fx-beam" class="beam"></div>
             <!-- Updated Beam Image Source -->
             <img id="fx-beam" class="beam" src="hb_b.png" alt="Energy Beam">
-            
+
             <div class="unit" id="p-box">
-                <div class="bar-wrap" style="height:10px; margin-bottom: 2px;"><div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <div class="bar-wrap" style="height:10px; margin-bottom: 2px;">
+                    <div id="btl-p-hp" class="bar-fill hp-f" style="width:100%"></div>
+                </div>
                 <div class="bar-wrap" style="height:6px; border-color: gold; margin-top:0;">
                     <div id="btl-p-charge" class="bar-fill charge-f" style="width:0%"></div>
                 </div>
@@ -242,9 +273,13 @@
             </div>
 
             <div class="unit" id="e-box">
-                <div class="bar-wrap" style="height:10px;"><div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div></div>
+                <div class="bar-wrap" style="height:10px;">
+                    <div id="btl-e-hp" class="bar-fill hp-f" style="width:100%"></div>
+                </div>
                 <img id="e-img" src="" style="display:none;" alt="Enemy">
-                <div id="e-name" style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;"></div>
+                <div id="e-name"
+                    style="font-family:'Bangers'; font-size:1rem; margin-top:5px; color:red; text-shadow: 1px 1px black;">
+                </div>
             </div>
         </div>
 
@@ -257,7 +292,7 @@
             <h2>GEAR BACKPACK</h2>
             <div class="g-close" id="g-close-btn">✕</div>
         </div>
-        
+
         <div class="g-content">
             <p style="font-size: 0.7rem; color: #888; margin-bottom: 10px;">Tap an item to manage...</p>
             <div class="g-grid" id="gear-list"></div>
@@ -284,7 +319,8 @@
     </div>
 
     <!-- SKILLS OVERLAY -->
-    <div id="skills-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:9999; color:#fff; flex-direction:column; overflow-y:auto;">
+    <div id="skills-overlay"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:9999; color:#fff; flex-direction:column; overflow-y:auto;">
         <div class="g-header" style="background:transparent; border:none; box-shadow:none;">
             <h1 style="color:var(--dbz-orange);">🔥 SKILLS 🔥</h1>
             <div class="g-close" onclick="Skills.closeSkillScreen()" style="color:#fff;">✕</div>
@@ -292,64 +328,62 @@
         <div id="skills-list-container" style="padding:20px; max-width:800px; margin:0 auto; width:100%;">
             <!-- Skill Cards Injected Here -->
         </div>
-        <button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;" onclick="Skills.closeSkillScreen()">CLOSE</button>
+        <button class="g-btn g-btn-blue" style="margin:20px auto; width:80%; max-width:300px;"
+            onclick="Skills.closeSkillScreen()">CLOSE</button>
     </div>
-    
+
     <!-- STRATEGY OFFLINE MODAL -->
     <div id="strategy-modal">
         <div class="strategy-box">
-    
+
             <!-- LEFT SIDE: Bulma & Bubble -->
             <div class="strategy-visuals">
                 <div class="comic-bubble">
                     Welcome back! Here is what you got while you were away!
                 </div>
-    
+
                 <!-- IMPORTANT: Local relative path -->
-                <img
-                    src="./IMG_0222.png"
-                    alt="Bulma Strategy"
-                    class="bulma-sprite"
-                    loading="eager"
-                    decoding="async"
-                    draggable="false"
-                >
+                <img src="./IMG_0222.png" alt="Bulma Strategy" class="bulma-sprite" loading="eager" decoding="async"
+                    draggable="false">
             </div>
-    
+
             <!-- RIGHT SIDE: Details -->
             <div class="strategy-details">
                 <h2 class="strat-title">OFFLINE REPORT</h2>
-    
+
                 <div class="strat-info-row">
                     <span class="label">Time Away:</span>
                     <span class="value"><span id="strat-time">0</span> Min</span>
                 </div>
-    
+
                 <div class="strat-info-row">
                     <span class="label">Rank Multiplier:</span>
                     <span class="value" id="strat-mult">x1</span>
                 </div>
-    
+
                 <hr class="strat-divider">
-    
+
                 <div class="strat-rewards">
                     <div id="strat-xp-display" class="reward-text xp-text">+0 XP</div>
                     <div id="strat-gold-display" class="reward-text gold-text">+0 COINS</div>
                     <div id="strat-item-display" class="reward-text item-text">No Items Found</div>
                 </div>
-    
+
                 <button class="strat-claim-btn" onclick="claimStrategy()">CLAIM REWARDS</button>
                 <button class="strat-close-btn" onclick="closeStrategy()">CLOSE</button>
             </div>
-    
+
         </div>
     </div>
 
     <!-- SOUL LIBERATION MODAL -->
-    <div id="soul-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="width:90%; max-width:400px; background:#1a1a1a; border:2px solid #e74c3c; border-radius:15px; padding:20px; box-shadow:0 0 25px rgba(231,76,60,0.5); color:white; font-family:'Orbitron'; position:relative;">
-            <div class="g-close" onclick="SoulSystem.closeModal()" style="position:absolute; top:10px; right:15px; color:#aaa;">✕</div>
-            
+    <div id="soul-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; flex-direction:column; align-items:center; justify-content:center;">
+        <div
+            style="width:90%; max-width:400px; background:#1a1a1a; border:2px solid #e74c3c; border-radius:15px; padding:20px; box-shadow:0 0 25px rgba(231,76,60,0.5); color:white; font-family:'Orbitron'; position:relative;">
+            <div class="g-close" onclick="SoulSystem.closeModal()"
+                style="position:absolute; top:10px; right:15px; color:#aaa;">✕</div>
+
             <div style="text-align:center; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px;">
                 <div style="color:#e74c3c; font-size:0.8rem;">SOUL STONE LEVEL</div>
                 <div id="sm-level" style="font-family:'Bangers'; font-size:2.5rem; color:white;">Lv.1</div>
@@ -357,7 +391,8 @@
 
             <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
                 <div style="text-align:center;">
-                    <div class="grav-spinner" style="width:80px; height:80px; border-color:#00ffff; box-shadow:0 0 10px #00ffff;">
+                    <div class="grav-spinner"
+                        style="width:80px; height:80px; border-color:#00ffff; box-shadow:0 0 10px #00ffff;">
                         <span id="sm-pct" style="font-size:1.2rem; font-weight:bold;">0%</span>
                     </div>
                 </div>
@@ -369,17 +404,22 @@
                 </div>
             </div>
 
-            <button id="btn-liberate" onclick="SoulSystem.liberate()" style="width:100%; padding:15px; background:#444; border:none; border-radius:8px; color:#777; font-family:'Bangers'; font-size:1.5rem; cursor:default;">
+            <button id="btn-liberate" onclick="SoulSystem.liberate()"
+                style="width:100%; padding:15px; background:#444; border:none; border-radius:8px; color:#777; font-family:'Bangers'; font-size:1.5rem; cursor:default;">
                 SOUL LIBERATION
             </button>
-            <div id="sm-req" style="text-align:center; font-size:0.7rem; color:#555; margin-top:5px;">Requires 100% Soul Gauge</div>
+            <div id="sm-req" style="text-align:center; font-size:0.7rem; color:#555; margin-top:5px;">Requires 100% Soul
+                Gauge</div>
         </div>
     </div>
 
     <!-- NEW: DETAILS MODAL -->
-    <div id="details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="width:90%; max-width:400px; background:#111; border:2px solid #aaa; border-radius:15px; padding:0; overflow:hidden; box-shadow:0 0 30px black;">
-            <div style="background:#222; padding:15px; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
+    <div id="details-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
+        <div
+            style="width:90%; max-width:400px; background:#111; border:2px solid #aaa; border-radius:15px; padding:0; overflow:hidden; box-shadow:0 0 30px black;">
+            <div
+                style="background:#222; padding:15px; border-bottom:1px solid #444; display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-family:'Bangers'; font-size:1.5rem; color:white;">BATTLE STATS</span>
                 <span onclick="closeDetails()" style="color:#aaa; font-size:1.5rem; cursor:pointer;">✕</span>
             </div>
@@ -417,23 +457,25 @@
             </div>
         </div>
     </div>
-    
+
     <!-- STAGE DETAILS MODAL -->
-    <div id="stage-details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center;">
+    <div id="stage-details-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center;">
         <div class="stage-card">
             <div class="stage-header">STAGE <span id="sd-num">1</span></div>
-            
+
             <div class="enemy-preview-container">
                 <div class="enemy-aura"></div>
                 <img id="sd-enemy-img" src="" alt="Enemy">
             </div>
-            <div id="sd-enemy-name" style="font-family:'Bangers'; color:#ff5e57; font-size:1.2rem; margin-bottom:5px;"></div>
-    
+            <div id="sd-enemy-name" style="font-family:'Bangers'; color:#ff5e57; font-size:1.2rem; margin-bottom:5px;">
+            </div>
+
             <div class="stage-stats">
                 <div style="color:#f1c40f; font-size:0.9rem;">⚠️ REC. POWER</div>
                 <div id="sd-power" style="font-family:'Bangers'; font-size:1.8rem; color:white;">1,000</div>
             </div>
-    
+
             <div class="stage-rewards">
                 <div class="reward-item">
                     <span>🌟 XP:</span> <span id="sd-xp" style="color:cyan">100</span>
@@ -445,54 +487,70 @@
                     <span>🎁 Drops:</span> <span id="sd-drops" style="color:#e74c3c">Normal</span>
                 </div>
             </div>
-    
+
             <div style="display:flex; gap:10px; width:100%; margin-top:15px;">
-                <button class="menu-btn exit" onclick="closeStageDetails()" style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
-                <button class="menu-btn" onclick="confirmStart()" style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
+                <button class="menu-btn exit" onclick="closeStageDetails()"
+                    style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
+                <button class="menu-btn" onclick="confirmStart()"
+                    style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
             </div>
         </div>
     </div>
-    
-    <div id="advance-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
-        <div class="g-close" onclick="AdvanceSystem.close()" style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
-        <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px cyan;">GEAR ADVANCEMENT</div>
-        
+
+    <div id="advance-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
+        <div class="g-close" onclick="AdvanceSystem.close()"
+            style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
+        <div
+            style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px cyan;">
+            GEAR ADVANCEMENT</div>
+
         <div style="display:flex; width:90%; max-width:400px; align-items:center; margin-bottom:20px;">
-            <img src="IMG_0222.png" onerror="this.style.display='none'" style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin-right:10px; object-fit:cover;">
-            
-            <div id="bulma-speech" style="background:white; color:black; padding:10px; border-radius:10px; font-family:'Orbitron'; font-size:0.8rem; position:relative;">
+            <img src="IMG_0222.png" onerror="this.style.display='none'"
+                style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin-right:10px; object-fit:cover;">
+
+            <div id="bulma-speech"
+                style="background:white; color:black; padding:10px; border-radius:10px; font-family:'Orbitron'; font-size:0.8rem; position:relative;">
                 Use Dragon Shards to break your limits!
-                <div style="position:absolute; left:-6px; top:50%; width:10px; height:10px; background:white; transform:rotate(45deg);"></div>
+                <div
+                    style="position:absolute; left:-6px; top:50%; width:10px; height:10px; background:white; transform:rotate(45deg);">
+                </div>
             </div>
         </div>
-    
-        <div id="adv-visual-container" style="background:#222; border:2px solid #555; border-radius:15px; padding:20px; width:90%; max-width:400px; text-align:center;">
-            <div style="color:white; font-family:'Bangers'; font-size:1.5rem; margin-bottom:15px;">ADVANCE LEVEL: <span id="adv-current-lvl" style="color:#00ff00;">0</span></div>
+
+        <div id="adv-visual-container"
+            style="background:#222; border:2px solid #555; border-radius:15px; padding:20px; width:90%; max-width:400px; text-align:center;">
+            <div style="color:white; font-family:'Bangers'; font-size:1.5rem; margin-bottom:15px;">ADVANCE LEVEL: <span
+                    id="adv-current-lvl" style="color:#00ff00;">0</span></div>
             <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
                 <div class="slot-box" id="adv-slot-w"></div>
                 <div class="slot-box" id="adv-slot-a"></div>
             </div>
-            <div id="adv-stats-list" style="background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; text-align:left; font-family:'Orbitron'; font-size:0.8rem; color:#aaa; margin-bottom:15px;"></div>
-            <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.9rem; margin-bottom:15px; border-top:1px solid #444; padding-top:10px;">
+            <div id="adv-stats-list"
+                style="background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; text-align:left; font-family:'Orbitron'; font-size:0.8rem; color:#aaa; margin-bottom:15px;">
+            </div>
+            <div
+                style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.9rem; margin-bottom:15px; border-top:1px solid #444; padding-top:10px;">
                 <div>💎 Shards: <span id="adv-shard-count" style="color:#00d2ff;">0</span></div>
                 <div>💰 Gold: <span id="adv-gold-count" style="color:#f1c40f;">0</span></div>
             </div>
-            <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn" style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
+            <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn"
+                style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
         </div>
     </div>
-    
+
     <!-- NEW EXPLORE SCREEN -->
     <div id="view-explore" class="screen" style="position:relative; background:black; overflow:hidden;">
         <canvas id="explore-canvas"></canvas>
-        
+
         <!-- EXPLORE HUD (GENUINE RPG STYLE) -->
         <div id="explore-hud">
-            
+
             <!-- NEW RPG STATUS PANEL (Top Left) -->
             <div id="rpg-status-panel">
                 <!-- Avatar -->
                 <div class="rpg-avatar-frame">
-                    <img id="rpg-avatar-img" src="IMG_0054.png"> <!-- Matches your player sprite -->
+                    <img id="rpg-avatar-img" src="IMG_0061.png"> <!-- Matches your player sprite -->
                 </div>
 
                 <!-- Bars Container -->
@@ -526,6 +584,22 @@
                 <div id="quest-desc">Explore the world...</div>
             </div>
 
+            <!-- INTERACTION BUTTON (Appears near objects) -->
+            <div id="btn-interact" class="interact-btn">
+                <span>👋</span> INTERACT
+            </div>
+
+            <!-- INTERACTION DIALOG OVERLAY -->
+            <div id="explore-interaction-overlay">
+                <div class="rpg-dialog-box">
+                    <div class="rpg-dialog-name" id="dialog-name">Villager</div>
+                    <div class="rpg-dialog-text" id="dialog-text">Hello traveler!</div>
+                    <div class="rpg-dialog-choices" id="dialog-choices">
+                        <!-- Buttons injected by JS -->
+                    </div>
+                </div>
+            </div>
+
             <!-- JOYSTICK -->
             <div id="joy-zone">
                 <div id="joy-stick"></div>
@@ -541,108 +615,111 @@
             <!-- CHARGE OVERLAY -->
             <div id="ex-charge-overlay">
                 <div class="charge-text">MAX POWER!</div>
-                <div class="charge-meter"><div id="ex-charge-fill"></div></div>
+                <div class="charge-meter">
+                    <div id="ex-charge-fill"></div>
+                </div>
             </div>
         </div>
     </div>
-<script>
-(function() {
-    // --- BEAM LOADER LOGIC ---
-    const CONFIG = { duration: 4000, beamColor: '0, 255, 255', coreColor: '255, 255, 255', particleCount: 60 };
-    const canvas = document.getElementById('beamCanvas');
-    const ctx = canvas.getContext('2d');
-    const percentText = document.getElementById('percentText');
-    const loader = document.getElementById('loader');
-    
-    let width, height, centerY;
-    let startTime = null;
-    let particles = [];
+    <script>
+        (function () {
+            // --- BEAM LOADER LOGIC ---
+            const CONFIG = { duration: 4000, beamColor: '0, 255, 255', coreColor: '255, 255, 255', particleCount: 60 };
+            const canvas = document.getElementById('beamCanvas');
+            const ctx = canvas.getContext('2d');
+            const percentText = document.getElementById('percentText');
+            const loader = document.getElementById('loader');
 
-    function resize() {
-        width = window.innerWidth; height = window.innerHeight;
-        centerY = height / 2; canvas.width = width; canvas.height = height;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+            let width, height, centerY;
+            let startTime = null;
+            let particles = [];
 
-    class Particle {
-        constructor() { this.active = false; }
-        spawn(x, y) {
-            this.x = x; this.y = y;
-            this.vx = -(Math.random() * 2 + 1); this.vy = (Math.random() - 0.5) * 4;
-            this.size = Math.random() * 2 + 0.5; this.life = 1.0;
-            this.decay = Math.random() * 0.02 + 0.01; this.active = true;
-        }
-        update() {
-            if (!this.active) return;
-            this.x += this.vx; this.y += this.vy; this.life -= this.decay;
-            if (this.life <= 0) this.active = false;
-        }
-        draw() {
-            if (!this.active) return;
-            ctx.beginPath(); ctx.fillStyle = `rgba(${CONFIG.beamColor}, ${this.life})`;
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-        }
-    }
-    particles = Array.from({ length: CONFIG.particleCount }, () => new Particle());
-    let pIndex = 0;
+            function resize() {
+                width = window.innerWidth; height = window.innerHeight;
+                centerY = height * 0.9; canvas.width = width; canvas.height = height;
+            }
+            window.addEventListener('resize', resize);
+            resize();
 
-    function emit(x, y) {
-        for (let i = 0; i < 3; i++) {
-            particles[pIndex].spawn(x, y); pIndex = (pIndex + 1) % particles.length;
-        }
-    }
-
-    function animate(t) {
-        if (!loader || loader.style.display === 'none') return; // Stop loop if hidden
-        
-        if (!startTime) startTime = t;
-        let progress = (t - startTime) / CONFIG.duration;
-        if (progress > 1) progress = 1;
-
-        if(percentText) percentText.innerText = Math.floor(progress * 100) + "%";
-
-        ctx.clearRect(0, 0, width, height);
-        ctx.globalCompositeOperation = 'lighter';
-
-        particles.forEach(p => { p.update(); p.draw(); });
-
-        const tipX = width * progress;
-        if (tipX > 0) {
-            const waves = [
-                { w: 40, color: `rgba(0, 100, 255, 0.2)`, amp: 30, freq: 0.01, speed: 0.005 },
-                { w: 10, color: `rgba(${CONFIG.beamColor}, 0.5)`, amp: 15, freq: 0.02, speed: 0.008 },
-                { w: 3,  color: `rgba(${CONFIG.coreColor}, 0.9)`, amp: 5,  freq: 0.03, speed: 0.012 }
-            ];
-            waves.forEach(w => {
-                ctx.beginPath(); ctx.lineWidth = w.w; ctx.strokeStyle = w.color; ctx.lineCap = 'round';
-                ctx.moveTo(0, centerY);
-                for (let x = 0; x <= tipX; x += 10) {
-                    const y = Math.sin(x*w.freq - t*w.speed)*w.amp + Math.sin(x*(w.freq*2) - t*(w.speed*2))*(w.amp*0.5);
-                    ctx.lineTo(x, centerY + y);
+            class Particle {
+                constructor() { this.active = false; }
+                spawn(x, y) {
+                    this.x = x; this.y = y;
+                    this.vx = -(Math.random() * 2 + 1); this.vy = (Math.random() - 0.5) * 4;
+                    this.size = Math.random() * 2 + 0.5; this.life = 1.0;
+                    this.decay = Math.random() * 0.02 + 0.01; this.active = true;
                 }
-                ctx.stroke();
-            });
+                update() {
+                    if (!this.active) return;
+                    this.x += this.vx; this.y += this.vy; this.life -= this.decay;
+                    if (this.life <= 0) this.active = false;
+                }
+                draw() {
+                    if (!this.active) return;
+                    ctx.beginPath(); ctx.fillStyle = `rgba(${CONFIG.beamColor}, ${this.life})`;
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            particles = Array.from({ length: CONFIG.particleCount }, () => new Particle());
+            let pIndex = 0;
 
-            // Flare
-            const g = ctx.createRadialGradient(tipX, centerY, 0, tipX, centerY, 50);
-            g.addColorStop(0, 'white'); g.addColorStop(0.3, `rgba(${CONFIG.beamColor}, 1)`); g.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tipX, centerY, 50, 0, Math.PI * 2); ctx.fill();
-            emit(tipX, centerY);
-        }
+            function emit(x, y) {
+                for (let i = 0; i < 3; i++) {
+                    particles[pIndex].spawn(x, y); pIndex = (pIndex + 1) % particles.length;
+                }
+            }
 
-        if (progress < 1) requestAnimationFrame(animate);
-        else {
-            // Keep looping to animate the waves even at 100% until game hides it
-            requestAnimationFrame((timestamp) => {
-                // Fake the time to keep progress at 1.0 but animation moving
-                startTime = timestamp - CONFIG.duration; 
-                animate(timestamp);
-            });
-        }
-    }
-    requestAnimationFrame(animate);
-})();
-</script>
+            function animate(t) {
+                if (!loader || loader.style.display === 'none') return; // Stop loop if hidden
+
+                if (!startTime) startTime = t;
+                let progress = (t - startTime) / CONFIG.duration;
+                if (progress > 1) progress = 1;
+
+                if (percentText) percentText.innerText = Math.floor(progress * 100) + "%";
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.globalCompositeOperation = 'lighter';
+
+                particles.forEach(p => { p.update(); p.draw(); });
+
+                const tipX = width * progress;
+                if (tipX > 0) {
+                    const waves = [
+                        { w: 20, color: `rgba(0, 100, 255, 0.2)`, amp: 15, freq: 0.01, speed: 0.005 },
+                        { w: 5, color: `rgba(${CONFIG.beamColor}, 0.5)`, amp: 8, freq: 0.02, speed: 0.008 },
+                        { w: 2, color: `rgba(${CONFIG.coreColor}, 0.9)`, amp: 3, freq: 0.03, speed: 0.012 }
+                    ];
+                    waves.forEach(w => {
+                        ctx.beginPath(); ctx.lineWidth = w.w; ctx.strokeStyle = w.color; ctx.lineCap = 'round';
+                        ctx.moveTo(0, centerY);
+                        for (let x = 0; x <= tipX; x += 10) {
+                            const y = Math.sin(x * w.freq - t * w.speed) * w.amp + Math.sin(x * (w.freq * 2) - t * (w.speed * 2)) * (w.amp * 0.5);
+                            ctx.lineTo(x, centerY + y);
+                        }
+                        ctx.stroke();
+                    });
+
+                    // Flare
+                    const g = ctx.createRadialGradient(tipX, centerY, 0, tipX, centerY, 50);
+                    g.addColorStop(0, 'white'); g.addColorStop(0.3, `rgba(${CONFIG.beamColor}, 1)`); g.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tipX, centerY, 50, 0, Math.PI * 2); ctx.fill();
+                    emit(tipX, centerY);
+                }
+
+                if (progress < 1) requestAnimationFrame(animate);
+                else {
+                    // Keep looping to animate the waves even at 100% until game hides it
+                    requestAnimationFrame((timestamp) => {
+                        // Fake the time to keep progress at 1.0 but animation moving
+                        startTime = timestamp - CONFIG.duration;
+                        animate(timestamp);
+                    });
+                }
+            }
+            requestAnimationFrame(animate);
+        })();
+    </script>
 </body>
+
 </html>

@@ -5,28 +5,40 @@
         HOUSE: "IMG_0299.png",
         TREE: "IMG_0300.png",
         NPC: "IMG_0292.png",
-        // This is a direct link to an image we know works, or use a local one if you have it
         ENEMY_FALLBACK: "https://dragonball-api.com/characters/Freezer.webp"
     };
 
     const canvas = document.getElementById('explore-canvas');
     const ctx = canvas.getContext('2d');
-    const WORLD_WIDTH = 3000, WORLD_HEIGHT = 3000;
+    const WORLD_WIDTH = 4000, WORLD_HEIGHT = 4000; // Expanded World
 
     let isRunning = false, lastTime = 0, camera = { x: 0, y: 0 };
     let bgImage = new Image(), imgHouse = new Image(), imgTree = new Image(), imgNpc = new Image();
 
     // Stats
-    let kills = 0; // FIXED: Variable declared here
+    let kills = 0;
     let sessionLoot = { coins: 0, shards: 0 };
-    let currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
-    let activeQuest = null;
+
+    // --- QUEST SYSTEM ---
+    let questLog = {
+        active: null, // { id, desc, target, progress, rewardCoins, rewardXp, type: 'kill'|'collect' }
+        completedCount: 0
+    };
 
     // Entities
-    let player = { x: WORLD_WIDTH / 2, y: WORLD_WIDTH / 2, size: 60, speed: 7, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
+    let player = { x: WORLD_WIDTH / 2, y: WORLD_WIDTH / 2 + 200, size: 60, speed: 8, hp: 100, maxHp: 100, faceRight: true, invincible: 0, img: new Image() };
     let enemies = [], npcs = [], bullets = [], particles = [], loots = [], structures = [];
+    let zones = [];
 
     const input = { x: 0, y: 0, charging: false, chargeVal: 0 };
+
+    // --- ZONES ---
+    const ZONE_TYPES = {
+        VILLAGE: { name: "Safe Haven", color: "#2ecc71", danger: 0 },
+        FOREST: { name: "Whispering Woods", color: "#27ae60", danger: 1 },
+        RUINS: { name: "Ancient Ruins", color: "#7f8c8d", danger: 3 },
+        WASTELAND: { name: "Barren Wastes", color: "#c0392b", danger: 5 }
+    };
 
     // --- INIT ---
     function initExplore() {
@@ -41,34 +53,89 @@
         }
 
         // 2. Load Assets
-        // Try to get sprite from HUD, otherwise fallback to IMG_0061 (Base Goku)
         const hudSprite = document.getElementById('ui-sprite');
         player.img.src = (hudSprite && hudSprite.src) ? hudSprite.src : "IMG_0061.png";
 
         const avatarImg = document.getElementById('rpg-avatar-img');
         if (avatarImg) avatarImg.src = player.img.src;
 
-        bgImage.src = ASSETS.BG; imgHouse.src = ASSETS.HOUSE;
+        bgImage.src = ASSETS.GROUND_TILE; imgHouse.src = ASSETS.HOUSE;
         imgTree.src = ASSETS.TREE; imgNpc.src = ASSETS.NPC;
 
         resize(); window.addEventListener('resize', resize);
-        setupControls(); generateWorld();
+        setupControls();
+
+        // Generate World if empty
+        if (structures.length === 0) generateWorld();
 
         enemies = []; bullets = []; particles = []; loots = [];
         sessionLoot = { coins: 0, shards: 0 };
-        currentQuest = { target: 5, progress: 0, desc: "Defeat Invaders" };
-        kills = 0; // Reset kills on start
+        kills = 0;
+
+        // Start with a quest if none
+        if (!questLog.active) assignRandomQuest();
 
         updateHUD();
 
         isRunning = true;
         requestAnimationFrame(loop);
 
-        setInterval(() => { if (isRunning && enemies.length < 12) spawnEnemyGroup(); }, 4000);
+        // Spawn Enemies Loop
+        setInterval(() => {
+            if (isRunning && enemies.length < 15) spawnEnemyInZone();
+        }, 3000);
     }
 
     function stopExplore() { isRunning = false; }
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+    // --- WORLD GENERATION ---
+    function generateWorld() {
+        structures = []; npcs = []; zones = [];
+
+        // 1. Define Zones
+        zones.push({ type: 'VILLAGE', x: 2000, y: 2000, r: 600 });
+        zones.push({ type: 'FOREST', x: 1000, y: 1000, r: 800 });
+        zones.push({ type: 'FOREST', x: 3000, y: 3000, r: 800 });
+        zones.push({ type: 'RUINS', x: 3000, y: 1000, r: 700 });
+        zones.push({ type: 'WASTELAND', x: 1000, y: 3000, r: 700 });
+
+        // 2. Village (Safe)
+        structures.push({ type: 'fountain', x: 2000, y: 2000, w: 150, h: 150, color: 'cyan', solid: true });
+
+        // Houses in ring
+        for (let i = 0; i < 8; i++) {
+            let a = (i / 8) * Math.PI * 2;
+            structures.push({
+                type: 'house',
+                x: 2000 + Math.cos(a) * 400,
+                y: 2000 + Math.sin(a) * 400,
+                w: 200, h: 200, img: imgHouse, solid: true
+            });
+        }
+
+        // NPCs in Village
+        npcs.push({ x: 2000, y: 2150, name: "Elder Guru", dialog: ["Welcome to our village.", "The world is dangerous outside."], type: 'quest', img: imgNpc });
+        npcs.push({ x: 1900, y: 2000, name: "Merchant", dialog: ["I buy and sell rare goods.", "Got any dragon shards?"], type: 'shop', img: imgNpc });
+
+        // 3. Forests (Trees)
+        zones.filter(z => z.type === 'FOREST').forEach(z => {
+            for (let i = 0; i < 40; i++) {
+                let rx = z.x + (Math.random() - 0.5) * z.r * 1.5;
+                let ry = z.y + (Math.random() - 0.5) * z.r * 1.5;
+                structures.push({ type: 'tree', x: rx, y: ry, w: 120, h: 120, img: imgTree, solid: true });
+            }
+        });
+
+        // 4. Ruins (Rocks/Walls)
+        zones.filter(z => z.type === 'RUINS').forEach(z => {
+            for (let i = 0; i < 20; i++) {
+                let rx = z.x + (Math.random() - 0.5) * z.r;
+                let ry = z.y + (Math.random() - 0.5) * z.r;
+                structures.push({ type: 'rock', x: rx, y: ry, w: 80, h: 80, color: '#7f8c8d', solid: true });
+            }
+        });
+    }
 
     // --- CONTROLS ---
     function setupControls() {
@@ -125,64 +192,162 @@
         const endC = (e) => { e.preventDefault(); if (input.chargeVal >= 100) unleashUltimate(); input.charging = false; input.chargeVal = 0; document.getElementById('ex-charge-overlay').style.display = 'none'; };
         btnCharge.onmousedown = startC; btnCharge.onmouseup = endC;
         btnCharge.ontouchstart = startC; btnCharge.ontouchend = endC;
+
+        // INTERACT BUTTON
+        const btnInteract = document.getElementById('btn-interact');
+        if (btnInteract) {
+            btnInteract.onclick = (e) => { e.stopPropagation(); tryInteract(); };
+            btnInteract.onmousedown = (e) => { e.stopPropagation(); }; // Prevent joy-zone conflict
+            btnInteract.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); tryInteract(); };
+        }
     }
 
-    // --- GAMEPLAY ---
-    function spawnEnemyGroup() {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 1200;
-        let cx = player.x + Math.cos(angle) * dist;
-        let cy = player.y + Math.sin(angle) * dist;
-        cx = Math.max(100, Math.min(WORLD_WIDTH - 100, cx));
-        cy = Math.max(100, Math.min(WORLD_HEIGHT - 100, cy));
+    // --- GAMEPLAY LOGIC ---
+
+    function spawnEnemyInZone() {
+        // Find a random zone that isn't Village
+        const zone = zones[Math.floor(Math.random() * zones.length)];
+        if (zone.type === 'VILLAGE') return;
+
+        let cx = zone.x + (Math.random() - 0.5) * zone.r;
+        let cy = zone.y + (Math.random() - 0.5) * zone.r;
+
+        // Don't spawn too close to player
+        if (Math.hypot(cx - player.x, cy - player.y) < 800) return;
 
         const gPower = window.GameState ? window.GameState.gokuPower : 100;
-
-        // FIXED: Better Image Loading Logic
         const eImg = new Image();
 
-        // Use API data if available, else fallback
         if (window.apiData && window.apiData.characters && window.apiData.characters.length > 0) {
             const rIdx = Math.floor(Math.random() * window.apiData.characters.length);
-            const char = window.apiData.characters[rIdx];
-            eImg.src = char.image || ASSETS.ENEMY_FALLBACK;
+            eImg.src = window.apiData.characters[rIdx].image || ASSETS.ENEMY_FALLBACK;
         } else {
             eImg.src = ASSETS.ENEMY_FALLBACK;
         }
 
-        // Spawn 3 enemies
-        for (let i = 0; i < 3; i++) {
-            enemies.push({
-                x: cx + (Math.random() - 0.5) * 100, y: cy + (Math.random() - 0.5) * 100,
-                originX: cx, originY: cy, patrolX: cx, patrolY: cy,
-                state: 'patrol', waitTimer: 0,
-                size: 80, hp: gPower * 5, maxHp: gPower * 5,
-                atk: player.maxHp * 0.05, speed: 3, img: eImg
-            });
+        // Difficulty Multiplier
+        let mult = 1.0;
+        if (zone.type === 'RUINS') mult = 1.5;
+        if (zone.type === 'WASTELAND') mult = 2.0;
+
+        enemies.push({
+            x: cx, y: cy,
+            originX: cx, originY: cy, patrolX: cx, patrolY: cy,
+            state: 'patrol', waitTimer: 0,
+            size: 80, hp: gPower * 5 * mult, maxHp: gPower * 5 * mult,
+            atk: player.maxHp * 0.05 * mult, speed: 3 + (mult - 1) * 2, img: eImg
+        });
+    }
+
+    function checkCollisions(newX, newY) {
+        // Structures
+        for (let s of structures) {
+            if (!s.solid) continue;
+            // Simple Box Collision
+            if (newX > s.x - s.w / 2 - 20 && newX < s.x + s.w / 2 + 20 &&
+                newY > s.y - s.h / 2 - 20 && newY < s.y + s.h / 2 + 20) {
+                return true;
+            }
+        }
+        // World Bounds
+        if (newX < 0 || newX > WORLD_WIDTH || newY < 0 || newY > WORLD_HEIGHT) return true;
+
+        return false;
+    }
+
+    function tryInteract() {
+        // Find nearest NPC
+        let nearest = null;
+        let minD = 100;
+
+        npcs.forEach(n => {
+            let d = Math.hypot(n.x - player.x, n.y - player.y);
+            if (d < minD) { minD = d; nearest = n; }
+        });
+
+        if (nearest) {
+            openDialog(nearest);
+        } else if (questLog.active && questLog.active.progress >= questLog.active.target) {
+            // Remote Turn-in
+            openQuestCompleteDialog();
         }
     }
 
-    function spawnLoot(x, y, isStrong) {
-        const count = isStrong ? 5 : 2;
-        for (let i = 0; i < count; i++) {
-            loots.push({
-                x: x, y: y, type: Math.random() > 0.8 ? 'shard' : 'coin',
-                val: 100, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15
-            });
+    function openDialog(npc) {
+        const overlay = document.getElementById('explore-interaction-overlay');
+        const dName = document.getElementById('dialog-name');
+        const dText = document.getElementById('dialog-text');
+        const dChoices = document.getElementById('dialog-choices');
+
+        overlay.style.display = 'flex';
+        dName.innerText = npc.name;
+        // Random line
+        dText.innerText = npc.dialog[Math.floor(Math.random() * npc.dialog.length)];
+
+        dChoices.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.className = 'rpg-choice-btn confirm';
+        btn.innerText = "Goodbye";
+        btn.onclick = () => { overlay.style.display = 'none'; };
+        dChoices.appendChild(btn);
+    }
+
+    function openQuestCompleteDialog() {
+        const overlay = document.getElementById('explore-interaction-overlay');
+        const dName = document.getElementById('dialog-name');
+        const dText = document.getElementById('dialog-text');
+        const dChoices = document.getElementById('dialog-choices');
+
+        overlay.style.display = 'flex';
+        dName.innerText = "Quest Log";
+        dText.innerText = `Mission Complete! \nReward: ${questLog.active.rewardCoins} Coins, ${questLog.active.rewardXp} XP.`;
+
+        dChoices.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.className = 'rpg-choice-btn confirm';
+        btn.innerText = "Claim Reward";
+        btn.onclick = () => {
+            completeQuest();
+            overlay.style.display = 'none';
+        };
+        dChoices.appendChild(btn);
+    }
+
+    function assignRandomQuest() {
+        questLog.completedCount++;
+        const target = 5 + Math.floor(questLog.completedCount * 0.5);
+        questLog.active = {
+            desc: "Defeat Enemies",
+            target: target,
+            progress: 0,
+            rewardCoins: 500 + (questLog.completedCount * 100),
+            rewardXp: 200 + (questLog.completedCount * 50)
+        };
+        updateHUD();
+    }
+
+    function completeQuest() {
+        if (!questLog.active) return;
+        if (window.player) {
+            window.player.coins += questLog.active.rewardCoins;
+            window.player.xp += questLog.active.rewardXp;
+            sessionLoot.coins += questLog.active.rewardCoins;
+
+            // CHECK LEVEL UP
+            if (typeof window.checkLevelUp === 'function') {
+                window.checkLevelUp();
+            }
         }
+        assignRandomQuest();
     }
 
     function checkQuestProgress() {
-        // Simple logic for the demo quest
-        if (currentQuest && currentQuest.progress < currentQuest.target) {
-            currentQuest.progress++;
-            if (currentQuest.progress >= currentQuest.target) {
-                // Quest Complete
-                if (window.player) {
-                    window.player.coins += 1000;
-                    window.player.xp += 500;
-                    alert("QUEST COMPLETE! +1000 Coins");
-                }
+        if (questLog.active && questLog.active.progress < questLog.active.target) {
+            questLog.active.progress++;
+            updateHUD();
+            if (questLog.active.progress >= questLog.active.target) {
+                // Show notification? 
+                // For now, HUD says "Complete" and Interact button appears
             }
         }
     }
@@ -202,6 +367,10 @@
     function dodge() {
         let dx = input.x || (player.faceRight ? 1 : -1), dy = input.y || 0, len = Math.sqrt(dx * dx + dy * dy) || 1;
         player.x += dx / len * 300; player.y += dy / len * 300;
+        // Simple bounds check for dodge
+        player.x = Math.max(0, Math.min(WORLD_WIDTH, player.x));
+        player.y = Math.max(0, Math.min(WORLD_HEIGHT, player.y));
+
         for (let i = 0; i < 6; i++) particles.push({ x: player.x, y: player.y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 15, color: 'cyan' });
     }
 
@@ -211,21 +380,43 @@
         enemies.forEach(e => { if (Math.hypot(e.x - player.x, e.y - player.y) < 800) { e.hp = 0; for (let i = 0; i < 10; i++) particles.push({ x: e.x, y: e.y, vx: (Math.random() - 0.5) * 25, vy: (Math.random() - 0.5) * 25, life: 30, color: 'orange' }); } });
     }
 
-    // --- LOOP ---
+    function spawnLoot(x, y, isStrong) {
+        const count = isStrong ? 5 : 2;
+        for (let i = 0; i < count; i++) {
+            loots.push({
+                x: x, y: y, type: Math.random() > 0.9 ? 'shard' : 'coin',
+                val: 100, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15
+            });
+        }
+    }
+
+    // --- MAIN LOOP ---
     function loop(timestamp) {
         if (!isRunning) return;
+
+        // PAUSE IF MODAL IS OPEN
+        if (document.getElementById('levelup-modal') && document.getElementById('levelup-modal').style.display === 'flex') {
+            requestAnimationFrame(loop);
+            return;
+        }
+
         const dt = timestamp - lastTime; lastTime = timestamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Player Move
+        // Player Move (Sliding Collision)
         if (input.charging) {
             input.chargeVal += 1.2; if (input.chargeVal > 100) input.chargeVal = 100;
             const h = document.getElementById('ex-charge-overlay'); if (h) { h.style.display = 'block'; document.getElementById('ex-charge-fill').style.width = input.chargeVal + '%'; }
             player.x += (Math.random() - 0.5) * 6; player.y += (Math.random() - 0.5) * 6;
         } else {
-            let nx = player.x + input.x * player.speed, ny = player.y + input.y * player.speed;
-            let hit = false; structures.forEach(s => { if (s.type !== 'fountain' && nx > s.x - s.w / 2 && nx < s.x + s.w / 2 && ny > s.y - s.h / 2 && ny < s.y + s.h / 2) hit = true; });
-            if (!hit) { player.x = Math.max(0, Math.min(WORLD_WIDTH, nx)); player.y = Math.max(0, Math.min(WORLD_HEIGHT, ny)); }
+            let nextX = player.x + input.x * player.speed;
+            let nextY = player.y + input.y * player.speed;
+
+            // X Axis
+            if (!checkCollisions(nextX, player.y)) player.x = nextX;
+            // Y Axis
+            if (!checkCollisions(player.x, nextY)) player.y = nextY;
+
             if (input.x > 0) player.faceRight = true; if (input.x < 0) player.faceRight = false;
         }
 
@@ -234,56 +425,62 @@
 
         ctx.save(); ctx.translate(-camera.x, -camera.y);
 
-        // 1. BG
+        // 1. BG Tiling
         if (bgImage.complete && bgImage.naturalWidth > 0) {
-            const p = ctx.createPattern(bgImage, 'repeat'); ctx.fillStyle = p; ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
+            const pattern = ctx.createPattern(bgImage, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
         } else {
-            ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            ctx.fillStyle = '#2c3e50'; ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
         }
 
-        // 2. Structures
-        structures.forEach(s => {
-            if (s.img && s.img.complete && s.img.naturalWidth > 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(s.x, s.y + s.h / 2 - 10, s.w / 2, s.h / 4, 0, 0, Math.PI * 2); ctx.fill();
-                ctx.drawImage(s.img, s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
-            } else { ctx.fillStyle = s.color; ctx.fillRect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h); }
+        // 2. Zone Floor Decals (Simple circles for now)
+        zones.forEach(z => {
+            // Optional: Draw subtle colored ground for zones
+            // ctx.fillStyle = z.type === 'FOREST' ? 'rgba(0,100,0,0.1)' : 'rgba(0,0,0,0.1)';
+            // ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI*2); ctx.fill();
         });
 
-        // 3. Loot (Magnet)
+        // 3. Loot
         for (let i = loots.length - 1; i >= 0; i--) {
             let l = loots[i]; l.x += l.vx; l.y += l.vy; l.vx *= 0.9; l.vy *= 0.9;
-            if (Math.hypot(player.x - l.x, player.y - l.y) < 200) { l.x += (player.x - l.x) * 0.15; l.y += (player.y - l.y) * 0.15; }
-            if (Math.hypot(player.x - l.x, player.y - l.y) < 40) {
+            if (Math.hypot(player.x - l.x, player.y - l.y) < 250) { l.x += (player.x - l.x) * 0.15; l.y += (player.y - l.y) * 0.15; }
+            if (Math.hypot(player.x - l.x, player.y - l.y) < 50) {
                 if (window.player) {
                     if (l.type === 'coin') {
                         window.player.coins += 100;
                         sessionLoot.coins += 100;
-                    }
-                    else if (l.type === 'shard') {
+                    } else if (l.type === 'shard') {
                         window.player.dragonShards = (window.player.dragonShards || 0) + 1;
                         sessionLoot.shards++;
-                    }
-                    else {
-                        // XP GAINED
-                        window.player.xp += l.val;
-
-                        // --- TRIGGER LEVEL UP CHECK ---
-                        if (typeof window.checkLevelUp === 'function') {
-                            window.checkLevelUp();
-                        }
                     }
                 }
                 loots.splice(i, 1);
                 updateHUD();
                 continue;
             }
-            ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI * 2); ctx.fillStyle = l.type === 'coin' ? 'gold' : (l.type === 'shard' ? 'cyan' : 'lime');
+            ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI * 2); ctx.fillStyle = l.type === 'coin' ? 'gold' : 'cyan';
             ctx.fill(); ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // 4. Enemies
+        // 4. Structures (Y-Sort disabled for performance, but simple loop)
+        structures.forEach(s => {
+            // Simple visibility check
+            if (s.x < camera.x - 200 || s.x > camera.x + canvas.width + 200) return;
+            if (s.y < camera.y - 200 || s.y > camera.y + canvas.height + 200) return;
+
+            if (s.img && s.img.complete) {
+                ctx.drawImage(s.img, s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+            } else {
+                ctx.fillStyle = s.color || 'brown';
+                ctx.fillRect(s.x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+            }
+        });
+
+        // 5. Enemies
         for (let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
+
             // AI
             if (e.state === 'patrol') {
                 if (e.waitTimer > 0) e.waitTimer--;
@@ -296,43 +493,49 @@
                 let a = Math.atan2(player.y - e.y, player.x - e.x); e.x += Math.cos(a) * e.speed; e.y += Math.sin(a) * e.speed;
             }
 
-            // --- FIXED DRAWING ---
+            // Draw
             try {
-                if (e.img.complete && e.img.naturalWidth > 0) {
+                if (e.img.complete) {
                     ctx.drawImage(e.img, e.x - 40, e.y - 40, 80, 80);
                 } else {
-                    ctx.fillStyle = e.state === 'chase' ? 'red' : 'purple';
-                    ctx.fillRect(e.x - 40, e.y - 40, 80, 80);
+                    ctx.fillStyle = 'purple'; ctx.fillRect(e.x - 40, e.y - 40, 80, 80);
                 }
-            } catch (er) {
-                ctx.fillStyle = 'purple';
-                ctx.fillRect(e.x - 40, e.y - 40, 80, 80);
-            }
+            } catch (er) { }
 
-            // HP
+            // HP Bar
             ctx.fillStyle = 'red'; ctx.fillRect(e.x - 30, e.y - 50, 60, 6);
             ctx.fillStyle = 'lime'; ctx.fillRect(e.x - 30, e.y - 50, 60 * Math.max(0, e.hp / e.maxHp), 6);
 
-            // Hit
+            // Hit Check
             for (let j = bullets.length - 1; j >= 0; j--) {
                 if (Math.hypot(bullets[j].x - e.x, bullets[j].y - e.y) < 50) {
-                    e.hp -= bullets[j].damage; e.state = 'chase'; bullets.splice(j, 1);
+                    e.hp -= bullets[j].damage;
+                    e.state = 'chase';
+                    // Knockback using bullet velocity before removing it
+                    e.x += bullets[j].vx * 0.2;
+                    e.y += bullets[j].vy * 0.2;
+                    bullets.splice(j, 1);
                 }
             }
-            // Player Hit
+
+            // Player Collision
             if (Math.hypot(player.x - e.x, player.y - e.y) < 60) {
-                if (player.invincible <= 0) { player.hp -= (input.charging ? e.atk * 2 : e.atk); player.invincible = 30; updateHUD(); }
+                if (player.invincible <= 0) {
+                    player.hp -= (input.charging ? e.atk * 2 : e.atk);
+                    player.invincible = 30;
+                    updateHUD();
+                }
             }
+
             if (e.hp <= 0) {
                 spawnLoot(e.x, e.y, true);
                 enemies.splice(i, 1);
-                kills++; // Increment global kills
+                kills++;
                 checkQuestProgress();
-                updateHUD();
             }
         }
 
-        // 5. Bullets
+        // 6. Projectiles
         ctx.fillStyle = '#00ffff';
         for (let i = bullets.length - 1; i >= 0; i--) {
             let b = bullets[i]; b.x += b.vx; b.y += b.vy; b.life--;
@@ -340,48 +543,80 @@
             if (b.life <= 0) bullets.splice(i, 1);
         }
 
-        // 6. Player
+        // 7. Player
         ctx.save();
         if (!player.faceRight) { ctx.translate(player.x + 30, player.y); ctx.scale(-1, 1); ctx.translate(-(player.x + 30), -player.y); }
         if (input.charging) { ctx.shadowColor = 'white'; ctx.shadowBlur = 25; }
-        if (player.img.complete && player.img.naturalWidth > 0) ctx.drawImage(player.img, player.x - 30, player.y - 30, 60, 60);
+        if (player.img.complete) ctx.drawImage(player.img, player.x - 30, player.y - 30, 60, 60);
         else { ctx.fillStyle = 'orange'; ctx.fillRect(player.x - 30, player.y - 30, 60, 60); }
         ctx.restore();
 
-        // 7. NPCs
+        // 8. NPCs
         npcs.forEach(n => {
-            if (Math.random() < 0.02) { n.tx = n.x + (Math.random() - 0.5) * 200; n.ty = n.y + (Math.random() - 0.5) * 200; }
-            const ang = Math.atan2(n.ty - n.y, n.tx - n.x);
-            if (Math.hypot(n.tx - n.x, n.ty - n.y) > 5) { n.x += Math.cos(ang) * 2; n.y += Math.sin(ang) * 2; }
-
-            if (n.img.complete && n.img.naturalWidth > 0) ctx.drawImage(n.img, n.x - 30, n.y - 30, 60, 60);
+            if (n.img && n.img.complete) ctx.drawImage(n.img, n.x - 30, n.y - 30, 60, 60);
             else { ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, Math.PI * 2); ctx.fill(); }
 
-            ctx.fillStyle = 'yellow'; ctx.font = 'bold 14px Arial'; ctx.fillText("!", n.x, n.y - 40);
+            // Quest Marker
+            ctx.fillStyle = 'yellow'; ctx.font = 'bold 20px Arial';
+            ctx.fillText("!", n.x - 5, n.y - 40);
         });
 
+        // 9. Particles
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--;
             ctx.fillStyle = p.color; ctx.globalAlpha = p.life / 20;
             ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
             if (p.life <= 0) particles.splice(i, 1);
         }
-        ctx.globalAlpha = 1;
+
         ctx.restore();
 
-        // Minimap
+        // 10. Minimap
         ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(canvas.width - 160, 10, 150, 150);
         ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.strokeRect(canvas.width - 160, 10, 150, 150);
         const ms = 150 / WORLD_WIDTH;
-        ctx.fillStyle = 'gray'; structures.forEach(s => ctx.fillRect((canvas.width - 160) + s.x * ms, 10 + s.y * ms, s.w * ms, s.h * ms));
-        ctx.fillStyle = 'lime'; ctx.beginPath(); ctx.arc((canvas.width - 160) + player.x * ms, 10 + player.y * ms, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'red'; enemies.forEach(e => { ctx.beginPath(); ctx.arc((canvas.width - 160) + e.x * ms, 10 + e.y * ms, 2, 0, Math.PI * 2); ctx.fill(); });
-        ctx.fillStyle = 'yellow'; npcs.forEach(n => { ctx.beginPath(); ctx.arc((canvas.width - 160) + n.x * ms, 10 + n.y * ms, 2, 0, Math.PI * 2); ctx.fill(); });
 
+        ctx.fillStyle = 'lime'; ctx.beginPath(); ctx.arc((canvas.width - 160) + player.x * ms, 10 + player.y * ms, 3, 0, Math.PI * 2); ctx.fill();
+
+        // Minimap Structures
+        ctx.fillStyle = '#aaa';
+        structures.forEach(s => {
+            if (s.solid) ctx.fillRect((canvas.width - 160) + s.x * ms, 10 + s.y * ms, s.w * ms, s.h * ms);
+        });
+
+        // Minimap NPCs
+        ctx.fillStyle = 'cyan';
+        npcs.forEach(n => {
+            ctx.beginPath(); ctx.arc((canvas.width - 160) + n.x * ms, 10 + n.y * ms, 3, 0, Math.PI * 2); ctx.fill();
+        });
+
+        ctx.fillStyle = 'red'; enemies.forEach(e => { ctx.beginPath(); ctx.arc((canvas.width - 160) + e.x * ms, 10 + e.y * ms, 2, 0, Math.PI * 2); ctx.fill(); });
+
+        // Logic Updates
         if (player.invincible > 0) player.invincible--;
-        if (player.hp <= 0) { alert("GOKU DEFEATED!"); stopExplore(); if (window.showTab) window.showTab('char'); }
+        if (player.hp <= 0) {
+            alert("GOKU DEFEATED!"); stopExplore();
+            if (window.showTab) window.showTab('char');
+        }
+
+        // Check Interact
+        checkInteractions();
 
         requestAnimationFrame(loop);
+    }
+
+    function checkInteractions() {
+        // Show Interact Button if near NPC or Quest Done
+        let near = false;
+        npcs.forEach(n => {
+            if (Math.hypot(n.x - player.x, n.y - player.y) < 80) near = true;
+        });
+
+        if (questLog.active && questLog.active.progress >= questLog.active.target) near = true;
+
+        const btn = document.getElementById('btn-interact');
+        if (btn) btn.style.display = near ? 'flex' : 'none';
     }
 
     function updateHUD() {
@@ -396,32 +631,18 @@
         document.getElementById('loot-shards').innerHTML = `💎 <span>${sessionLoot.shards}</span>`;
 
         const q = document.getElementById('quest-desc');
-        if (q) {
-            if (currentQuest.progress >= currentQuest.target) q.innerText = "Complete! Return to Hub.";
-            else q.innerText = `${currentQuest.desc}: ${currentQuest.progress}/${currentQuest.target}`;
-        }
-    }
-
-    // Generate World
-    function generateWorld() {
-        structures = []; npcs = [];
-        structures.push({ type: 'fountain', x: WORLD_WIDTH / 2, y: WORLD_WIDTH / 2, w: 150, h: 150, color: 'cyan' });
-        // Houses
-        for (let i = 0; i < 8; i++) {
-            let a = i / 8 * Math.PI * 2;
-            structures.push({ x: WORLD_WIDTH / 2 + Math.cos(a) * 400, y: WORLD_WIDTH / 2 + Math.sin(a) * 400, w: 200, h: 200, img: imgHouse });
-        }
-        // Trees
-        for (let i = 0; i < 60; i++) {
-            let x = Math.random() * WORLD_WIDTH, y = Math.random() * WORLD_WIDTH;
-            if (Math.hypot(x - WORLD_WIDTH / 2, y - WORLD_WIDTH / 2) > 600) structures.push({ x: x, y: y, w: 120, h: 120, img: imgTree });
-        }
-        // NPCs
-        for (let i = 0; i < 5; i++) {
-            npcs.push({ x: WORLD_WIDTH / 2 + (Math.random() - 0.5) * 300, y: WORLD_WIDTH / 2 + (Math.random() - 0.5) * 300, w: 60, h: 60, img: imgNpc, name: "Villager" });
+        if (q && questLog.active) {
+            if (questLog.active.progress >= questLog.active.target) {
+                q.innerText = "Complete! Tap Interact.";
+                q.style.color = '#00ff00';
+            } else {
+                q.innerText = `${questLog.active.desc}: ${questLog.active.progress}/${questLog.active.target}`;
+                q.style.color = 'white';
+            }
         }
     }
 
     window.initExplore = initExplore;
     window.stopExplore = stopExplore;
+
 })();
