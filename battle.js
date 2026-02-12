@@ -62,31 +62,31 @@
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
+        
+        // Create Full Screen Canvas for Explosion Space
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Set up canvas overlay
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        canvas.style.position = 'absolute';
-        canvas.style.left = element.offsetLeft + 'px';
-        canvas.style.top = element.offsetTop + 'px';
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
+        // Set canvas to cover the viewport to allow particles to fly anywhere
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.position = 'fixed'; // Fixed so it stays on screen
+        canvas.style.left = '0';
+        canvas.style.top = '0';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '100';
+        canvas.style.zIndex = '9999'; // On top of everything
         
-        // Find parent container
-        const parent = element.offsetParent || document.body;
-        parent.appendChild(canvas);
+        document.body.appendChild(canvas);
+
+        // Calculate where to draw the sprite on this huge canvas
+        const drawX = rect.left;
+        const drawY = rect.top;
 
         // Draw image to canvas to get pixel data
-        // Note: This requires CORS-enabled images if external
         try {
-            ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
         } catch (e) {
-            // Fallback if image is tainted (CORS issue)
-            // Just fade out
+            // Fallback (CORS issue)
             element.style.transition = "opacity 1s, transform 1s";
             element.style.opacity = "0";
             element.style.transform = `translateX(${direction === 'left' ? -50 : 50}px)`;
@@ -99,42 +99,45 @@
 
         // Create Particles
         const particles = [];
-        // Reduce resolution for performance (every 4th pixel)
-        const density = 4; 
+        const density = 4; // Resolution
         
-        // Get pixel data may fail if tainted, wrap in try
         try {
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // Get data ONLY from the sprite area to save performance
+            const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
 
-            for (let y = 0; y < canvas.height; y += density) {
-                for (let x = 0; x < canvas.width; x += density) {
-                    const i = (y * canvas.width + x) * 4;
+            // Clear the canvas now that we have data, so we don't see the static image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < rect.height; y += density) {
+                for (let x = 0; x < rect.width; x += density) {
+                    const i = (y * rect.width + x) * 4;
                     const r = data[i];
                     const g = data[i+1];
                     const b = data[i+2];
                     const a = data[i+3];
 
-                    if (a > 128) { // Only solid pixels
+                    if (a > 128) { // Only visible pixels
                         particles.push({
-                            x: x,
-                            y: y,
+                            // Absolute position on screen
+                            x: drawX + x,
+                            y: drawY + y,
                             color: `rgba(${r},${g},${b},${a/255})`,
-                            vx: (Math.random() - 0.5) * 2 + (direction === 'left' ? -2 : 2), // Drift direction
-                            vy: (Math.random() - 0.5) * 2 - 1, // Slight upward drift
+                            // Drift velocity
+                            vx: (Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4), 
+                            vy: (Math.random() - 0.5) * 4 - 1, 
                             life: 1.0,
-                            decay: Math.random() * 0.02 + 0.01
+                            decay: Math.random() * 0.015 + 0.005
                         });
                     }
                 }
             }
         } catch(e) {
-            // Fallback
             canvas.remove();
             return;
         }
 
-        // Animate
+        // Animate Loop
         function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let alive = false;
@@ -148,7 +151,7 @@
                     
                     ctx.fillStyle = p.color;
                     ctx.globalAlpha = p.life;
-                    ctx.fillRect(p.x, p.y, density, density); // Draw square particle
+                    ctx.fillRect(p.x, p.y, density, density); 
                 }
             }
             ctx.globalAlpha = 1;
@@ -430,8 +433,8 @@
         const pSprite = document.getElementById('btl-p-sprite');
         
         // Reset Visuals
-        if(eImg) { eImg.style.display = 'block'; eImg.style.opacity = '1'; eImg.style.transform = 'none'; }
-        if(pSprite) { pSprite.style.opacity = '1'; pSprite.style.transform = 'none'; }
+        if(eImg) { eImg.style.display = 'block'; eImg.classList.remove('dead-anim'); eImg.style.opacity = '1'; eImg.style.transform = 'none'; }
+        if(pSprite) { pSprite.classList.remove('dead-anim'); pSprite.style.opacity = '1'; pSprite.style.transform = 'none'; }
 
         // --- BATTLE TIMER LOGIC ---
         window.battle.timeLeft = 60; 
