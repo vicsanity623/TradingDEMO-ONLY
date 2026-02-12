@@ -64,7 +64,7 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '140px'; // Below stage selector
+            container.style.top = '120px'; // Below stage selector
             container.style.left = '0';
             container.style.width = '100%';
             container.style.zIndex = '50';
