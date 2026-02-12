@@ -695,7 +695,7 @@
                     }
                 });
 
-                if (totalCount >= 3 && sItem.rarity < 6) {
+                if (totalCount >= 3 && sItem.rarity < 10) {
                     mergeBtn.style.display = 'flex';
                     equipBtn.style.display = 'none';
                     mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${window.formatNumber(sItem.rarity * 500)}</span>`;
@@ -793,7 +793,7 @@
         for (let i = 0; i < window.player.inv.length; i++) {
             const item = window.player.inv[i];
 
-            if (item.rarity >= 6) continue;
+            if (item.rarity >= 10) continue;
 
             const cost = item.rarity * 500;
             if (window.player.coins < cost) continue;
