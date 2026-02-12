@@ -243,7 +243,7 @@
             hpLabel.innerText = "HP";
 
             const timeContainer = document.createElement('div');
-            timeContainer.style.width = '90%';
+            timeContainer.style.width = '87%';
             timeContainer.style.margin = '5px auto 0';
             timeContainer.style.height = '8px';
             timeContainer.style.background = 'rgba(255,255,255,0.2)';
