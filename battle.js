@@ -7,7 +7,7 @@
         if (window.battle.pInterval) clearInterval(window.battle.pInterval);
         if (window.battle.eInterval) clearInterval(window.battle.eInterval);
         if (window.battle.autoTimerId) clearTimeout(window.battle.autoTimerId);
-        if (window.battle.stageTimerId) clearInterval(window.battle.stageTimerId); // Clear stage timer
+        if (window.battle.stageTimerId) clearInterval(window.battle.stageTimerId);
         
         window.battle.pInterval = null;
         window.battle.eInterval = null;
@@ -64,14 +64,13 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '75px'; // Below stage selector
+            container.style.top = '75px'; 
             container.style.left = '0';
             container.style.width = '100%';
             container.style.zIndex = '50';
-            container.style.pointerEvents = 'none'; // Click through
+            container.style.pointerEvents = 'none';
             container.style.fontFamily = "'Orbitron', sans-serif";
 
-            // Boss HP Bar Container
             const hpContainer = document.createElement('div');
             hpContainer.style.width = '90%';
             hpContainer.style.margin = '0 auto';
@@ -80,7 +79,6 @@
             hpContainer.style.border = '2px solid white';
             hpContainer.style.position = 'relative';
 
-            // Red Fill
             const hpFill = document.createElement('div');
             hpFill.id = 'boss-ui-hp-fill';
             hpFill.style.width = '100%';
@@ -88,7 +86,6 @@
             hpFill.style.background = '#ff0000';
             hpFill.style.transition = 'width 0.2s';
 
-            // Text Overlay
             const hpText = document.createElement('div');
             hpText.id = 'boss-ui-hp-text';
             hpText.style.position = 'absolute';
@@ -105,7 +102,6 @@
             hpText.style.textShadow = '1px 1px 2px black';
             hpText.innerText = "0/0";
 
-            // "HP" Label on Right
             const hpLabel = document.createElement('div');
             hpLabel.style.position = 'absolute';
             hpLabel.style.right = '5px';
@@ -115,35 +111,30 @@
             hpLabel.style.fontSize = '18px';
             hpLabel.innerText = "HP";
 
-            // Timer Bar Container
             const timeContainer = document.createElement('div');
             timeContainer.style.width = '90%';
             timeContainer.style.margin = '5px auto 0';
             timeContainer.style.height = '8px';
             timeContainer.style.background = 'rgba(255,255,255,0.2)';
             
-            // White Fill
             const timeFill = document.createElement('div');
             timeFill.id = 'boss-ui-time-fill';
             timeFill.style.width = '100%';
             timeFill.style.height = '100%';
             timeFill.style.background = 'white';
             
-            // Timer Text Right
             const timeText = document.createElement('div');
             timeText.id = 'boss-ui-time-text';
             timeText.style.position = 'absolute';
-            timeText.style.right = '5px'; // Relative to screen right
-            timeText.style.top = '35px'; // Below HP bar
+            timeText.style.right = '5px'; 
+            timeText.style.top = '35px';
             timeText.style.color = 'white';
             timeText.style.fontSize = '14px';
             timeText.innerText = "60s";
 
-            // Assemble
             hpContainer.appendChild(hpFill);
             hpContainer.appendChild(hpText);
             hpContainer.appendChild(hpLabel);
-            
             timeContainer.appendChild(timeFill);
 
             container.appendChild(hpContainer);
@@ -269,7 +260,6 @@
         }
         if (window.GameState) window.GameState.inBattle = false;
         
-        // Hide Boss UI
         const bossUI = document.getElementById('boss-ui-container');
         if(bossUI) bossUI.style.display = 'none';
 
@@ -318,7 +308,7 @@
 
     async function startBattle() {
         stopCombat(); 
-        ensureBattleUI(); // Inject New UI
+        ensureBattleUI(); 
         
         window.battle.active = true;
         window.battle.cinematic = false;
@@ -328,12 +318,18 @@
         document.getElementById('start-prompt').style.display = 'none';
         document.getElementById('battle-menu').style.display = 'none';
         
-        // Show Boss UI
         const bossUI = document.getElementById('boss-ui-container');
         if(bossUI) bossUI.style.display = 'block';
 
+        const eImg = document.getElementById('e-img');
+        const pSprite = document.getElementById('btl-p-sprite');
+        
+        // Reset Visuals
+        if(eImg) { eImg.style.display = 'block'; eImg.classList.remove('dead-anim'); eImg.style.opacity = '1'; }
+        if(pSprite) { pSprite.classList.remove('dead-anim'); pSprite.style.opacity = '1'; }
+
         // --- BATTLE TIMER LOGIC ---
-        window.battle.timeLeft = 60; // 60 Seconds
+        window.battle.timeLeft = 60; 
         const timeFill = document.getElementById('boss-ui-time-fill');
         const timeText = document.getElementById('boss-ui-time-text');
         if(timeFill) timeFill.style.width = '100%';
@@ -343,31 +339,18 @@
             if(!window.battle.active) return;
             window.battle.timeLeft--;
             
-            // Update Bar & Text
             if(timeFill) timeFill.style.width = (window.battle.timeLeft / 60 * 100) + '%';
             if(timeText) timeText.innerText = window.battle.timeLeft + 's';
 
             if(window.battle.timeLeft <= 0) {
-                // Time Over = Defeat
                 stopCombat();
                 handleDefeat();
             }
         }, 1000);
 
-        // PERK: Starter Ki (Lvl 40)
         window.player.charge = (window.player.advanceLevel >= 40) ? 20 : 0;
-
-        const eImg = document.getElementById('e-img');
         const pBox = document.getElementById('p-box');
         const eBox = document.getElementById('e-box');
-        
-        if (eImg) {
-            eImg.style.display = 'block';
-            eImg.className = ''; 
-            eImg.style.transform = '';
-            eImg.style.filter = ''; 
-            eImg.style.opacity = '1';
-        }
         if(pBox) pBox.style.transform = 'translate(0,0)';
         if(eBox) eBox.style.transform = 'translate(0,0)';
 
@@ -422,11 +405,9 @@
     function spawnPersistentEnemy() {
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
         
-        // GIVE ENEMY DEFENSE
-        // Rough formula: 40% of HP
         const eHP = 250 * scale;
         const eATK = 30 * scale;
-        const eDEF = eHP * 0.4; // Base Defense
+        const eDEF = eHP * 0.4; 
 
         if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
             window.battle.enemy = { name: "Loading...", hp: 100, maxHp: 100, atk: 10, def: 5, i: "" };
@@ -448,7 +429,7 @@
                 hp: 2000 * scale,
                 maxHp: 2000 * scale, 
                 atk: 80 * scale,
-                def: (2000 * scale) * 0.35, // Boss has high defense
+                def: (2000 * scale) * 0.35,
                 i: charData ? charData.image : ""
             };
 
@@ -499,7 +480,7 @@
         window.battle.enemy.maxHp = window.battle.enemy.maxHp * 1.5; 
         window.battle.enemy.hp = window.battle.enemy.maxHp; 
         window.battle.enemy.atk = window.battle.enemy.atk * 1.5; 
-        window.battle.enemy.def = window.battle.enemy.def * 1.5; // Buff Defense too
+        window.battle.enemy.def = window.battle.enemy.def * 1.5; 
         
         if(eImg) {
             eImg.style.transform = "scale(1.4)"; 
@@ -512,32 +493,20 @@
         window.battle.cinematic = false;
     }
 
-    // --- DAMAGE MITIGATION LOGIC ---
     function applyDamage(rawDmg, sourceSide) {
         if(!window.battle.active) return; 
         
         const target = (sourceSide === 'p') ? window.battle.enemy : window.player;
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
         
-        // --- DEFENSE CALCULATION ---
         let defense = 0;
-        if (sourceSide === 'p') {
-            // Enemy is target
-            defense = window.battle.enemy.def || 1;
-        } else {
-            // Player is target
-            defense = window.GameState ? window.GameState.gokuDefense : 10;
-        }
+        if (sourceSide === 'p') defense = window.battle.enemy.def || 1;
+        else defense = window.GameState ? window.GameState.gokuDefense : 10;
 
-        // --- ABSORPTION FORMULA ---
-        // Damage = RawDamage / (Defense / 50)
-        // If Defense is high, denominator is large, reducing damage significantly.
         let denominator = defense / 50;
-        if (denominator < 1) denominator = 1; // Prevent division by zero or weird boosts
+        if (denominator < 1) denominator = 1; 
 
         let actualDmg = Math.floor(rawDmg / denominator);
-
-        // Minimum Damage Clamp
         if (actualDmg < 10) actualDmg *= 12;
 
         target.hp -= actualDmg;
@@ -551,31 +520,46 @@
                 transformBoss();
                 return;
             }
+            // --- VICTORY SEQUENCE ---
             stopCombat(); 
             const eImg = document.getElementById('e-img');
-            if (eImg) eImg.classList.add('dead-anim');
-            setTimeout(handleWin, 800);
+            if (eImg) {
+                eImg.classList.add('dead-anim'); // Trigger Dust Effect
+                // Fade out to right
+                eImg.style.transition = "opacity 2s, transform 2s";
+                eImg.style.opacity = "0";
+                eImg.style.transform = "translateX(50px) scale(0.8)";
+            }
+            // Wait 2 seconds before showing menu
+            setTimeout(handleWin, 2000);
+
         } else if(window.player.hp <= 0) {
-            // PERK: ZENKAI REVIVE (Level 60)
             if(window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
                 window.battle.zenkaiUsed = true;
-                window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.3); // Revive with 30%
+                window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.3); 
                 if(window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
                 triggerShake();
                 updateBars();
-                return; // Continue fight
+                return; 
             }
+            // --- DEFEAT SEQUENCE ---
             stopCombat(); 
-            handleDefeat();
+            const pSprite = document.getElementById('btl-p-sprite');
+            if (pSprite) {
+                pSprite.classList.add('dead-anim');
+                // Fade out to left
+                pSprite.style.transition = "opacity 2s, transform 2s";
+                pSprite.style.opacity = "0";
+                pSprite.style.transform = "translateX(-50px) scale(0.8)";
+            }
+            // Wait 2 seconds before showing menu
+            setTimeout(handleDefeat, 2000);
         }
     }
 
     async function executeStrike(side) {
         if(!window.battle.active) return;
-
         const isP = (side === 'p');
-
-        // --- EVASION PERK ---
         if(!isP) {
             let dodgeChance = 0;
             if(window.player.advanceLevel >= 50) dodgeChance = 0.15; 
@@ -593,9 +577,7 @@
             }
         }
 
-        // --- CALCULATE AMBUSH/CRIT CHANCE ---
         let threshold = 0.8; 
-
         if (isP) {
             let critChance = 0.1 + (window.player.rank * 0.05);
             if(window.player.advanceLevel >= 5) {
@@ -605,22 +587,18 @@
         }
 
         const isAmbush = Math.random() > threshold;
-
         const attackerBox = document.getElementById(isP ? 'p-box' : 'e-box');
         const victimImg = isP ? document.getElementById('e-img') : document.getElementById('btl-p-sprite');
         let atkVal = isP ? (window.GameState ? window.GameState.gokuPower : 10) : window.battle.enemy.atk;
         
         if(isP) {
-            // PERK: Rage Mode
             if(window.player.advanceLevel >= 35 && (window.player.hp / window.GameState.gokuMaxHP) < 0.2) {
                 atkVal *= 2;
                 if(window.popDamage && Math.random() > 0.7) window.popDamage("RAGE!", 'p-box');
             }
-            // PERK: Boss Slayer
             if(window.player.advanceLevel >= 45 && window.battle.stage === 20) {
                 atkVal *= 1.2;
             }
-
             const soulLvl = window.player.soulLevel || 1;
             const chargeBonus = Math.floor(soulLvl * 0.5);
             window.player.charge += (12 + chargeBonus);
@@ -629,44 +607,32 @@
 
         const dmg = Math.floor(atkVal * (0.7 + Math.random() * 0.6));
 
-        // Define Strike Animation Function
         const performHit = async (isDouble = false) => {
             if(!window.battle.active) return;
             
             if(isAmbush && !isDouble) {
                 await teleportVisual(attackerBox, isP ? 80 : -80); 
                 if(!window.battle.active) return;
-                
                 triggerShake();
-                
                 if(victimImg) {
                     victimImg.classList.add(isP ? 'knockback-right' : 'knockback-left');
                     setTimeout(() => victimImg.classList.remove('knockback-right', 'knockback-left'), 200);
                 }
-                
                 if (window.popDamage) window.popDamage("CRIT!", isP ? 'e-box' : 'p-box');
-                
-                // Crit Multiplier
                 applyDamage(Math.floor(dmg * 1.5), side);
-                
                 setTimeout(() => { if(window.battle.active) teleportVisual(attackerBox, 0); }, 250);
             } else {
                 attackerBox.style.transition = "transform 0.1s cubic-bezier(0.1, 0.7, 1.0, 0.1)";
                 attackerBox.style.transform = isP ? 'translateX(60px)' : 'translateX(-60px)';
-                
                 setTimeout(() => {
                     if(!window.battle.active) return;
-                    
                     if(Math.random() > 0.5) triggerShake();
-                    
                     if(victimImg) {
                         victimImg.style.transition = "transform 0.1s";
                         victimImg.style.transform = isP ? 'translateX(10px)' : 'translateX(-10px)';
                         setTimeout(() => victimImg.style.transform = 'translateX(0)', 100);
                     }
-                    
                     applyDamage(dmg, side);
-                    
                     setTimeout(() => {
                         if(window.battle.active) {
                             attackerBox.style.transition = "transform 0.2s ease-out";
@@ -679,7 +645,6 @@
 
         await performHit();
 
-        // PERK: Double Strike
         if(isP && window.player.advanceLevel >= 20) {
             let doubleChance = 0.05 + ((window.player.advanceLevel - 20) * 0.005);
             if(Math.random() < doubleChance) {
@@ -772,11 +737,9 @@
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
 
-        // PERK: Gold Boost
         if(window.player.advanceLevel >= 25) {
             coinGain *= (1 + (0.10 + ((window.player.advanceLevel-25)*0.01)));
         }
-        // PERK: XP Boost
         if(window.player.advanceLevel >= 30) {
             xpGain *= (1 + (0.10 + ((window.player.advanceLevel-30)*0.01)));
         }
@@ -824,7 +787,6 @@
         }
         if(shardDrop > 0) window.player.dragonShards = (window.player.dragonShards || 0) + shardDrop;
         
-        // PERK: Life Steal
         if(window.player.advanceLevel >= 10) {
             const healMult = 0.15 + ((window.player.advanceLevel - 10) * 0.01);
             const healAmt = window.GameState.gokuMaxHP * healMult;
@@ -960,7 +922,6 @@
         if (btlEHp && window.battle.enemy) btlEHp.style.width = Math.max(0, (window.battle.enemy.hp / window.battle.enemy.maxHp * 100)) + "%";
         if (btlPCharge) btlPCharge.style.width = window.player.charge + "%";
         
-        // --- SYNC BOSS UI BAR ---
         const bossBar = document.getElementById('boss-ui-hp-fill');
         const bossText = document.getElementById('boss-ui-hp-text');
         
@@ -969,7 +930,6 @@
             bossBar.style.width = pct + "%";
             
             if(bossText) {
-                // Formatting for cleaner look (e.g. 5M / 10M)
                 let hpStr = window.formatNumber ? window.formatNumber(window.battle.enemy.hp) : Math.floor(window.battle.enemy.hp);
                 let maxStr = window.formatNumber ? window.formatNumber(window.battle.enemy.maxHp) : Math.floor(window.battle.enemy.maxHp);
                 bossText.innerText = `${hpStr} / ${maxStr}`;
@@ -977,7 +937,6 @@
         }
     }
 
-    // --- EXPOSE NECESSARY FUNCTIONS ---
     window.startBattle = startBattle;
     window.stopCombat = stopCombat;
     window.exitBattle = exitBattle;
