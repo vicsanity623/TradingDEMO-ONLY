@@ -63,30 +63,25 @@
 
         const rect = element.getBoundingClientRect();
         
-        // Create Full Screen Canvas for Explosion Space
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas to cover the viewport to allow particles to fly anywhere
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        canvas.style.position = 'fixed'; // Fixed so it stays on screen
+        canvas.style.position = 'fixed'; 
         canvas.style.left = '0';
         canvas.style.top = '0';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '9999'; // On top of everything
+        canvas.style.zIndex = '9999'; 
         
         document.body.appendChild(canvas);
 
-        // Calculate where to draw the sprite on this huge canvas
         const drawX = rect.left;
         const drawY = rect.top;
 
-        // Draw image to canvas to get pixel data
         try {
             ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
         } catch (e) {
-            // Fallback (CORS issue)
             element.style.transition = "opacity 1s, transform 1s";
             element.style.opacity = "0";
             element.style.transform = `translateX(${direction === 'left' ? -50 : 50}px)`;
@@ -94,19 +89,15 @@
             return;
         }
         
-        // Hide original element
         element.style.opacity = '0';
 
-        // Create Particles
         const particles = [];
-        const density = 4; // Resolution
+        const density = 4; 
         
         try {
-            // Get data ONLY from the sprite area to save performance
             const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
 
-            // Clear the canvas now that we have data, so we don't see the static image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             for (let y = 0; y < rect.height; y += density) {
@@ -117,13 +108,11 @@
                     const b = data[i+2];
                     const a = data[i+3];
 
-                    if (a > 128) { // Only visible pixels
+                    if (a > 128) { 
                         particles.push({
-                            // Absolute position on screen
                             x: drawX + x,
                             y: drawY + y,
                             color: `rgba(${r},${g},${b},${a/255})`,
-                            // Drift velocity
                             vx: (Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4), 
                             vy: (Math.random() - 0.5) * 4 - 1, 
                             life: 1.0,
@@ -137,7 +126,6 @@
             return;
         }
 
-        // Animate Loop
         function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let alive = false;
@@ -263,7 +251,8 @@
 
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
-        const estAtk = Math.floor(30 * scale);
+        // FIX: Increase Rec. Power Calc to match Boss Buff
+        const estAtk = Math.floor(250 * scale); 
         const recPower = Math.floor((estAtk * 15) + estHp); 
 
         const xp = 100 * stageNum * window.battle.world;
@@ -514,7 +503,9 @@
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
         
         const eHP = 250 * scale;
-        const eATK = 30 * scale;
+        // FIX: Boost Boss Damage (eATK)
+        // Previously it was 30 * scale, which is too low vs player scaling
+        const eATK = 250 * scale; 
         const eDEF = eHP * 0.4; 
 
         if (!window.apiData || !window.apiData.characters || window.apiData.characters.length === 0) {
@@ -532,16 +523,14 @@
             let charData = window.apiData.characters.find(c => c.name.includes(bossName));
             if(!charData) charData = window.apiData.characters[(window.battle.world * 5) % window.apiData.characters.length];
             
-            // CORS PROXY (Crucial for Canvas Reading)
-            // Use local if possible or proxy external
             let imgSrc = charData ? charData.image : "";
-            // Note: External images without CORS headers will fail the explosion effect (fade fallback used)
 
             window.battle.enemy = { 
                 name: "BOSS " + (charData ? charData.name : "Titan"),
                 hp: 2000 * scale,
                 maxHp: 2000 * scale, 
-                atk: 80 * scale,
+                // FIX: Increased Boss Damage Multiplier
+                atk: 1000 * scale, 
                 def: (2000 * scale) * 0.35,
                 i: imgSrc
             };
@@ -623,15 +612,25 @@
         const target = (sourceSide === 'p') ? window.battle.enemy : window.player;
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
         
+        // FIX: Reworked damage mitigation formula
+        // Previously, high defense completely nullified damage (divide by 50)
+        // New formula: Damage reduction percentage = Defense / (Defense + 5000)
         let defense = 0;
         if (sourceSide === 'p') defense = window.battle.enemy.def || 1;
-        else defense = window.GameState ? window.GameState.gokuDefense : 10;
+        else defense = window.GameState ? window.GameState.gokuPower * 0.1 : 10; // Use partial power for defense calc
 
-        let denominator = defense / 50;
-        if (denominator < 1) denominator = 1; 
-
-        let actualDmg = Math.floor(rawDmg / denominator);
-        if (actualDmg < 10) actualDmg *= 12;
+        // Basic Flat Reduction (Old Style was too strong)
+        // Let's use a standard RPG armor formula
+        // Dmg = RawDmg * (1 - (Def / (Def + Constant)))
+        // Constant scales with level to keep defense relevant but not broken
+        const defConst = 5000 * Math.pow(1.5, window.battle.world); 
+        const reduction = defense / (defense + defConst);
+        
+        let actualDmg = Math.floor(rawDmg * (1 - reduction));
+        
+        // Ensure minimum damage floor
+        if (actualDmg < rawDmg * 0.05) actualDmg = Math.floor(rawDmg * 0.05);
+        if (actualDmg < 1) actualDmg = 1;
 
         target.hp -= actualDmg;
         
@@ -644,16 +643,12 @@
                 transformBoss();
                 return;
             }
-            // --- VICTORY SEQUENCE ---
             stopCombat(); 
             const eImg = document.getElementById('e-img');
-            
-            // Try Explosion Effect, Fallback to Fade
             if (eImg) {
-                // Determine drift direction (Right for enemy)
                 explodeSprite(eImg, 'right');
             }
-            setTimeout(handleWin, 2500); // 2.5s delay
+            setTimeout(handleWin, 2500); 
 
         } else if(window.player.hp <= 0) {
             if(window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
@@ -664,14 +659,12 @@
                 updateBars();
                 return; 
             }
-            // --- DEFEAT SEQUENCE ---
             stopCombat(); 
             const pSprite = document.getElementById('btl-p-sprite');
             if (pSprite) {
-                // Determine drift direction (Left for player)
                 explodeSprite(pSprite, 'left');
             }
-            setTimeout(handleDefeat, 2500); // 2.5s delay
+            setTimeout(handleDefeat, 2500); 
         }
     }
 
