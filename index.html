@@ -148,7 +148,12 @@
             <div class="panel-header">
                 <div class="lvl-badge">LV <span id="ui-lvl">1</span></div>
                 <div style="flex:1; margin: 0 15px;">
-                    <div style="font-size:0.7rem; color:#777; margin-bottom:2px;">EXP PROGRESS</div>
+                    <!-- UPDATED XP PROGRESS HEADER with RIGHT ALIGN TEXT -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:#777; margin-bottom:2px;">
+                        <span>EXP PROGRESS</span>
+                        <!-- New Span for formatted numbers -->
+                        <span id="hub-xp-text" style="font-family:'Orbitron'; color:#00d2ff; font-weight:bold;">0 / 100</span>
+                    </div>
                     <div class="bar-wrap" style="height:8px; background:#bdc3c7;">
                         <div id="bar-xp" class="bar-fill xp-f"></div>
                     </div>
