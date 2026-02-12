@@ -258,7 +258,7 @@
             timeText.id = 'boss-ui-time-text';
             timeText.style.position = 'absolute';
             timeText.style.right = '5px'; 
-            timeText.style.top = '35px';
+            timeText.style.top = '55px';
             timeText.style.color = 'white';
             timeText.style.fontSize = '14px';
             timeText.innerText = "60s";
