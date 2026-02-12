@@ -343,12 +343,19 @@
     function assignRandomQuest() {
         questLog.completedCount++;
         const target = 5 + Math.floor(questLog.completedCount * 0.5);
+
+        // Scale XP based on level requirement (15% of level)
+        let rXp = 500 + (questLog.completedCount * 250);
+        if (window.player && window.player.nextXp) {
+            rXp = Math.floor(window.player.nextXp * 0.15);
+        }
+
         questLog.active = {
             desc: "Defeat Enemies",
             target: target,
             progress: 0,
-            rewardCoins: 500 + (questLog.completedCount * 100),
-            rewardXp: 200 + (questLog.completedCount * 50)
+            rewardCoins: 1000 + (questLog.completedCount * 200),
+            rewardXp: rXp
         };
         updateHUD();
     }

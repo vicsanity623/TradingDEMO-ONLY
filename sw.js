@@ -1,4 +1,4 @@
-const CACHE_NAME = 'goku-rpg-v4.63';
+const CACHE_NAME = 'goku-rpg-v4.64';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
