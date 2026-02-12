@@ -214,6 +214,7 @@
             if (window.player.dragonShards === undefined) window.player.dragonShards = 0;
             if (window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
             if (window.player.sp === undefined) window.player.sp = 0;
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
 
             const loader = document.getElementById('loader');
             if (loader) {
@@ -229,9 +230,11 @@
             if (typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if (typeof window.initStrategy === 'function') window.initStrategy();
             if (window.SoulSystem) window.SoulSystem.updateBtnUI();
+            if (window.SoulSystem) window.SoulSystem.updateBtnUI();
             if (window.HubBattle) window.HubBattle.init();
+            if (window.Ranks) window.Ranks.init();
 
-            setupRebirthHandler();
+            setupBoostHandler();
 
             setInterval(saveGame, CONFIG.SAVE_INTERVAL);
             setInterval(updateCapsuleBtn, 1000);
@@ -242,34 +245,40 @@
         }
     }
 
-    // --- REBIRTH HANDLER ---
-    function setupRebirthHandler() {
-        const btn = document.getElementById('btn-rebirth');
+    // --- BOOST HANDLER (GOLD DUMP) ---
+    function setupBoostHandler() {
+        const btn = document.getElementById('btn-boost');
         if (!btn) return;
         let intervalId = null, timeoutId = null;
 
         const performAction = () => {
-            // Rebirth / Auto-Train logic disabled for SP System Overhaul
-            /*
-            let didTrain = false;
-            if (window.player.coins >= 100) { train('atk', true); didTrain = true; }
-            if (window.player.coins >= 100) { train('def', true); didTrain = true; }
+            // Gold Sink: small stats for gold
+            const cost = 100 + (window.player.lvl * 10);
+            if (window.player.coins >= cost) {
+                window.player.coins -= cost;
 
-            if (didTrain) updateStatsOnly();
-            else {
+                // Randomly gain HP, ATK, or DEF
+                const rand = Math.random();
+                if (rand < 0.33) window.player.bAtk += 1;
+                else if (rand < 0.66) window.player.bDef += 1;
+                else window.player.bHp += 5;
+
+                window.isDirty = true;
+                updateStatsOnly();
+            } else {
                 if (intervalId) { clearInterval(intervalId); intervalId = null; syncUI(); }
             }
-            */
-            if (intervalId) { clearInterval(intervalId); intervalId = null; }
         };
 
         const start = (e) => {
-            if (e.cancelable && e.type === 'touchstart') e.preventDefault();
+            if (e.cancelable && (e.type === 'touchstart' || e.type === 'mousedown')) {
+                // prevent default context menu or text selection
+            }
             performAction();
-            timeoutId = setTimeout(() => { intervalId = setInterval(performAction, 20); }, 300);
+            timeoutId = setTimeout(() => { intervalId = setInterval(performAction, 50); }, 300);
         };
         const end = (e) => {
-            if (e.cancelable && e.type === 'touchend') e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             clearTimeout(timeoutId);
             if (intervalId) { clearInterval(intervalId); intervalId = null; }
             syncUI();
@@ -671,7 +680,7 @@
                 if (totalCount >= 3 && sItem.rarity < 10) {
                     mergeBtn.style.display = 'flex';
                     equipBtn.style.display = 'none';
-                    mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${window.formatNumber(sItem.rarity * 500)}</span>`;
+                    mergeBtn.innerHTML = `<span>⬆️ MERGE (3) - $${window.formatNumber(sItem.rarity * 2500)}</span>`;
                 } else {
                     equipBtn.innerHTML = `<span>EQUIP ${sItem.type === 'w' ? 'WEAPON' : 'ARMOR'}</span>`;
                 }
@@ -721,7 +730,7 @@
         const sItem = window.player.inv[window.player.selected];
         if (!sItem) return;
 
-        const cost = sItem.rarity * 500;
+        const cost = sItem.rarity * 2500;
         if (window.player.coins < cost) { alert("Not enough coins!"); return; }
 
         let totalCount = 0;
@@ -768,7 +777,7 @@
 
             if (item.rarity >= 10) continue;
 
-            const cost = item.rarity * 500;
+            const cost = item.rarity * 2500;
             if (window.player.coins < cost) continue;
 
             let count = 0;
@@ -848,10 +857,54 @@
         // 20% Compounding Boost
         if (stat === 'hp') {
             window.player.bHp = Math.floor(window.player.bHp * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.hp++;
         } else if (stat === 'atk') {
             window.player.bAtk = Math.floor(window.player.bAtk * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.atk++;
         } else if (stat === 'def') {
             window.player.bDef = Math.floor(window.player.bDef * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.def++;
+        }
+
+        window.isDirty = true;
+        updateTrainingUI();
+        syncUI();
+    }
+
+    function resetSP() {
+        const modal = document.getElementById('custom-confirm-modal');
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+        const modal = document.getElementById('custom-confirm-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function confirmResetSP() {
+        closeConfirmModal();
+        if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+        const spent = window.player.spSpent;
+
+        // Reverse stats (Approximate)
+        // Divide by 1.2^count
+        if (spent.hp > 0) {
+            window.player.bHp = Math.ceil(window.player.bHp / Math.pow(1.20, spent.hp));
+            window.player.sp += spent.hp;
+            spent.hp = 0;
+        }
+        if (spent.atk > 0) {
+            window.player.bAtk = Math.ceil(window.player.bAtk / Math.pow(1.20, spent.atk));
+            window.player.sp += spent.atk;
+            spent.atk = 0;
+        }
+        if (spent.def > 0) {
+            window.player.bDef = Math.ceil(window.player.bDef / Math.pow(1.20, spent.def));
+            window.player.sp += spent.def;
+            spent.def = 0;
         }
 
         window.isDirty = true;
@@ -860,10 +913,20 @@
     }
 
     function updateTrainingUI() {
+        if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
         document.getElementById('tr-sp-count').innerText = window.player.sp;
+
         document.getElementById('tr-hp-val').innerText = window.formatNumber(window.player.bHp);
+        const hpSpent = document.getElementById('tr-hp-spent');
+        if (hpSpent) hpSpent.innerText = `(+${window.player.spSpent.hp})`;
+
         document.getElementById('tr-atk-val').innerText = window.formatNumber(window.player.bAtk);
+        const atkSpent = document.getElementById('tr-atk-spent');
+        if (atkSpent) atkSpent.innerText = `(+${window.player.spSpent.atk})`;
+
         document.getElementById('tr-def-val').innerText = window.formatNumber(window.player.bDef);
+        const defSpent = document.getElementById('tr-def-spent');
+        if (defSpent) defSpent.innerText = `(+${window.player.spSpent.def})`;
     }
 
     function doEquip() {
@@ -922,6 +985,9 @@
     window.openTraining = openTraining;
     window.closeTraining = closeTraining;
     window.spendSP = spendSP;
+    window.resetSP = resetSP;
+    window.confirmResetSP = confirmResetSP;
+    window.closeConfirmModal = closeConfirmModal;
     window.doEquip = doEquip;
     window.mergeItems = mergeItems;
     window.closeLevelUp = closeLevelUp;
