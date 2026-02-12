@@ -54,7 +54,10 @@
     // --- MATH & STATS ---
     function getSoulMult() {
         const lvl = window.player.soulLevel || 1;
-        return 1 + (lvl * 1.0); // e.g. Lvl 16 = 17x
+        // EXPONENTIAL GROWTH: 1.5 ^ Level
+        // Level 1 = 1.5x
+        // Level 10 = 57x
+        return Math.pow(1.5, lvl);
     }
 
     function getAdvMult() {
