@@ -6,18 +6,21 @@
 
     const SoulSystem = {
         
-        // Calculate souls needed for next level: 100 * (Level)
-        // Lvl 1->2: 100, Lvl 2->3: 100, Lvl 3->4: 200...
+        // Cost Formula: 100 * Level (Linear cost scaling is fine if rewards are exponential)
         getSoulsNeeded: function() {
             const lvl = window.player.soulLevel || 1;
             if (lvl === 1) return 100;
-            return 100 * (lvl - 1);
+            return 100 * lvl; 
         },
 
-        // Calculate Multiplier: 100% per level (Level * 1.0)
+        // --- NEW: EXPONENTIAL MULTIPLIER ---
+        // Base 1.5x per level (50% compounding growth)
+        // Level 1 = 1.5x
+        // Level 10 = 57x
+        // Level 20 = 3,325x
         getMultiplier: function() {
             const lvl = window.player.soulLevel || 1;
-            return 1 + (lvl * 1.0); // e.g., Lvl 1 = 2x stats (100% boost)
+            return Math.pow(1.5, lvl);
         },
 
         gainSoul: function() {
@@ -26,7 +29,6 @@
 
             const needed = this.getSoulsNeeded();
             
-            // Cap at max
             if (window.player.souls < needed) {
                 window.player.souls++;
                 this.updateBtnUI();
@@ -48,11 +50,9 @@
             btnPct.innerText = `${pct}%`;
             btnLvl.innerText = `Lv.${lvl}`;
 
-            // Update Progress Ring color
             const color = pct >= 100 ? '#00ffff' : '#00d2ff';
             ring.style.background = `conic-gradient(${color} ${pct}%, transparent ${pct}%)`;
             
-            // Glow effect if ready
             const btn = document.getElementById('btn-soul');
             if (pct >= 100) {
                 btn.style.borderColor = '#00ffff';
@@ -78,22 +78,24 @@
             const cur = window.player.souls || 0;
             const max = this.getSoulsNeeded();
             const pct = Math.min(100, Math.floor((cur / max) * 100));
-            const multPct = (lvl * 100).toLocaleString();
+            
+            // Calculate Total Percentage Boost for Display
+            // (Multiplier - 1) * 100 to get percentage increase
+            const mult = this.getMultiplier();
+            const displayPct = window.formatNumber ? window.formatNumber(Math.floor((mult - 1) * 100)) : Math.floor((mult - 1) * 100);
 
             document.getElementById('sm-level').innerText = `Lv.${lvl}`;
             document.getElementById('sm-pct').innerText = `${pct}%`;
             document.getElementById('sm-pct').style.color = pct >= 100 ? '#00ffff' : 'white';
 
-            // Stats Display
             const statsHTML = `
-                <div>⚔️ Total Attack: +${multPct}%</div>
-                <div>🛡️ Armor Defense: +${multPct}%</div>
+                <div>⚔️ Total Attack: +${displayPct}%</div>
+                <div>🛡️ Armor Defense: +${displayPct}%</div>
                 <div>⚡ Charge Might: +${(lvl * 10).toLocaleString()}%</div>
-                <div>❤️ HP Boost: +${multPct}%</div>
+                <div>❤️ HP Boost: +${displayPct}%</div>
             `;
             document.getElementById('sm-stats').innerHTML = statsHTML;
 
-            // Button State
             const btn = document.getElementById('btn-liberate');
             const req = document.getElementById('sm-req');
             
@@ -113,16 +115,13 @@
         },
 
         liberate: function() {
-            const lvl = window.player.soulLevel || 1;
             const cur = window.player.souls || 0;
             const max = this.getSoulsNeeded();
 
             if (cur >= max) {
-                // Level Up
                 window.player.soulLevel++;
-                window.player.souls = 0; // Reset souls
+                window.player.souls = 0; 
                 
-                // Visual Effect
                 if (window.popDamage) window.popDamage("SOUL LEVEL UP!", 'view-char', true);
                 
                 this.updateBtnUI();
@@ -134,7 +133,6 @@
         }
     };
 
-    // Expose
     window.SoulSystem = SoulSystem;
 
 })();
