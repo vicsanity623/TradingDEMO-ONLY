@@ -18,7 +18,7 @@
     };
 
     const RANKS = ["BASE", "S", "SS", "SS2", "SS3", "SSG", "SSB", "UI", "MUI", "SSS", "SSS10"];
-    const RARITY_NAMES = { 1: "B", 2: "R", 3: "L", 4: "S", 5: "SS", 6: "SSS", 7: "SSS2", 8: "SSS3", 9: "SSS4", 10: "SSS5", };
+    const RARITY_NAMES = { 1: "B", 2: "R", 3: "L", 4: "S", 5: "SS", 6: "SSS", 7: "SSS2", 8: "SSS3", 9: "SSS4", 10: "SSS5" };
 
     // --- STATE MANAGEMENT (GLOBAL) ---
 
@@ -108,7 +108,7 @@
         return shortValue + suffix;
     };
 
-    // --- DETAILS MODAL LOGIC (UPDATED) ---
+    // --- DETAILS MODAL ---
     window.openDetails = function () {
         const modal = document.getElementById('details-modal');
         if (!modal) return;
@@ -118,43 +118,33 @@
         const aMult = getAdvMult();
         const advLvl = p.advanceLevel || 0;
 
-        // Core Stats from GameState (includes ALL multipliers)
         const totalPower = window.GameState.gokuPower;
         const maxHp = window.GameState.gokuMaxHP;
         const defense = window.GameState.gokuDefense;
 
-        // --- PERK CALCULATIONS ---
-
-        // Crit Chance
         let critChance = 1 + (p.rank * 0.5);
         if (advLvl >= 5) critChance += 5 + ((advLvl - 5) * 0.5);
 
-        // Evasion
         let evasion = 0;
         if (advLvl >= 50) evasion = 15;
         else if (advLvl >= 15) evasion = 5 + ((advLvl - 15) * 0.2);
 
-        // Life Steal
         let lifeSteal = 0;
         if (advLvl >= 10) lifeSteal = 15 + ((advLvl - 10) * 1.0);
 
-        // Double Strike
         let doubleStrike = 0;
         if (advLvl >= 20) doubleStrike = 5 + ((advLvl - 20) * 0.5);
 
-        // Boosts
         let goldBoost = 0;
         if (advLvl >= 25) goldBoost = 10 + (advLvl - 25);
         let xpBoost = 0;
         if (advLvl >= 30) xpBoost = 10 + (advLvl - 30);
 
-        // --- RENDER DOM ---
         document.getElementById('det-power').innerText = window.formatNumber(totalPower);
         document.getElementById('det-hp').innerText = window.formatNumber(maxHp);
         document.getElementById('det-atk').innerText = window.formatNumber(totalPower);
         document.getElementById('det-def').innerText = window.formatNumber(defense);
 
-        // Multiplier Breakdown
         document.getElementById('det-soul').innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%;">
                 <span>💎 Soul Boost:</span> <span style="color:#00ffff">x${sMult.toFixed(1)}</span>
@@ -167,37 +157,29 @@
         document.getElementById('det-crit').innerText = `${critChance.toFixed(1)}%`;
         document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
 
-        // --- INJECT EXTRA STATS SECTION ---
         let extraContainer = document.getElementById('det-extra-stats');
-
-        // Create container if missing
         if (!extraContainer) {
             extraContainer = document.createElement('div');
             extraContainer.id = 'det-extra-stats';
             extraContainer.style.marginTop = '10px';
             extraContainer.style.borderTop = '1px solid #444';
             extraContainer.style.paddingTop = '10px';
-            // Insert before the Coins row
             const coinRow = document.getElementById('det-coins').parentNode;
             coinRow.parentNode.insertBefore(extraContainer, coinRow);
         }
 
-        // Build Extra Stats HTML
         let extraHtml = "";
-
         if (evasion > 0) extraHtml += `<div class="stat-row"><span>💨 Dodge Chance</span> <span style="color:#00d2ff">${evasion.toFixed(1)}%</span></div>`;
         if (lifeSteal > 0) extraHtml += `<div class="stat-row"><span>🩸 Life Steal</span> <span style="color:#e74c3c">${lifeSteal.toFixed(0)}%</span></div>`;
         if (doubleStrike > 0) extraHtml += `<div class="stat-row"><span>⚔️ Double Strike</span> <span style="color:#f1c40f">${doubleStrike.toFixed(1)}%</span></div>`;
         if (goldBoost > 0) extraHtml += `<div class="stat-row"><span>💰 Gold Bonus</span> <span style="color:gold">+${goldBoost}%</span></div>`;
         if (xpBoost > 0) extraHtml += `<div class="stat-row"><span>🌟 XP Bonus</span> <span style="color:cyan">+${xpBoost}%</span></div>`;
-
         if (advLvl >= 35) extraHtml += `<div class="stat-row"><span>😡 Rage Mode</span> <span style="color:#ff0000">Active</span></div>`;
         if (advLvl >= 40) extraHtml += `<div class="stat-row"><span>⚡ Starter Ki</span> <span style="color:#ffff00">+20%</span></div>`;
         if (advLvl >= 45) extraHtml += `<div class="stat-row"><span>💀 Boss Slayer</span> <span style="color:#ff8c00">+20% Dmg</span></div>`;
         if (advLvl >= 60) extraHtml += `<div class="stat-row"><span>❤️ Zenkai Revive</span> <span style="color:#2ecc71">Active</span></div>`;
 
         extraContainer.innerHTML = extraHtml;
-
         modal.style.display = 'flex';
     };
 
@@ -228,7 +210,6 @@
             if (window.player.dragonShards === undefined) window.player.dragonShards = 0;
             if (window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
 
-            // LOADER DELAY LOGIC
             const loader = document.getElementById('loader');
             if (loader) {
                 setTimeout(() => {
@@ -303,7 +284,7 @@
         document.getElementById('ui-power').innerText = window.formatNumber(atk * 30 + window.GameState.gokuMaxHP);
     }
 
-    // --- UPDATED LEVEL UP LOGIC (COMPOUNDING) ---
+    // --- LEVEL UP ---
     function showLevelUp(oldLvl, newLvl, hpGain, atkGain, defGain) {
         if (window.battle.active) window.battle.cinematic = true;
         document.getElementById('lvl-up-old').innerText = oldLvl;
@@ -315,10 +296,8 @@
 
         const hpEl = document.getElementById('lvl-stats-hp');
         if (hpEl) hpEl.parentElement.innerHTML = `HP: <span id="lvl-stats-hp">${window.formatNumber(maxHp)}</span> <span style="color:#00ff00;">(+${window.formatNumber(hpGain)})</span>`;
-
         const atkEl = document.getElementById('lvl-stats-atk');
         if (atkEl) atkEl.parentElement.innerHTML = `ATK: <span id="lvl-stats-atk">${window.formatNumber(power)}</span> <span style="color:#00ff00;">(+${window.formatNumber(atkGain)})</span>`;
-
         const defEl = document.getElementById('lvl-stats-def');
         if (defEl) defEl.parentElement.innerHTML = `DEF: <span id="lvl-stats-def">${window.formatNumber(defense)}</span> <span style="color:#00ff00;">(+${window.formatNumber(defGain)})</span>`;
 
@@ -336,7 +315,6 @@
         let leveledUp = false;
         const oldLvl = window.player.lvl;
 
-        // Capture stats BEFORE leveling
         const startHP = window.GameState.gokuMaxHP;
         const startATK = window.GameState.gokuPower;
         const startDEF = window.GameState.gokuDefense;
@@ -346,11 +324,9 @@
             window.player.xp -= window.player.nextXp;
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
 
-            // --- NEW COMPOUNDING SCALING (5% per level + Flat) ---
             window.player.bHp = Math.floor(window.player.bHp * 1.05) + 1000;
             window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
             window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
-
             window.player.hp = window.GameState.gokuMaxHP;
 
             if (window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
@@ -358,17 +334,10 @@
         }
 
         if (leveledUp) {
-            // Capture stats AFTER leveling
             const endHP = window.GameState.gokuMaxHP;
             const endATK = window.GameState.gokuPower;
             const endDEF = window.GameState.gokuDefense;
-
-            // Calculate EFFECTIVE gains (including all multipliers)
-            const trueHpGain = endHP - startHP;
-            const trueAtkGain = endATK - startATK;
-            const trueDefGain = endDEF - startDEF;
-
-            showLevelUp(oldLvl, window.player.lvl, trueHpGain, trueAtkGain, trueDefGain);
+            showLevelUp(oldLvl, window.player.lvl, endHP - startHP, endATK - startATK, endDEF - startDEF);
             syncUI();
             saveGame();
         }
@@ -401,31 +370,17 @@
         if (item) {
             html += `<div style="color:cyan; margin-top:10px; border-top:1px solid #555; padding-top:5px;">🎁 ${item}</div>`;
         }
-
         div.innerHTML = html;
         document.body.appendChild(div);
 
-        requestAnimationFrame(() => {
-            div.style.opacity = '1';
-            div.style.transform = 'translate(-50%, -50%) scale(1)';
-        });
-
-        setTimeout(() => {
-            div.style.opacity = '0';
-            div.style.transform = 'translate(-50%, -60%) scale(0.8)';
-            setTimeout(() => div.remove(), 300);
-        }, 2500);
+        requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translate(-50%, -50%) scale(1)'; });
+        setTimeout(() => { div.style.opacity = '0'; div.style.transform = 'translate(-50%, -60%) scale(0.8)'; setTimeout(() => div.remove(), 300); }, 2500);
     }
 
-    // --- UPDATED SUPPLY LOGIC ---
     function claimSupply() {
         const now = Date.now();
         if (!window.player.lastCapsule) window.player.lastCapsule = 0;
-        const diff = now - window.player.lastCapsule;
-
-        if (diff < CONFIG.CAPSULE_COOLDOWN) {
-            return;
-        }
+        if (now - window.player.lastCapsule < CONFIG.CAPSULE_COOLDOWN) return;
 
         window.player.lastCapsule = now;
         const lvl = window.player.lvl || 1;
@@ -433,13 +388,10 @@
 
         let baseXp = 500 + (lvl * 250) + (Math.pow(lvl, 1.8) * 10);
         let baseCoins = 1000 + (lvl * 150) + (Math.pow(lvl, 1.7) * 5);
-
-        let xpMult = 1.0;
-        let coinMult = 1.0;
+        let xpMult = 1.0, coinMult = 1.0;
 
         if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01));
         if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01));
-
         const soulMult = 1 + (window.player.soulLevel * 0.1);
 
         const xpGain = Math.floor(baseXp * xpMult * soulMult);
@@ -455,7 +407,6 @@
             let name = "Saiyan Gear";
             if (tier >= 2) name = "Elite Gear";
             if (tier >= 3) name = "Legendary Gear";
-
             window.addToInventory({ n: name, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: tier });
             dropName = name;
         }
@@ -464,7 +415,6 @@
         checkLevelUp();
         syncUI();
         saveGame();
-
         showSupplyToast(xpGain, coinGain, dropName);
         updateCapsuleBtn();
     }
@@ -535,7 +485,6 @@
     ];
 
     function showTab(t) {
-        // If switching to explored/battle, preload first
         if ((t === 'explore' || t === 'battle') && window.GameLoader) {
             window.GameLoader.preload(PRELOAD_ASSETS, () => {
                 _doSwitchTab(t);
@@ -695,6 +644,10 @@
                     }
                 });
 
+                // FIXED: Changed check from < 10 to <= 10 (or whatever max is - 1)
+                // Actually, if 10 is Max, we allow merge up to 9.
+                // If sItem.rarity is 9, 9+1 = 10.
+                // So sItem.rarity < 10 allows merging 9s.
                 if (totalCount >= 3 && sItem.rarity < 10) {
                     mergeBtn.style.display = 'flex';
                     equipBtn.style.display = 'none';
@@ -865,8 +818,8 @@
 
     function doEquip() {
         if (window.player.selected === -1) return;
-        const stackItem = window.player.inv[window.player.selected];
-
+        const stackItem = window.player.inv[window.player.selected]; 
+        
         // Safety Check
         if (!stackItem) {
             window.player.selected = -1;
@@ -875,15 +828,15 @@
         }
 
         const itemToEquip = { n: stackItem.n, type: stackItem.type, val: stackItem.val, rarity: stackItem.rarity, qty: 1 };
-        const old = window.player.gear[stackItem.type];
-
+        const old = window.player.gear[stackItem.type]; 
+        
         window.player.gear[stackItem.type] = itemToEquip;
-
+        
         stackItem.qty--;
         if (stackItem.qty <= 0) window.player.inv.splice(window.player.selected, 1);
-
+        
         if (old) window.addToInventory(old);
-
+        
         window.player.selected = -1;
         window.isDirty = true;
         syncUI();
@@ -893,14 +846,14 @@
         const d = document.createElement('div');
         d.className = 'pop';
         if (typeof dmg === 'string') {
-            d.innerText = dmg;
-            d.style.color = '#00ff00';
+            d.innerText = dmg; 
+            d.style.color = '#00ff00'; 
             d.style.fontSize = '1.5rem';
         } else {
             d.innerText = "-" + window.formatNumber(dmg);
             if (isSpecial) { d.style.color = 'cyan'; d.style.fontSize = '3rem'; d.style.zIndex = 30; }
         }
-        const randomX = (Math.random() * 40) - 20;
+        const randomX = (Math.random() * 40) - 20; 
         const randomY = (Math.random() * 40) - 20;
         const container = document.getElementById(id);
         if (container) {
