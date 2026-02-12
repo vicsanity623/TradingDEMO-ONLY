@@ -15,6 +15,17 @@
         window.battle.stageTimerId = null;
     }
 
+    function toRoman(num) {
+        const roman = {M:1000,CM:900,D:500,CD:400,C:100,XC:90,L:50,XL:40,X:10,IX:9,V:5,IV:4,I:1};
+        let str = '';
+        for (let i of Object.keys(roman)) {
+            let q = Math.floor(num / roman[i]);
+            num -= q * roman[i];
+            str += i.repeat(q);
+        }
+        return str;
+    }
+
     // --- DBZ VISUAL HELPERS ---
     function triggerShake(intensity = 'normal') {
         const arena = document.querySelector('.arena');
@@ -63,25 +74,30 @@
 
         const rect = element.getBoundingClientRect();
         
+        // Create Full Screen Canvas for Explosion Space
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
+        // Set canvas to cover the viewport to allow particles to fly anywhere
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        canvas.style.position = 'fixed'; 
+        canvas.style.position = 'fixed'; // Fixed so it stays on screen
         canvas.style.left = '0';
         canvas.style.top = '0';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '9999'; 
+        canvas.style.zIndex = '9999'; // On top of everything
         
         document.body.appendChild(canvas);
 
+        // Calculate where to draw the sprite on this huge canvas
         const drawX = rect.left;
         const drawY = rect.top;
 
+        // Draw image to canvas to get pixel data
         try {
             ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
         } catch (e) {
+            // Fallback (CORS issue)
             element.style.transition = "opacity 1s, transform 1s";
             element.style.opacity = "0";
             element.style.transform = `translateX(${direction === 'left' ? -50 : 50}px)`;
@@ -89,15 +105,19 @@
             return;
         }
         
+        // Hide original element
         element.style.opacity = '0';
 
+        // Create Particles
         const particles = [];
-        const density = 4; 
+        const density = 4; // Resolution
         
         try {
+            // Get data ONLY from the sprite area to save performance
             const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
 
+            // Clear the canvas now that we have data, so we don't see the static image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             for (let y = 0; y < rect.height; y += density) {
@@ -108,11 +128,13 @@
                     const b = data[i+2];
                     const a = data[i+3];
 
-                    if (a > 128) { 
+                    if (a > 128) { // Only visible pixels
                         particles.push({
+                            // Absolute position on screen
                             x: drawX + x,
                             y: drawY + y,
                             color: `rgba(${r},${g},${b},${a/255})`,
+                            // Drift velocity
                             vx: (Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4), 
                             vy: (Math.random() - 0.5) * 4 - 1, 
                             life: 1.0,
@@ -126,6 +148,7 @@
             return;
         }
 
+        // Animate Loop
         function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             let alive = false;
@@ -160,12 +183,24 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '75px'; 
+            container.style.top = '60px'; // Moved up slightly to make room
             container.style.left = '0';
             container.style.width = '100%';
             container.style.zIndex = '50';
             container.style.pointerEvents = 'none';
             container.style.fontFamily = "'Orbitron', sans-serif";
+
+            // --- NEW: STAGE INFO LABEL ---
+            const stageInfo = document.createElement('div');
+            stageInfo.id = 'boss-ui-stage-info';
+            stageInfo.style.textAlign = 'center';
+            stageInfo.style.marginBottom = '5px';
+            stageInfo.style.color = '#ff3e3e'; // Red color
+            stageInfo.style.fontSize = '1.2rem';
+            stageInfo.style.fontWeight = 'bold';
+            stageInfo.style.textShadow = '1px 1px 0 #000';
+            stageInfo.innerText = "Stage 1 - World I";
+            // -----------------------------
 
             const hpContainer = document.createElement('div');
             hpContainer.style.width = '90%';
@@ -233,6 +268,7 @@
             hpContainer.appendChild(hpLabel);
             timeContainer.appendChild(timeFill);
 
+            container.appendChild(stageInfo); // Add new label first
             container.appendChild(hpContainer);
             container.appendChild(timeContainer);
             container.appendChild(timeText);
@@ -416,7 +452,14 @@
         document.getElementById('battle-menu').style.display = 'none';
         
         const bossUI = document.getElementById('boss-ui-container');
-        if(bossUI) bossUI.style.display = 'block';
+        if(bossUI) {
+            bossUI.style.display = 'block';
+            // UPDATE STAGE INFO
+            const infoEl = document.getElementById('boss-ui-stage-info');
+            if(infoEl) {
+                infoEl.innerText = `Stage ${window.battle.stage} - World ${toRoman(window.battle.world)}`;
+            }
+        }
 
         const eImg = document.getElementById('e-img');
         const pSprite = document.getElementById('btl-p-sprite');
@@ -617,7 +660,7 @@
         // New formula: Damage reduction percentage = Defense / (Defense + 5000)
         let defense = 0;
         if (sourceSide === 'p') defense = window.battle.enemy.def || 1;
-        else defense = window.GameState ? window.GameState.gokuPower * 0.1 : 10; // Use partial power for defense calc
+        else defense = window.GameState ? window.GameState.gokuDefense : 10; // Use partial power for defense calc
 
         // Basic Flat Reduction (Old Style was too strong)
         // Let's use a standard RPG armor formula
@@ -643,12 +686,16 @@
                 transformBoss();
                 return;
             }
+            // --- VICTORY SEQUENCE ---
             stopCombat(); 
             const eImg = document.getElementById('e-img');
+            
+            // Try Explosion Effect, Fallback to Fade
             if (eImg) {
+                // Determine drift direction (Right for enemy)
                 explodeSprite(eImg, 'right');
             }
-            setTimeout(handleWin, 2500); 
+            setTimeout(handleWin, 2500); // 2.5s delay
 
         } else if(window.player.hp <= 0) {
             if(window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
@@ -659,12 +706,14 @@
                 updateBars();
                 return; 
             }
+            // --- DEFEAT SEQUENCE ---
             stopCombat(); 
             const pSprite = document.getElementById('btl-p-sprite');
             if (pSprite) {
+                // Determine drift direction (Left for player)
                 explodeSprite(pSprite, 'left');
             }
-            setTimeout(handleDefeat, 2500); 
+            setTimeout(handleDefeat, 2500); // 2.5s delay
         }
     }
 
