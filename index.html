@@ -152,17 +152,14 @@
             </div>
         </div>
 
-        <div class="bottom-panel">
+        <div class="bottom-panel" style="position:fixed; left:0; right:0; bottom:15px; padding-bottom:calc(env(safe-area-inset-bottom) + 15px);">
             <div class="panel-header">
                 <div class="lvl-badge">LV <span id="ui-lvl">1</span></div>
                 <div style="flex:1; margin: 0 15px;">
-                    <!-- UPDATED XP PROGRESS HEADER with RIGHT ALIGN TEXT -->
                     <div
                         style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:#777; margin-bottom:2px;">
                         <span>EXP PROGRESS</span>
-                        <!-- New Span for formatted numbers -->
-                        <span id="hub-xp-text" style="font-family:'Orbitron'; color:#00d2ff; font-weight:bold;">0 /
-                            100</span>
+                        <span id="hub-xp-text" style="font-family:'Orbitron'; color:#00d2ff; font-weight:bold;">0 / 100</span>
                     </div>
                     <div class="bar-wrap" style="height:8px; background:#bdc3c7;">
                         <div id="bar-xp" class="bar-fill xp-f"></div>
@@ -170,7 +167,7 @@
                 </div>
                 <div class="coin-display">💰 <span id="ui-coins">0</span></div>
             </div>
-
+        
             <div class="stats-container">
                 <div class="stats-col">
                     <div class="stat-row"><span class="stat-icon">❤️</span> <span id="ui-hp-txt">500</span></div>
@@ -179,7 +176,7 @@
                     <div class="stat-row"><span class="stat-icon">🛡️</span> <span id="ui-def">25</span> <small
                             style="color:#27ae60; cursor:pointer;" onclick="openTraining()">[+]</small></div>
                 </div>
-
+        
                 <div class="equip-slots">
                     <div class="slot-box" id="slot-w">
                         <span>⚔️</span>
@@ -191,28 +188,29 @@
                     </div>
                 </div>
             </div>
-
-            <!-- INTERACT BUTTON (Text set by JS) -->
+        
             <div id="btn-interact"></div>
-            <!-- AUTO MERGE BUTTON -->
+        
             <button id="btn-auto-merge" onclick="toggleAutoMerge()" style="display:none;">
                 <span>⚡ AUTO MERGE</span>
             </button>
-
+        
             <button class="action-btn" id="btn-action" onclick="doEquip()">
                 <span>EQUIP SELECTED</span>
             </button>
+        
             <button class="action-btn" id="btn-merge"
                 style="display:none; background: linear-gradient(to bottom, #8e44ad, #9b59b6);" onclick="mergeItems()">
                 <span>MERGE (3)</span>
             </button>
-
+        
             <div style="font-size:0.75rem; color:#777; margin-bottom:5px; display:flex; justify-content:space-between;">
                 <span>GEAR INVENTORY</span>
                 <span style="font-size:0.7rem;">Tap to Select</span>
             </div>
+        
             <div id="inv-grid" class="inv-scroll"></div>
-
+        
             <div class="bot-nav">
                 <div class="nav-icon" onclick="openTraining()">
                     <div class="nav-circle" style="color:#e74c3c;">💪</div>
@@ -222,7 +220,6 @@
                     <div class="nav-circle" style="color:#f1c40f;">🌟</div>
                     Skills
                 </div>
-
                 <div class="nav-icon" onclick="GearSystem.open()">
                     <div class="nav-circle" style="color:#3498db;">🎒</div>
                     Gear
@@ -233,7 +230,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- BATTLE SCREEN -->
     <div id="view-battle" class="screen">
