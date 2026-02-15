@@ -350,11 +350,13 @@
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
+        // Random jitter movement for dynamic feel
         if(Math.random() < 0.02) { 
             p.vx += (Math.random() - 0.5) * 4; 
             p.vy += (Math.random() - 0.5) * 4;
         }
 
+        // Magnetic attraction (they float towards each other)
         if (dist > 5) {
             p.vx += (dx / dist) * physics.magnet;
             p.vy += (dy / dist) * physics.magnet;
@@ -362,11 +364,15 @@
             b.vy -= (dy / dist) * physics.magnet;
         }
 
+        // Apply Velocity
         p.x += p.vx; p.y += p.vy;
         b.x += b.vx; b.y += b.vy;
+        
+        // Friction
         p.vx *= physics.friction; p.vy *= physics.friction;
         b.vx *= physics.friction; b.vy *= physics.friction;
 
+        // Boundaries
         [p, b].forEach(u => {
             if (u.x < 5) { u.x = 5; u.vx *= -0.8; }
             if (u.x > 95) { u.x = 95; u.vx *= -0.8; }
@@ -374,24 +380,31 @@
             if (u.y > 75) { u.y = 75; u.vy *= -0.8; } 
         });
 
+        // Apply visual transform (Movement tilt/scale)
         if (p.el) p.el.style.transform = `translate(${p.vx * 3}px, ${p.vy * 3}px) scaleX(1)`;
         if (b.el) b.el.style.transform = `translate(${b.vx * 3}px, ${b.vy * 3}px) scaleX(-1)`;
 
+        // Update container positions
         const playerBox = document.querySelector('.db-player-box');
         const bossBox = document.querySelector('.db-boss-box');
         if (playerBox) { playerBox.style.left = p.x + "%"; playerBox.style.top = p.y + "%"; }
         if (bossBox) { bossBox.style.left = b.x + "%"; bossBox.style.top = b.y + "%"; }
 
+        // Collision Check
         if (dist < 12 && physics.hitCooldown <= 0) {
             triggerHit(p, b);
-            physics.hitCooldown = 15; 
+            physics.hitCooldown = 15; // Delay between hits
         }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
-        physicsFrame = requestAnimationFrame(physicsLoop);
+        // Continue loop if boss is still alive
+        if(activeBoss && activeBoss.hp > 0 && window.player.hp > 0) {
+            physicsFrame = requestAnimationFrame(physicsLoop);
+        }
     }
 
     function triggerHit(p, b) {
+        // Bounce back physics
         const dx = b.x - p.x;
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -401,6 +414,7 @@
         b.vx += (dx / dist) * physics.bounce;
         b.vy += (dy / dist) * physics.bounce;
 
+        // Damage Calc
         const playerPower = window.GameState.gokuPower || 100;
         const critChance = window.player.critChance || 0.05; 
         const critDmgMult = window.player.critDamage || 1.5; 
@@ -417,9 +431,11 @@
         let bossDmg = activeBoss.atk * (0.8 + Math.random() * 0.4);
         bossDmg = Math.floor(bossDmg);
 
+        // Apply HP reduction
         activeBoss.hp -= dmg;
         window.player.hp -= bossDmg;
 
+        // Visuals
         createDungeonPop(dmg, 'db-boss-img', isCrit ? 'gold' : 'red', isCrit);
         createDungeonPop(bossDmg, 'db-player-img', 'white', false);
 
@@ -430,28 +446,43 @@
         applyDungeonFlash(b.el);
         applyDungeonShake(isCrit ? 10 : 5); 
 
-        // --- DEATH LOGIC WITH EXPLOSION ---
-        activeBoss.hp = 0;
-                cancelAnimationFrame(physicsFrame); // STOP LOOP INSTANTLY
-                clearInterval(battleTimer);         // STOP TIMER INSTANTLY
-                
-                explodeSprite(physics.boss.el, 'right');
-                setTimeout(() => endDungeon(true), 2000);
-                return; // EXIT FUNCTION
-            }
+        // --- DEATH CHECK ---
+        
+        if (activeBoss.hp <= 0) {
+            // WIN CONDITION
+            activeBoss.hp = 0;
+            updateDungeonUI(); // Show 0 HP
+            
+            // Stop Loops
+            if(physicsFrame) cancelAnimationFrame(physicsFrame);
+            if(battleTimer) clearInterval(battleTimer);
+            
+            // Explode Boss
+            if(physics.boss.el) explodeSprite(physics.boss.el, 'right');
+            
+            // Wait then show Win Screen
+            setTimeout(() => endDungeon(true), 2000);
+            return;
+        } 
+        else if (window.player.hp <= 0) {
+            // LOSE CONDITION
+            window.player.hp = 0;
+            updateDungeonUI(); // Show 0 HP
 
-        } else if (window.player.hp = 0;
-                cancelAnimationFrame(physicsFrame); // STOP LOOP INSTANTLY
-                clearInterval(battleTimer);         // STOP TIMER INSTANTLY
+            // Stop Loops
+            if(physicsFrame) cancelAnimationFrame(physicsFrame);
+            if(battleTimer) clearInterval(battleTimer);
 
-                explodeSprite(physics.player.el, 'left');
-                setTimeout(() => endDungeon(false), 2000);
-                return; // EXIT FUNCTION
-            }
+            // Explode Player
+            if(physics.player.el) explodeSprite(physics.player.el, 'left');
 
-        } else {
-            updateDungeonUI();
+            // Wait then show Lose Screen
+            setTimeout(() => endDungeon(false), 2000);
+            return;
         }
+
+        // If no one died, update UI and continue
+        updateDungeonUI();
     }
 
     function applyDungeonFlash(el) {
