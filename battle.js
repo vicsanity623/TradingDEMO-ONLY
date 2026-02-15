@@ -69,60 +69,53 @@
     }
 
     // --- THANOS SNAP EFFECT (Particle Explosion) ---
-    function explodeSprite(element, direction) {
+    // Added 'reverse' parameter to handle reformation
+    function explodeSprite(element, direction, reverse = false) {
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
-
-        // Create Full Screen Canvas for Explosion Space
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas to cover the viewport to allow particles to fly anywhere
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        canvas.style.position = 'fixed'; // Fixed so it stays on screen
+        canvas.style.position = 'fixed';
         canvas.style.left = '0';
         canvas.style.top = '0';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '9999'; // On top of everything
+        canvas.style.zIndex = '9999';
 
         document.body.appendChild(canvas);
 
-        // Calculate where to draw the sprite on this huge canvas
         const drawX = rect.left;
         const drawY = rect.top;
 
-        // Draw image to canvas to get pixel data
+        // Try to draw image to get pixel data
         try {
-            // Ensure image is loaded and valid before drawing
-            if (!element.complete || element.naturalWidth === 0) {
-                throw new Error("Image not loaded");
-            }
+            if (!element.complete || element.naturalWidth === 0) throw new Error("Image not loaded");
+            // Draw once to read data, then clear
             ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
         } catch (e) {
-            console.warn("Thanos effect fallback:", e.message);
-            element.style.transition = "opacity 1.5s, transform 1.5s";
-            element.style.opacity = "0";
-            element.style.transform = `scale(0.5) translateY(-30px) rotate(${direction === 'left' ? -20 : 20}deg)`;
+            // Fallback if image tainted or missing
+            if(!reverse) {
+                element.style.transition = "opacity 1.5s, transform 1.5s";
+                element.style.opacity = "0";
+                element.style.transform = `scale(0.5) translateY(-30px) rotate(${direction === 'left' ? -20 : 20}deg)`;
+            } else {
+                element.style.transition = "opacity 0.5s";
+                element.style.opacity = "1";
+            }
             canvas.remove();
             return;
         }
 
-        // Hide original element
-        element.style.opacity = '0';
-
-        // Create Particles
         const particles = [];
-        const density = 4; // Resolution
+        const density = 4;
 
         try {
-            // Get data ONLY from the sprite area to save performance
             const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
-
-            // Clear the canvas now that we have data, so we don't see the static image
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear original image from canvas
 
             for (let y = 0; y < rect.height; y += density) {
                 for (let x = 0; x < rect.width; x += density) {
@@ -132,17 +125,17 @@
                     const b = data[i + 2];
                     const a = data[i + 3];
 
-                    if (a > 128) { // Only visible pixels
+                    if (a > 128) {
                         particles.push({
-                            // Absolute position on screen
-                            x: drawX + x,
-                            y: drawY + y,
+                            originX: drawX + x,
+                            originY: drawY + y,
+                            x: reverse ? (drawX + x + (Math.random()-0.5)*100) : (drawX + x),
+                            y: reverse ? (drawY + y - 50 - Math.random()*50) : (drawY + y),
                             color: `rgba(${r},${g},${b},${a / 255})`,
-                            // Drift velocity
-                            vx: (Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4),
-                            vy: (Math.random() - 0.5) * 4 - 1,
-                            life: 1.0,
-                            decay: Math.random() * 0.015 + 0.005
+                            vx: reverse ? 0 : ((Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4)),
+                            vy: reverse ? 0 : ((Math.random() - 0.5) * 4 - 1),
+                            life: reverse ? 0 : 1.0,
+                            targetLife: 1.0
                         });
                     }
                 }
@@ -152,32 +145,94 @@
             return;
         }
 
+        if(!reverse) element.style.opacity = '0'; // Hide real sprite immediately
+
         // Animate Loop
+        let frame = 0;
         function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let alive = false;
+            let active = false;
 
             for (let p of particles) {
-                if (p.life > 0) {
-                    alive = true;
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.life -= p.decay;
-
+                if (reverse) {
+                    // Rewind: Move from scattered pos back to origin
+                    const dx = p.originX - p.x;
+                    const dy = p.originY - p.y;
+                    p.x += dx * 0.1; // Ease in
+                    p.y += dy * 0.1;
+                    p.life += 0.02;
+                    if(p.life > 1) p.life = 1;
+                    
+                    // Draw
                     ctx.fillStyle = p.color;
                     ctx.globalAlpha = p.life;
                     ctx.fillRect(p.x, p.y, density, density);
+                    
+                    if(Math.abs(dx) > 1 || Math.abs(dy) > 1) active = true;
+
+                } else {
+                    // Explode: Standard physics
+                    if (p.life > 0) {
+                        active = true;
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life -= 0.015; // Decay
+                        
+                        ctx.fillStyle = p.color;
+                        ctx.globalAlpha = p.life;
+                        ctx.fillRect(p.x, p.y, density, density);
+                    }
                 }
             }
-            ctx.globalAlpha = 1;
+            
+            frame++;
+            // Cutoff for reverse animation to ensure it finishes
+            if(reverse && frame > 60) active = false;
 
-            if (alive) {
+            if (active) {
                 requestAnimationFrame(loop);
             } else {
+                if(reverse) element.style.opacity = '1'; // Show real sprite again
                 canvas.remove();
             }
         }
         loop();
+    }
+
+    // --- ZENKAI REVIVE LOGIC ---
+    function triggerZenkaiRevive() {
+        // 1. Pause Logic
+        window.battle.cinematic = true; // Stops damage loops
+        window.battle.zenkaiUsed = true;
+        
+        const pBox = document.getElementById('p-box');
+        const pSprite = document.getElementById('btl-p-sprite');
+
+        // 2. Explode (Die)
+        if(window.popDamage) window.popDamage("FATAL DMG!", 'p-box', true);
+        explodeSprite(pSprite, 'left', false); // Normal explosion
+        
+        // 3. Wait 1.5s, then Reform
+        setTimeout(() => {
+            if(!window.battle.active) return; // If exited
+
+            if(window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
+            triggerShake('heavy');
+            
+            // Reverse Explosion (Reform)
+            explodeSprite(pSprite, 'left', true);
+
+            // 4. Restore Stats
+            window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.5); // 50% HP Revive
+            updateBars();
+
+            // 5. Resume Battle after animation
+            setTimeout(() => {
+                window.battle.cinematic = false;
+                // Add a small invulnerability shield visual or effect if desired
+            }, 1000);
+
+        }, 1500);
     }
 
     // --- BOSS UI ---
@@ -187,24 +242,22 @@
             const container = document.createElement('div');
             container.id = 'boss-ui-container';
             container.style.position = 'absolute';
-            container.style.top = '60px'; // Moved up slightly to make room
+            container.style.top = '60px'; 
             container.style.left = '0';
             container.style.width = '100%';
             container.style.zIndex = '50';
             container.style.pointerEvents = 'none';
             container.style.fontFamily = "'Orbitron', sans-serif";
 
-            // --- NEW: STAGE INFO LABEL ---
             const stageInfo = document.createElement('div');
             stageInfo.id = 'boss-ui-stage-info';
             stageInfo.style.textAlign = 'center';
             stageInfo.style.marginBottom = '5px';
-            stageInfo.style.color = '#ff3e3e'; // Red color
+            stageInfo.style.color = '#ff3e3e'; 
             stageInfo.style.fontSize = '1.2rem';
             stageInfo.style.fontWeight = 'bold';
             stageInfo.style.textShadow = '1px 1px 0 #000';
             stageInfo.innerText = "Stage 1 - World I";
-            // -----------------------------
 
             const hpContainer = document.createElement('div');
             hpContainer.style.width = '90%';
@@ -272,7 +325,7 @@
             hpContainer.appendChild(hpLabel);
             timeContainer.appendChild(timeFill);
 
-            container.appendChild(stageInfo); // Add new label first
+            container.appendChild(stageInfo); 
             container.appendChild(hpContainer);
             container.appendChild(timeContainer);
             container.appendChild(timeText);
@@ -291,7 +344,6 @@
 
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
-        // FIX: Increase Rec. Power Calc to match Boss Buff
         const estAtk = Math.floor(250 * scale);
         const recPower = Math.floor((estAtk * 15) + estHp);
 
@@ -393,7 +445,6 @@
     function stopCombat() {
         if (window.battle) {
             window.battle.active = false;
-            window.battle.zenkaiUsed = false;
         }
         if (window.GameState) window.GameState.inBattle = false;
 
@@ -449,7 +500,7 @@
 
         window.battle.active = true;
         window.battle.cinematic = false;
-        window.battle.zenkaiUsed = false;
+        window.battle.zenkaiUsed = false; // Reset Zenkai Flag
         if (window.GameState) window.GameState.inBattle = true;
 
         document.getElementById('start-prompt').style.display = 'none';
@@ -458,7 +509,6 @@
         const bossUI = document.getElementById('boss-ui-container');
         if (bossUI) {
             bossUI.style.display = 'block';
-            // UPDATE STAGE INFO
             const infoEl = document.getElementById('boss-ui-stage-info');
             if (infoEl) {
                 infoEl.innerText = `Stage ${window.battle.stage} - World ${toRoman(window.battle.world)}`;
@@ -468,7 +518,6 @@
         const eImg = document.getElementById('e-img');
         const pSprite = document.getElementById('btl-p-sprite');
 
-        // Reset Visuals
         if (eImg) { eImg.style.display = 'block'; eImg.classList.remove('dead-anim'); eImg.style.opacity = '1'; eImg.style.transform = 'none'; }
         if (pSprite) { pSprite.classList.remove('dead-anim'); pSprite.style.opacity = '1'; pSprite.style.transform = 'none'; }
 
@@ -550,8 +599,6 @@
         const scale = Math.pow(1.8, window.battle.stage) * Math.pow(25, window.battle.world - 1);
 
         const eHP = 250 * scale;
-        // FIX: Boost Boss Damage (eATK)
-        // Previously it was 30 * scale, which is too low vs player scaling
         const eATK = 250 * scale;
         const eDEF = eHP * 0.4;
 
@@ -576,17 +623,14 @@
                 name: "BOSS " + (charData ? charData.name : "Titan"),
                 hp: 2000 * scale,
                 maxHp: 2000 * scale,
-                // FIX: Increased Boss Damage Multiplier
                 atk: 1000 * scale,
                 def: (2000 * scale) * 0.35,
                 i: imgSrc
             };
 
-            // Set image immediately
             const eImg = document.getElementById('e-img');
             if (eImg) {
                 eImg.crossOrigin = "anonymous";
-                // Add timestamp to bypass potentially tainted cache
                 const cacheBuster = `?t=${Date.now()}`;
                 eImg.src = imgSrc.includes('?') ? (imgSrc + "&" + Date.now()) : (imgSrc + cacheBuster);
             }
@@ -656,29 +700,21 @@
         window.battle.cinematic = false;
     }
 
+    // --- DAMAGE MITIGATION LOGIC ---
     function applyDamage(rawDmg, sourceSide) {
         if (!window.battle.active) return;
 
         const target = (sourceSide === 'p') ? window.battle.enemy : window.player;
         const targetId = (sourceSide === 'p') ? 'e-box' : 'p-box';
 
-        // FIX: Reworked damage mitigation formula
-        // Previously, high defense completely nullified damage (divide by 50)
-        // New formula: Damage reduction percentage = Defense / (Defense + 5000)
         let defense = 0;
         if (sourceSide === 'p') defense = window.battle.enemy.def || 1;
-        else defense = window.GameState ? window.GameState.gokuDefense : 10; // Use partial power for defense calc
+        else defense = window.GameState ? window.GameState.gokuDefense : 10;
 
-        // Basic Flat Reduction (Old Style was too strong)
-        // Let's use a standard RPG armor formula
-        // Dmg = RawDmg * (1 - (Def / (Def + Constant)))
-        // Constant scales with level to keep defense relevant but not broken
         const defConst = 5000 * Math.pow(1.5, window.battle.world);
         const reduction = defense / (defense + defConst);
 
         let actualDmg = Math.floor(rawDmg * (1 - reduction));
-
-        // Ensure minimum damage floor
         if (actualDmg < rawDmg * 0.05) actualDmg = Math.floor(rawDmg * 0.05);
         if (actualDmg < 1) actualDmg = 1;
 
@@ -696,31 +732,24 @@
             // --- VICTORY SEQUENCE ---
             stopCombat();
             const eImg = document.getElementById('e-img');
-
-            // Try Explosion Effect, Fallback to Fade
             if (eImg) {
-                // Determine drift direction (Right for enemy)
                 explodeSprite(eImg, 'right');
             }
-            setTimeout(handleWin, 2500); // 2.5s delay
+            setTimeout(handleWin, 2500);
 
         } else if (window.player.hp <= 0) {
+            // --- ZENKAI CHECK (Revive) ---
             if (window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
-                window.battle.zenkaiUsed = true;
-                window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.3);
-                if (window.popDamage) window.popDamage("ZENKAI BOOST!", 'p-box', true);
-                triggerShake();
-                updateBars();
+                triggerZenkaiRevive(); // Call new function
                 return;
             }
             // --- DEFEAT SEQUENCE ---
             stopCombat();
             const pSprite = document.getElementById('btl-p-sprite');
             if (pSprite) {
-                // Determine drift direction (Left for player)
                 explodeSprite(pSprite, 'left');
             }
-            setTimeout(handleDefeat, 2500); // 2.5s delay
+            setTimeout(handleDefeat, 2500);
         }
     }
 
