@@ -57,7 +57,7 @@
         hitCooldown: 0
     };
 
-    // --- DAILY LOGIN LOGIC (Unchanged) ---
+    // --- DAILY LOGIN LOGIC ---
     window.checkDailyLogin = function () {
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
@@ -348,12 +348,16 @@
         // Check End
         if (activeBoss.hp <= 0) {
             activeBoss.hp = 0;
+            // Stop physics immediately so we don't trigger hits after death
+            cancelAnimationFrame(physicsFrame);
             endDungeon(true);
         } else if (window.player.hp <= 0) {
             window.player.hp = 0;
+            cancelAnimationFrame(physicsFrame);
             endDungeon(false);
+        } else {
+            updateDungeonUI();
         }
-        updateDungeonUI();
     }
 
     function applyDungeonFlash(el) {
@@ -419,7 +423,6 @@
         document.getElementById('db-player-hp-text').innerText = `${window.formatNumber(window.player.hp)}`;
     }
 
-    // New Pop Function with Crit support
     function createDungeonPop(val, targetId, color, isCrit) {
         const container = document.getElementById('db-fx-container');
         if (!container) return;
@@ -459,6 +462,9 @@
 
     // --- REWRITTEN END GAME LOGIC ---
     function endDungeon(isWin) {
+        // --- FIX: CAPTURE DATA BEFORE KILLING THE ENGINE ---
+        const bossData = activeBoss;
+
         window.stopDungeon(); // Stops physics and battle timer
 
         const modal = document.getElementById('dungeon-result-modal');
@@ -468,44 +474,44 @@
 
         if(!modal || !list || !btn) {
             console.error("Missing Dungeon UI elements");
-            window.showTab('dungeon'); // Fallback
+            if(window.showTab) window.showTab('dungeon'); 
             return;
         }
 
         list.innerHTML = ''; // Clear previous rewards
         
         // Populate modal data *before* showing it
-        if (isWin) {
+        if (isWin && bossData) {
             title.innerText = "VICTORY!";
             title.style.color = "#f1c40f"; // Gold
             title.style.textShadow = "0 0 15px orange";
 
-            window.player.dungeonLevel[activeBoss.key]++;
+            window.player.dungeonLevel[bossData.key]++;
 
-            const scaler = Math.pow(1.05, activeBoss.lvl - 1);
+            const scaler = Math.pow(1.05, bossData.lvl - 1);
             let rewardsHtml = '';
 
-            if (activeBoss.rewards.coins) {
-                const amt = Math.floor(activeBoss.rewards.coins * scaler);
+            if (bossData.rewards.coins) {
+                const amt = Math.floor(bossData.rewards.coins * scaler);
                 window.player.coins += amt;
                 rewardsHtml += `<div style="color:#f1c40f">💰 +${window.formatNumber(amt)} Coins</div>`;
             }
-            if (activeBoss.rewards.shards) {
-                const amt = Math.floor(activeBoss.rewards.shards * scaler);
+            if (bossData.rewards.shards) {
+                const amt = Math.floor(bossData.rewards.shards * scaler);
                 window.player.dragonShards += amt;
                 rewardsHtml += `<div style="color:#3498db">💎 +${amt} Shards</div>`;
             }
-            if (activeBoss.rewards.souls) {
-                const amt = Math.floor(activeBoss.rewards.souls * scaler);
+            if (bossData.rewards.souls) {
+                const amt = Math.floor(bossData.rewards.souls * scaler);
                 window.player.souls += amt;
                 rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`;
             }
-            if (activeBoss.rewards.gearChance) {
+            if (bossData.rewards.gearChance) {
                 // Higher levels = more gear
                 const qty = Math.floor(Math.random() * 3) + 1; 
                 if(window.addToInventory) {
                     for (let i = 0; i < qty; i++) {
-                        window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * activeBoss.lvl, rarity: 3 });
+                        window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * bossData.lvl, rarity: 3 });
                     }
                 }
                 rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} Rare Gear</div>`;
@@ -536,7 +542,6 @@
             if (window.showTab) {
                 window.showTab('dungeon');
             } else {
-                // Manual fallback if showTab missing
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
                 const dungeonScreen = document.getElementById('view-dungeon');
                 if(dungeonScreen) dungeonScreen.classList.add('active-screen');
@@ -556,7 +561,7 @@
             count--;
             btn.innerText = `CONTINUE (${count})`;
             if (count <= 0) {
-                doExit(); // Call helper directly instead of btn.click()
+                doExit(); 
             }
         }, 1000);
     }
