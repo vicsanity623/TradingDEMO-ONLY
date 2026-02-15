@@ -44,16 +44,16 @@
     let activeBoss = null;
     let battleTimer = null;
     let timeLeft = 90;
-    let exitTimer = null; // Store exit timer globally to clear it properly
+    let exitTimer = null; 
 
     // Physics State
     let physicsFrame = null;
     const physics = {
         player: { x: 20, y: 50, vx: 0, vy: 0, el: null },
         boss: { x: 80, y: 50, vx: 0, vy: 0, el: null },
-        magnet: 0.15, // Increased from 0.05 for faster acceleration
-        friction: 0.94, // Less friction for speed
-        bounce: 2.0,   // Harder bounce on impact
+        magnet: 0.15, 
+        friction: 0.94, 
+        bounce: 2.0,   
         hitCooldown: 0
     };
 
@@ -123,6 +123,107 @@
     };
 
 
+    // --- VISUAL EFFECTS: THANOS SNAP ---
+    function explodeSprite(element) {
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        
+        // Create a temporary canvas for the effect
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.position = 'fixed';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '9999';
+
+        document.body.appendChild(canvas);
+
+        const drawX = rect.left;
+        const drawY = rect.top;
+
+        // Try to draw the image to the canvas
+        try {
+            // Draw original image on canvas
+            ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
+        } catch (e) {
+            // Fallback if CORS prevents reading image data
+            element.style.transition = "opacity 1s, transform 1s";
+            element.style.opacity = "0";
+            element.style.transform = "scale(2)";
+            canvas.remove();
+            return;
+        }
+
+        const particles = [];
+        const density = 4; // Lower is more particles (heavier CPU)
+
+        try {
+            const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
+            const data = imgData.data;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the image, we only want particles
+
+            for (let y = 0; y < rect.height; y += density) {
+                for (let x = 0; x < rect.width; x += density) {
+                    const i = (y * rect.width + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
+
+                    if (a > 128) { // Only create particles for visible pixels
+                        particles.push({
+                            x: drawX + x,
+                            y: drawY + y,
+                            color: `rgba(${r},${g},${b},${a / 255})`,
+                            vx: (Math.random() - 0.5) * 4,
+                            vy: (Math.random() - 0.5) * 4 - 2, // Slight upward drift
+                            life: 1.0 + Math.random() * 0.5
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            canvas.remove();
+            return;
+        }
+
+        // Hide the real element immediately
+        element.style.opacity = '0'; 
+
+        // Animation Loop
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+
+            for (let p of particles) {
+                if (p.life > 0) {
+                    active = true;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.02; // Fade speed
+
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, density, density);
+                }
+            }
+
+            if (active) {
+                requestAnimationFrame(loop);
+            } else {
+                canvas.remove();
+            }
+        }
+        loop();
+    }
+
+
     // --- DUNGEON SYSTEM ---
 
     window.initDungeons = function () {
@@ -189,8 +290,6 @@
 
         // Calc HP
         const bossHp = bossConfig.baseHp * Math.pow(1.2, lvl - 1);
-        
-        // Dynamic Attack Scaling: Boss deals ~1% of player max HP per hit + base dmg
         const bossAtk = (window.GameState.gokuMaxHP * 0.01) + (bossHp * 0.0001); 
 
         activeBoss = {
@@ -211,14 +310,18 @@
         document.getElementById('db-boss-name').innerText = activeBoss.name;
         document.getElementById('db-boss-name').style.color = activeBoss.color;
         document.getElementById('db-dungeon-lvl').innerText = `LEVEL ${toRoman(lvl)}`;
-        document.getElementById('db-boss-img').src = activeBoss.img;
+        const bossImgEl = document.getElementById('db-boss-img');
+        bossImgEl.src = activeBoss.img;
+        bossImgEl.style.opacity = '1'; // Reset visibility from previous explosion
         
         const spriteEl = document.getElementById('ui-sprite');
-        document.getElementById('db-player-img').src = spriteEl ? spriteEl.src : "IMG_0061.png";
+        const playerImgEl = document.getElementById('db-player-img');
+        playerImgEl.src = spriteEl ? spriteEl.src : "IMG_0061.png";
+        playerImgEl.style.opacity = '1'; // Reset visibility
 
         // Reset Physics
-        physics.player = { x: 20, y: 50, vx: 0, vy: 0, el: document.getElementById('db-player-img') };
-        physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: document.getElementById('db-boss-img') };
+        physics.player = { x: 20, y: 50, vx: 0, vy: 0, el: playerImgEl };
+        physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: bossImgEl };
         physics.hitCooldown = 0;
 
         timeLeft = 90;
@@ -243,18 +346,15 @@
         const p = physics.player;
         const b = physics.boss;
 
-        // 1. Calculate Distance
         const dx = b.x - p.x;
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // 2. Dash Mechanic (Random burst of speed)
-        if(Math.random() < 0.02) { // 2% chance per frame to dash
+        if(Math.random() < 0.02) { 
             p.vx += (Math.random() - 0.5) * 4; 
             p.vy += (Math.random() - 0.5) * 4;
         }
 
-        // 3. Magnet Attraction (Stronger closer they get)
         if (dist > 5) {
             p.vx += (dx / dist) * physics.magnet;
             p.vy += (dy / dist) * physics.magnet;
@@ -262,21 +362,18 @@
             b.vy -= (dy / dist) * physics.magnet;
         }
 
-        // 4. Apply Velocity & Friction
         p.x += p.vx; p.y += p.vy;
         b.x += b.vx; b.y += b.vy;
         p.vx *= physics.friction; p.vy *= physics.friction;
         b.vx *= physics.friction; b.vy *= physics.friction;
 
-        // 5. Keep in Bounds
         [p, b].forEach(u => {
             if (u.x < 5) { u.x = 5; u.vx *= -0.8; }
             if (u.x > 95) { u.x = 95; u.vx *= -0.8; }
-            if (u.y < 15) { u.y = 15; u.vy *= -0.8; } // Adjusted top bound for HUD
-            if (u.y > 75) { u.y = 75; u.vy *= -0.8; } // Adjusted bottom bound
+            if (u.y < 15) { u.y = 15; u.vy *= -0.8; } 
+            if (u.y > 75) { u.y = 75; u.vy *= -0.8; } 
         });
 
-        // 6. Update Visuals
         if (p.el) p.el.style.transform = `translate(${p.vx * 3}px, ${p.vy * 3}px) scaleX(1)`;
         if (b.el) b.el.style.transform = `translate(${b.vx * 3}px, ${b.vy * 3}px) scaleX(-1)`;
 
@@ -285,10 +382,9 @@
         if (playerBox) { playerBox.style.left = p.x + "%"; playerBox.style.top = p.y + "%"; }
         if (bossBox) { bossBox.style.left = b.x + "%"; bossBox.style.top = b.y + "%"; }
 
-        // 7. Collision
         if (dist < 12 && physics.hitCooldown <= 0) {
             triggerHit(p, b);
-            physics.hitCooldown = 15; // 0.25s Invulnerability
+            physics.hitCooldown = 15; 
         }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
@@ -296,7 +392,6 @@
     }
 
     function triggerHit(p, b) {
-        // Bounce Force
         const dx = b.x - p.x;
         const dy = b.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -306,55 +401,68 @@
         b.vx += (dx / dist) * physics.bounce;
         b.vy += (dy / dist) * physics.bounce;
 
-        // --- DAMAGE CALCULATIONS ---
-        
-        // 1. Get Player Stats (w/ Defaults)
         const playerPower = window.GameState.gokuPower || 100;
-        const critChance = window.player.critChance || 0.05; // 5% base
-        const critDmgMult = window.player.critDamage || 1.5; // 150% base
+        const critChance = window.player.critChance || 0.05; 
+        const critDmgMult = window.player.critDamage || 1.5; 
 
-        // 2. Calculate Damage with Variance (0.9 to 1.1)
         let dmg = playerPower * (0.9 + Math.random() * 0.2);
         let isCrit = false;
 
-        // 3. Roll for Crit
         if (Math.random() < critChance) {
             isCrit = true;
             dmg *= critDmgMult;
         }
 
         dmg = Math.floor(dmg);
-
-        // 4. Boss Damage (Flat + Variance)
         let bossDmg = activeBoss.atk * (0.8 + Math.random() * 0.4);
         bossDmg = Math.floor(bossDmg);
 
-        // Apply Damage
         activeBoss.hp -= dmg;
         window.player.hp -= bossDmg;
 
-        // Visual Popups
         createDungeonPop(dmg, 'db-boss-img', isCrit ? 'gold' : 'red', isCrit);
         createDungeonPop(bossDmg, 'db-player-img', 'white', false);
 
-        // Visual Effects
         createDungeonParticles(b.x, b.y, 'red');
-        if(isCrit) createDungeonParticles(b.x, b.y, 'gold'); // Extra sparkles for crit
+        if(isCrit) createDungeonParticles(b.x, b.y, 'gold'); 
         
         applyDungeonFlash(p.el);
         applyDungeonFlash(b.el);
-        applyDungeonShake(isCrit ? 10 : 5); // Shake harder on crit
+        applyDungeonShake(isCrit ? 10 : 5); 
 
-        // Check End
+        // --- DEATH LOGIC WITH EXPLOSION ---
         if (activeBoss.hp <= 0) {
             activeBoss.hp = 0;
-            // Stop physics immediately so we don't trigger hits after death
+            updateDungeonUI();
+            
+            // 1. Stop Physics immediately
             cancelAnimationFrame(physicsFrame);
-            endDungeon(true);
+            if(battleTimer) clearInterval(battleTimer);
+
+            // 2. Explode Boss
+            explodeSprite(b.el);
+
+            // 3. Wait for explosion, then show Victory
+            setTimeout(() => {
+                endDungeon(true);
+            }, 1500);
+
         } else if (window.player.hp <= 0) {
             window.player.hp = 0;
+            updateDungeonUI();
+
+            // 1. Stop Physics
             cancelAnimationFrame(physicsFrame);
-            endDungeon(false);
+            if(battleTimer) clearInterval(battleTimer);
+
+            // 2. Explode Player
+            explodeSprite(p.el);
+
+            // 3. Wait for explosion, then show Defeat
+            setTimeout(() => {
+                endDungeon(false);
+            }, 1500);
+
         } else {
             updateDungeonUI();
         }
@@ -363,7 +471,7 @@
     function applyDungeonFlash(el) {
         if (!el) return;
         el.style.filter = 'brightness(5) contrast(2)';
-        el.style.transform += ' scale(1.3)'; // Pop bigger
+        el.style.transform += ' scale(1.3)'; 
         setTimeout(() => {
             el.style.filter = '';
             el.style.transform = el.style.transform.replace(' scale(1.3)', '');
@@ -404,7 +512,6 @@
         if (!arena) return;
         arena.style.animation = 'none';
         void arena.offsetWidth;
-        // Inject dynamic intensity into keyframes if possible, or just standard shake class
         arena.style.animation = 'db-shake 0.3s cubic-bezier(.36,.07,.19,.97) both';
     }
 
@@ -428,12 +535,11 @@
         if (!container) return;
 
         const el = document.createElement('div');
-        // Add "CRIT!" text if crit
         el.innerText = (isCrit ? "CRIT! " : "") + "-" + window.formatNumber(val);
         el.style.position = 'absolute';
         el.style.color = color;
         el.style.fontWeight = '900';
-        el.style.fontSize = isCrit ? '2.5rem' : '1.5rem'; // Bigger if crit
+        el.style.fontSize = isCrit ? '2.5rem' : '1.5rem'; 
         el.style.textShadow = isCrit ? '0 0 10px orange, 0 0 5px black' : '0 0 4px black';
         el.style.fontFamily = 'Bangers';
         el.style.zIndex = 50;
@@ -460,16 +566,17 @@
         }, 30);
     }
 
-    // --- REWRITTEN END GAME LOGIC ---
+    // --- END GAME LOGIC ---
     function endDungeon(isWin) {
-        // --- FIX: CAPTURE DATA BEFORE KILLING THE ENGINE ---
-        const bossData = activeBoss;
-
-        window.stopDungeon(); // Stops physics and battle timer
+        // Capture data safely
+        const bossData = activeBoss; 
+        
+        // Stop engine just in case it wasn't stopped
+        window.stopDungeon(); 
 
         const modal = document.getElementById('dungeon-result-modal');
-        const title = document.getElementById('db-result-title');
         const list = document.getElementById('db-rewards-list');
+        const title = document.getElementById('db-result-title');
         const btn = document.getElementById('db-btn-continue');
 
         if(!modal || !list || !btn) {
@@ -478,13 +585,11 @@
             return;
         }
 
-        list.innerHTML = ''; // Clear previous rewards
+        list.innerHTML = ''; 
         
-        // Populate modal data *before* showing it
         if (isWin && bossData) {
             title.innerText = "VICTORY!";
-            title.style.color = "#f1c40f"; // Gold
-            title.style.textShadow = "0 0 15px orange";
+            title.style.color = "#f1c40f";
 
             window.player.dungeonLevel[bossData.key]++;
 
@@ -507,7 +612,6 @@
                 rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`;
             }
             if (bossData.rewards.gearChance) {
-                // Higher levels = more gear
                 const qty = Math.floor(Math.random() * 3) + 1; 
                 if(window.addToInventory) {
                     for (let i = 0; i < qty; i++) {
@@ -516,29 +620,22 @@
                 }
                 rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} Rare Gear</div>`;
             }
-
             list.innerHTML = rewardsHtml;
             window.saveGame();
-
         } else {
             title.innerText = "DEFEATED";
             title.style.color = "#e74c3c";
-            title.style.textShadow = "0 0 15px darkred";
-            list.innerHTML = "<div style='color:#ccc'>You were overwhelmed! Try upgrading your stats.</div>";
+            list.innerHTML = "<div style='color:#ccc'>You were overwhelmed!</div>";
         }
 
-        // Show Modal
         modal.style.display = 'flex';
 
-        // Clean up previous timer if it exists
         if(exitTimer) clearInterval(exitTimer);
 
-        // Exit Logic
         const doExit = () => {
             if(exitTimer) clearInterval(exitTimer);
             modal.style.display = 'none';
             
-            // Safe screen switching
             if (window.showTab) {
                 window.showTab('dungeon');
             } else {
@@ -546,23 +643,17 @@
                 const dungeonScreen = document.getElementById('view-dungeon');
                 if(dungeonScreen) dungeonScreen.classList.add('active-screen');
             }
-            
-            window.initDungeons(); // Refresh boss levels
+            window.initDungeons();
         };
 
-        // Button Click
         btn.onclick = doExit;
 
-        // Auto Countdown
         let count = 5;
         btn.innerText = `CONTINUE (${count})`;
-        
         exitTimer = setInterval(() => {
             count--;
             btn.innerText = `CONTINUE (${count})`;
-            if (count <= 0) {
-                doExit(); 
-            }
+            if (count <= 0) doExit();
         }, 1000);
     }
 
