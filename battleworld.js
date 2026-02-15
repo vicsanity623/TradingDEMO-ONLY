@@ -664,7 +664,7 @@
         // Logic Updates
         if (player.invincible > 0) player.invincible--;
         if (player.hp <= 0) {
-            alert("GOKU DEFEATED!"); stopExplore();
+            window.customAlert("GOKU DEFEATED!", () => stopExplore()); return;
             if (window.showTab) window.showTab('char');
         }
 

@@ -100,12 +100,17 @@
     </div>
 
     <!-- DAILY LOGIN MODAL -->
-    <div id="daily-login-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:6000; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="font-family:'Bangers'; font-size:3rem; color:#f1c40f; text-shadow:0 0 10px gold; margin-bottom:20px;">DAILY REWARDS</div>
-        <div id="daily-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; width:90%; max-width:500px;">
+    <div id="daily-login-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; flex-direction:column; align-items:center; justify-content:center; pointer-events:auto;">
+        <h2
+            style="font-family:'Bangers'; font-size:3rem; color:var(--dbz-yellow); margin-bottom:30px; text-shadow:0 0 15px var(--dbz-orange);">
+            DAILY REWARDS</h2>
+        <div id="daily-grid"
+            style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; width:90%; max-width:500px;">
             <!-- Days injected by JS -->
         </div>
-        <button id="btn-claim-daily" onclick="claimDailyLogin()" style="margin-top:20px; padding:15px 40px; font-family:'Bangers'; font-size:1.5rem; background:linear-gradient(to bottom, #2ecc71, #27ae60); color:white; border:none; border-radius:10px; box-shadow:0 0 15px #2ecc71; cursor:pointer;">CLAIM</button>
+        <button id="btn-claim-daily" onclick="claimDailyLogin()" ontouchstart="claimDailyLogin()"
+            style="margin-top:20px; padding:15px 40px; font-family:'Bangers'; font-size:1.5rem; background:linear-gradient(to bottom, #2ecc71, #27ae60); color:white; border:none; border-radius:10px; box-shadow:0 0 15px #2ecc71; cursor:pointer; pointer-events:auto; position:relative; z-index:10001;">CLAIM</button>
     </div>
 
     <div id="ready-msg" class="ready-banner">READY?</div>
@@ -246,12 +251,14 @@
                     Advance
                 </div>
             </div>
-            
+
             <div style="margin-top:20px; display:flex; justify-content:center; gap:10px; padding-bottom:20px;">
-                <button onclick="exportSave()" style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
+                <button onclick="exportSave()"
+                    style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
                     💾 SAVE TO CLIPBOARD
                 </button>
-                <button onclick="importSave()" style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
+                <button onclick="importSave()"
+                    style="background:#333; border:1px solid #555; color:#aaa; font-family:'Orbitron'; font-size:0.7rem; padding:8px 12px; border-radius:5px; cursor:pointer;">
                     📥 LOAD FROM CLIPBOARD
                 </button>
             </div>
@@ -329,17 +336,21 @@
 
         <div id="log">Battle Log initialized...</div>
     </div>
-    
+
     <!-- NEW DUNGEON HUB SCREEN -->
     <div id="view-dungeon" class="screen" style="background:#0a0a0a; padding-bottom:80px;">
-        <div class="dungeon-header" style="padding:20px; background:linear-gradient(to bottom, #2c3e50, transparent); display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-family:'Bangers'; font-size:2.5rem; color:#e74c3c; text-shadow:0 0 10px red;">BOSS RUSH</div>
-            <div class="key-display" style="background:rgba(0,0,0,0.6); padding:8px 15px; border-radius:20px; border:1px solid gold; color:white; font-family:'Orbitron';">
+        <div class="dungeon-header"
+            style="padding:20px; background:linear-gradient(to bottom, #2c3e50, transparent); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-family:'Bangers'; font-size:2.5rem; color:#e74c3c; text-shadow:0 0 10px red;">BOSS RUSH
+            </div>
+            <div class="key-display"
+                style="background:rgba(0,0,0,0.6); padding:8px 15px; border-radius:20px; border:1px solid gold; color:white; font-family:'Orbitron';">
                 🗝️ KEYS: <span id="dungeon-keys-display" style="color:gold; font-weight:bold;">0</span>
             </div>
         </div>
 
-        <div id="dungeon-list" style="padding:10px; display:flex; flex-direction:column; gap:15px; overflow-y:auto; height:calc(100% - 100px);">
+        <div id="dungeon-list"
+            style="padding:10px; display:flex; flex-direction:column; gap:15px; overflow-y:auto; height:calc(100% - 100px);">
             <!-- Boss Cards Injected JS -->
         </div>
     </div>
@@ -347,61 +358,85 @@
     <!-- NEW DUNGEON BATTLE SCREEN -->
     <div id="view-dungeon-battle" class="screen" style="background:#000;">
         <!-- TOP HUD -->
-        <div style="position:absolute; top:0; left:0; width:100%; height:120px; background:linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index:10; padding:10px; box-sizing:border-box;">
-            <div id="db-boss-name" style="text-align:center; color:red; font-family:'Bangers'; font-size:1.5rem; letter-spacing:2px; text-shadow:2px 2px black;">BOSS MAJIN BUU</div>
-            <div id="db-dungeon-lvl" style="text-align:center; color:#aaa; font-family:'Orbitron'; font-size:0.8rem; margin-bottom:5px;">LEVEL I</div>
-            
+        <div
+            style="position:absolute; top:0; left:0; width:100%; height:120px; background:linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index:10; padding:10px; box-sizing:border-box;">
+            <div id="db-boss-name"
+                style="text-align:center; color:red; font-family:'Bangers'; font-size:1.5rem; letter-spacing:2px; text-shadow:2px 2px black;">
+                BOSS MAJIN BUU</div>
+            <div id="db-dungeon-lvl"
+                style="text-align:center; color:#aaa; font-family:'Orbitron'; font-size:0.8rem; margin-bottom:5px;">
+                LEVEL I</div>
+
             <!-- Boss HP Bar -->
-            <div style="width:90%; height:20px; background:#333; border:2px solid white; margin:0 auto; position:relative;">
-                <div id="db-boss-hp-fill" style="width:100%; height:100%; background:#e74c3c; transition:width 0.2s;"></div>
-                <div id="db-boss-hp-text" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Orbitron'; font-size:0.7rem; color:white; text-shadow:1px 1px black;">100B / 100B</div>
+            <div
+                style="width:90%; height:20px; background:#333; border:2px solid white; margin:0 auto; position:relative;">
+                <div id="db-boss-hp-fill" style="width:100%; height:100%; background:#e74c3c; transition:width 0.2s;">
+                </div>
+                <div id="db-boss-hp-text"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Orbitron'; font-size:0.7rem; color:white; text-shadow:1px 1px black;">
+                    100B / 100B</div>
             </div>
 
             <!-- Timer Bar -->
             <div style="width:90%; height:6px; background:rgba(255,255,255,0.2); margin:5px auto 0; position:relative;">
                 <div id="db-timer-fill" style="width:100%; height:100%; background:white;"></div>
             </div>
-            <div id="db-timer-text" style="text-align:center; color:white; font-family:'Orbitron'; font-size:0.8rem; margin-top:2px;">90s</div>
+            <div id="db-timer-text"
+                style="text-align:center; color:white; font-family:'Orbitron'; font-size:0.8rem; margin-top:2px;">90s
+            </div>
         </div>
 
         <!-- ARENA -->
-        <div id="dungeon-arena" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background-image:url('https://i.imgur.com/sji5KLp.jpg'); background-size:cover;">
-            <img id="db-player-img" src="IMG_0061.png" style="position:absolute; left:10%; bottom:30%; width:100px; transform:scaleX(1);">
-            <img id="db-boss-img" src="" style="position:absolute; right:10%; bottom:30%; width:150px; transform:scaleX(-1);">
-            
+        <div id="dungeon-arena"
+            style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000;">
+            <img id="db-player-img" src="IMG_0061.png"
+                style="position:absolute; left:10%; bottom:30%; width:100px; transform:scaleX(1);">
+            <img id="db-boss-img" src=""
+                style="position:absolute; right:10%; bottom:30%; width:150px; transform:scaleX(-1);">
+
             <!-- Visual Effects Container -->
             <div id="db-fx-container" style="position:absolute; inset:0; pointer-events:none;"></div>
         </div>
 
         <!-- BOTTOM HUD -->
-        <div style="position:absolute; bottom:0; left:0; width:100%; height:100px; background:linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index:10; display:flex; align-items:center; padding:0 20px;">
-            <div style="width:60px; height:60px; border-radius:50%; border:2px solid white; overflow:hidden; background:black; margin-right:15px;">
+        <div
+            style="position:absolute; bottom:0; left:0; width:100%; height:100px; background:linear-gradient(to top, rgba(0,0,0,0.95), transparent); z-index:10; display:flex; align-items:center; padding:0 20px;">
+            <div
+                style="width:60px; height:60px; border-radius:50%; border:2px solid white; overflow:hidden; background:black; margin-right:15px;">
                 <img src="IMG_0061.png" style="width:100%; height:100%; object-fit:cover;">
             </div>
             <div style="flex:1;">
                 <!-- Player HP -->
-                <div style="display:flex; justify-content:space-between; color:white; font-family:'Bangers'; font-size:1rem; margin-bottom:2px;">
+                <div
+                    style="display:flex; justify-content:space-between; color:white; font-family:'Bangers'; font-size:1rem; margin-bottom:2px;">
                     <span>GOKU</span>
                     <span id="db-player-hp-text">500/500</span>
                 </div>
-                <div style="width:100%; height:15px; background:#333; border:1px solid white; border-radius:4px; overflow:hidden;">
-                    <div id="db-player-hp-fill" style="width:100%; height:100%; background:linear-gradient(to right, #c0392b, #e74c3c);"></div>
+                <div
+                    style="width:100%; height:15px; background:#333; border:1px solid white; border-radius:4px; overflow:hidden;">
+                    <div id="db-player-hp-fill"
+                        style="width:100%; height:100%; background:linear-gradient(to right, #c0392b, #e74c3c);"></div>
                 </div>
-                
+
                 <!-- Player XP -->
-                <div style="width:100%; height:6px; background:#222; margin-top:5px; border-radius:3px; overflow:hidden;">
+                <div
+                    style="width:100%; height:6px; background:#222; margin-top:5px; border-radius:3px; overflow:hidden;">
                     <div id="db-player-xp-fill" style="width:0%; height:100%; background:#3498db;"></div>
                 </div>
             </div>
         </div>
 
         <!-- RESULT MODAL -->
-        <div id="dungeon-result-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:100; flex-direction:column; align-items:center; justify-content:center;">
-            <div id="db-result-title" style="font-family:'Bangers'; font-size:4rem; color:gold; text-shadow:0 0 20px black;">VICTORY</div>
+        <div id="dungeon-result-modal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:100; flex-direction:column; align-items:center; justify-content:center;">
+            <div id="db-result-title"
+                style="font-family:'Bangers'; font-size:4rem; color:gold; text-shadow:0 0 20px black;">VICTORY</div>
             <div id="db-rewards-list" style="margin:20px; text-align:center; font-family:'Orbitron'; color:white;">
                 <!-- Injected Rewards -->
             </div>
-            <button id="db-btn-continue" style="padding:15px 40px; font-family:'Bangers'; font-size:1.5rem; border:none; background:white; color:black; cursor:pointer;">CONTINUE (5)</button>
+            <button id="db-btn-continue"
+                style="padding:15px 40px; font-family:'Bangers'; font-size:1.5rem; border:none; background:white; color:black; cursor:pointer;">CONTINUE
+                (5)</button>
         </div>
     </div>
 
@@ -491,8 +526,12 @@
                 <button class="strat-claim-btn" onclick="claimStrategy()">CLAIM REWARDS</button>
                 <button class="strat-close-btn" onclick="closeStrategy()">CLOSE</button>
                 <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button onclick="window.exportSave()" style="background:#333; border:1px solid #555; color:#aaa; font-size:0.7rem; padding:5px 10px; border-radius:5px;">EXPORT SAVE</button>
-                    <button onclick="window.importSave()" style="background:#333; border:1px solid #555; color:#aaa; font-size:0.7rem; padding:5px 10px; border-radius:5px;">IMPORT SAVE</button>
+                    <button onclick="window.exportSave()"
+                        style="background:#333; border:1px solid #555; color:#aaa; font-size:0.7rem; padding:5px 10px; border-radius:5px;">EXPORT
+                        SAVE</button>
+                    <button onclick="window.importSave()"
+                        style="background:#333; border:1px solid #555; color:#aaa; font-size:0.7rem; padding:5px 10px; border-radius:5px;">IMPORT
+                        SAVE</button>
                 </div>
             </div>
 
@@ -580,23 +619,27 @@
             </div>
         </div>
     </div>
-    
+
     <!-- STAGE DETAILS MODAL -->
-    <div id="stage-details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center;">
+    <div id="stage-details-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center;">
         <div class="stage-card">
             <div class="stage-header">STAGE <span id="sd-num">1</span></div>
-            
+
             <div class="enemy-preview-container">
                 <div class="enemy-aura"></div>
-                <img id="sd-enemy-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Enemy">
+                <img id="sd-enemy-img"
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                    alt="Enemy">
             </div>
-            <div id="sd-enemy-name" style="font-family:'Bangers'; color:#ff5e57; font-size:1.2rem; margin-bottom:5px;"></div>
-    
+            <div id="sd-enemy-name" style="font-family:'Bangers'; color:#ff5e57; font-size:1.2rem; margin-bottom:5px;">
+            </div>
+
             <div class="stage-stats">
                 <div style="color:#f1c40f; font-size:0.9rem;">⚠️ REC. POWER</div>
                 <div id="sd-power" style="font-family:'Bangers'; font-size:1.8rem; color:white;">1,000</div>
             </div>
-    
+
             <div class="stage-rewards">
                 <div class="reward-item">
                     <span>🌟 XP:</span> <span id="sd-xp" style="color:cyan">100</span>
@@ -608,53 +651,105 @@
                     <span>🎁 Drops:</span> <span id="sd-drops" style="color:#e74c3c">Normal</span>
                 </div>
             </div>
-    
+
             <div style="display:flex; gap:10px; width:100%; margin-top:15px;">
-                <button class="menu-btn exit" onclick="closeStageDetails()" style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
-                <button class="menu-btn" onclick="confirmStart()" style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
+                <button class="menu-btn exit" onclick="closeStageDetails()"
+                    style="flex:1; font-size:1.2rem; padding:10px;">BACK</button>
+                <button class="menu-btn" onclick="confirmStart()"
+                    style="flex:1; font-size:1.2rem; padding:10px; background:linear-gradient(to bottom, #2ecc71, #27ae60); border-color:#2ecc71;">FIGHT!</button>
             </div>
         </div>
     </div>
-    
-    <div id="advance-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
-        <div class="g-close" onclick="AdvanceSystem.close()" style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
-        <div style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px cyan;">GEAR ADVANCEMENT</div>
-        
-        <div style="display:flex; width:90%; max-width:400px; align-items:center; margin-bottom:20px;">
-            <img src="IMG_0222.png" onerror="this.style.display='none'" style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin-right:10px; object-fit:cover;">
-            
-            <div id="bulma-speech" style="background:white; color:black; padding:10px; border-radius:10px; font-family:'Orbitron'; font-size:0.8rem; position:relative;">
-                Use Dragon Shards to break your limits!
-                <div style="position:absolute; left:-6px; top:50%; width:10px; height:10px; background:white; transform:rotate(45deg);"></div>
+
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="custom-confirm-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10002; align-items:center; justify-content:center;">
+        <div
+            style="background:#222; border:2px solid #e74c3c; border-radius:15px; padding:25px; width:90%; max-width:350px; text-align:center; box-shadow:0 0 20px #e74c3c;">
+            <div style="font-family:'Bangers'; color:#e74c3c; font-size:2rem; margin-bottom:15px;">⚠️ WARNING</div>
+            <div id="confirm-msg"
+                style="font-family:'Orbitron'; color:#ddd; font-size:0.9rem; margin-bottom:25px; line-height:1.5;">
+                Are you sure you want to reset all trained stats?
+            </div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button onclick="closeConfirmModal()"
+                    style="padding:10px 20px; background:#555; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.2rem; cursor:pointer;">CANCEL</button>
+                <button id="confirm-yes-btn" onclick="confirmResetSP()"
+                    style="padding:10px 20px; background:#e74c3c; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.2rem; cursor:pointer;">YES,
+                    RESET</button>
             </div>
         </div>
-    
-        <div id="adv-visual-container" style="background:#222; border:2px solid #555; border-radius:15px; padding:20px; width:90%; max-width:400px; text-align:center;">
-            <div style="color:white; font-family:'Bangers'; font-size:1.5rem; margin-bottom:15px;">ADVANCE LEVEL: <span id="adv-current-lvl" style="color:#00ff00;">0</span></div>
+    </div>
+
+    <!-- CUSTOM ALERT MODAL -->
+    <div id="custom-alert-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center;">
+        <div
+            style="background:#1a1a2e; border:3px solid var(--dbz-yellow); border-radius:15px; padding:30px; width:85%; max-width:400px; text-align:center; box-shadow:0 0 30px var(--dbz-orange);">
+            <div id="alert-msg"
+                style="font-family:'Bangers'; color:white; font-size:1.5rem; margin-bottom:25px; letter-spacing:1px; line-height:1.4;">
+                Message</div>
+            <button onclick="closeAlert()"
+                style="padding:12px 35px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:10px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer; box-shadow:0 4px 0 #d35400;">GOT
+                IT</button>
+        </div>
+    </div>
+
+    <div id="advance-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:5000; flex-direction:column; align-items:center; justify-content:center;">
+        <div class="g-close" onclick="AdvanceSystem.close()"
+            style="position:absolute; top:20px; right:20px; font-size:2rem; color:white;">✕</div>
+        <div
+            style="font-family:'Bangers'; color:#00d2ff; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px cyan;">
+            GEAR ADVANCEMENT</div>
+
+        <div style="display:flex; width:90%; max-width:400px; align-items:center; margin-bottom:20px;">
+            <img src="IMG_0222.png" onerror="this.style.display='none'"
+                style="width:80px; height:80px; border-radius:50%; border:2px solid #fff; margin-right:10px; object-fit:cover;">
+
+            <div id="bulma-speech"
+                style="background:white; color:black; padding:10px; border-radius:10px; font-family:'Orbitron'; font-size:0.8rem; position:relative;">
+                Use Dragon Shards to break your limits!
+                <div
+                    style="position:absolute; left:-6px; top:50%; width:10px; height:10px; background:white; transform:rotate(45deg);">
+                </div>
+            </div>
+        </div>
+
+        <div id="adv-visual-container"
+            style="background:#222; border:2px solid #555; border-radius:15px; padding:20px; width:90%; max-width:400px; text-align:center;">
+            <div style="color:white; font-family:'Bangers'; font-size:1.5rem; margin-bottom:15px;">ADVANCE LEVEL: <span
+                    id="adv-current-lvl" style="color:#00ff00;">0</span></div>
             <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
                 <div class="slot-box" id="adv-slot-w"></div>
                 <div class="slot-box" id="adv-slot-a"></div>
             </div>
-            <div id="adv-stats-list" style="background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; text-align:left; font-family:'Orbitron'; font-size:0.8rem; color:#aaa; margin-bottom:15px;"></div>
-            <div style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.9rem; margin-bottom:15px; border-top:1px solid #444; padding-top:10px;">
+            <div id="adv-stats-list"
+                style="background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; text-align:left; font-family:'Orbitron'; font-size:0.8rem; color:#aaa; margin-bottom:15px;">
+            </div>
+            <div
+                style="display:flex; justify-content:space-between; color:white; font-family:'Orbitron'; font-size:0.9rem; margin-bottom:15px; border-top:1px solid #444; padding-top:10px;">
                 <div>💎 Shards: <span id="adv-shard-count" style="color:#00d2ff;">0</span></div>
                 <div>💰 Gold: <span id="adv-gold-count" style="color:#f1c40f;">0</span></div>
             </div>
-            <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn" style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
+            <button id="btn-do-advance" onclick="AdvanceSystem.upgrade()" class="action-btn"
+                style="background:linear-gradient(to right, #00d2ff, #0055ff); border:1px solid cyan; box-shadow:0 0 15px cyan;">ADVANCE</button>
         </div>
     </div>
-    
+
     <!-- NEW EXPLORE SCREEN -->
     <div id="view-explore" class="screen" style="position:relative; background:black; overflow:hidden;">
         <canvas id="explore-canvas"></canvas>
-        
+
         <!-- EXPLORE HUD -->
         <div id="explore-hud">
             <div class="hud-stat-bar">
                 <div style="color:#ff3e3e; font-weight:bold;">HP</div>
-                <div class="hud-bar-bg"><div id="hud-hp-bar" style="width:100%; background:#ff3e3e;"></div></div>
+                <div class="hud-bar-bg">
+                    <div id="hud-hp-bar" style="width:100%; background:#ff3e3e;"></div>
+                </div>
             </div>
-            
+
             <div style="position:absolute; top:15px; right:15px; color:gold; font-family:'Bangers'; font-size:1.5rem;">
                 KILLS: <span id="hud-kill-count">0</span>
             </div>
@@ -674,7 +769,25 @@
             <!-- CHARGE OVERLAY -->
             <div id="ex-charge-overlay">
                 <div class="charge-text">MAX POWER!</div>
-                <div class="charge-meter"><div id="ex-charge-fill"></div></div>
+                <div class="charge-meter">
+                    <div id="ex-charge-fill"></div>
+                </div>
+            </div>
+
+            <!-- INTERACTION BUTTON (Appears near objects) -->
+            <div id="btn-interact-explore" class="interact-btn">
+                <span>👋</span> INTERACT
+            </div>
+
+            <!-- INTERACTION DIALOG OVERLAY -->
+            <div id="explore-interaction-overlay">
+                <div class="rpg-dialog-box">
+                    <div class="rpg-dialog-name" id="dialog-name">Villager</div>
+                    <div class="rpg-dialog-text" id="dialog-text">Hello traveler!</div>
+                    <div class="rpg-dialog-choices" id="dialog-choices">
+                        <!-- Buttons injected by JS -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -838,7 +951,7 @@
             };
 
             // --- PREVENT IOS ZOOMING ---
-            
+
             // 1. Prevent Double-Tap Zoom
             let lastTouchEnd = 0;
             document.addEventListener('touchend', function (event) {
@@ -848,16 +961,16 @@
                 }
                 lastTouchEnd = now;
             }, { passive: false });
-        
+
             // 2. Prevent Pinch-to-Zoom
             document.addEventListener('touchmove', function (event) {
-                if (event.scale !== 1) { 
-                    event.preventDefault(); 
+                if (event.scale !== 1) {
+                    event.preventDefault();
                 }
             }, { passive: false });
-        
+
             // 3. Prevent dragging the whole page (Rubber banding)
-            document.addEventListener('touchmove', function(event) {
+            document.addEventListener('touchmove', function (event) {
                 event.preventDefault();
             }, { passive: false });
         })();

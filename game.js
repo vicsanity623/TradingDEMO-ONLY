@@ -47,28 +47,29 @@
         active: false, enemy: null,
         autoTimerId: null, pInterval: null, eInterval: null, cinematic: false
     };
-    
-    window.exportSave = function() {
+
+    window.exportSave = function () {
         const data = localStorage.getItem(CONFIG.SAVE_KEY);
-        if(data) {
+        if (data) {
             navigator.clipboard.writeText(data).then(() => {
-                alert("Save copied to clipboard! Paste it in your Notes app.");
+                window.customAlert("Save copied to clipboard! Paste it in your Notes app.");
             });
         } else {
-            alert("No save data found.");
+            window.customAlert("No save data found.");
         }
     }
-    
-    window.importSave = function() {
+
+    window.importSave = function () {
         const data = prompt("Paste your save string here:");
-        if(data) {
+        if (data) {
             try {
                 JSON.parse(data); // Validate JSON
                 localStorage.setItem(CONFIG.SAVE_KEY, data);
-                alert("Save loaded! Reloading game...");
-                location.reload();
-            } catch(e) {
-                alert("Invalid save data.");
+                window.customAlert("Save loaded! Reloading game...", () => {
+                    location.reload();
+                });
+            } catch (e) {
+                window.customAlert("Invalid save data.");
             }
         }
     }
@@ -244,23 +245,25 @@
             if (window.player.advanceLevel === undefined) window.player.advanceLevel = 0;
             if (window.player.sp === undefined) window.player.sp = 0;
             if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-            
+
             // --- NEW: Dungeon & Daily Login Props ---
             if (window.player.dungeonKeys === undefined) window.player.dungeonKeys = 0;
             if (!window.player.dungeonLevel) window.player.dungeonLevel = { buu: 1, frieza: 1, cell: 1 };
             if (!window.player.dailyLogin) window.player.dailyLogin = { day: 1, lastClaimTime: 0 };
-
-            // Check Daily Login on Load
-            if (typeof window.checkDailyLogin === 'function') {
-                window.checkDailyLogin();
-            }
 
             const loader = document.getElementById('loader');
             if (loader) {
                 setTimeout(() => {
                     loader.style.transition = "opacity 0.5s";
                     loader.style.opacity = "0";
-                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                    loader.style.pointerEvents = "none"; // Ensure it doesn't block clicks while fading
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                        // Only check daily login AFTER loader is officially hidden
+                        if (typeof window.checkDailyLogin === 'function') {
+                            window.checkDailyLogin();
+                        }
+                    }, 500);
                 }, 3500);
             }
 
@@ -268,7 +271,6 @@
 
             if (typeof window.buildStageSelector === 'function') window.buildStageSelector();
             if (typeof window.initStrategy === 'function') window.initStrategy();
-            if (window.SoulSystem) window.SoulSystem.updateBtnUI();
             if (window.SoulSystem) window.SoulSystem.updateBtnUI();
             if (window.HubBattle) window.HubBattle.init();
             if (window.Ranks) window.Ranks.init();
@@ -284,12 +286,12 @@
             document.getElementById('loader').style.display = 'none';
         }
     }
-    
+
     // --- DAILY LOGIN CHECK ---
-    window.checkDailyLogin = function() {
+    window.checkDailyLogin = function () {
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
-        
+
         // If it's been more than 24 hours since last claim, show modal
         // Or if it's the very first time (lastClaimTime == 0)
         if (now - window.player.dailyLogin.lastClaimTime > oneDay || window.player.dailyLogin.lastClaimTime === 0) {
@@ -297,7 +299,7 @@
             if (now - window.player.dailyLogin.lastClaimTime > (oneDay * 2) && window.player.dailyLogin.lastClaimTime !== 0) {
                 window.player.dailyLogin.day = 1;
             }
-            
+
             // Open Daily Login Modal if function exists (dungeons.js will provide this)
             if (typeof window.openDailyLogin === 'function') {
                 window.openDailyLogin();
@@ -777,7 +779,7 @@
         if (!sItem) return;
 
         const cost = sItem.rarity * 500;
-        if (window.player.coins < cost) { alert("Not enough coins!"); return; }
+        if (window.player.coins < cost) { window.customAlert("Not enough coins!"); return; }
 
         let totalCount = 0;
         window.player.inv.forEach(i => { if (i.n === sItem.n && i.type === sItem.type && i.rarity === sItem.rarity) totalCount += i.qty; });
@@ -798,7 +800,7 @@
             else if (newRarity === 8) { newVal = 500000; newName = "SSS3"; }
             else if (newRarity === 9) { newVal = 1250000; newName = "SSS4"; }
             else if (newRarity === 10) { newVal = 5000000; newName = "SSS5"; }
-            
+
             window.addToInventory({ n: newName, type: sItem.type, val: newVal, rarity: newRarity });
             window.player.selected = -1;
             window.isDirty = true;
@@ -885,6 +887,107 @@
         window.openTraining();
     }
 
+    // --- NEW TRAINING SYSTEM (SP) ---
+    function openTraining() {
+        const modal = document.getElementById('training-modal');
+        if (!modal) return;
+        updateTrainingUI();
+        modal.style.display = 'flex';
+    }
+
+    function closeTraining() {
+        document.getElementById('training-modal').style.display = 'none';
+    }
+
+    function spendSP(stat) {
+        if (window.player.sp < 1) {
+            window.customAlert("Not enough SP!");
+            return;
+        }
+
+        window.player.sp--;
+
+        // 20% Compounding Boost
+        if (stat === 'hp') {
+            window.player.bHp = Math.floor(window.player.bHp * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.hp++;
+        } else if (stat === 'atk') {
+            window.player.bAtk = Math.floor(window.player.bAtk * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.atk++;
+        } else if (stat === 'def') {
+            window.player.bDef = Math.floor(window.player.bDef * 1.20);
+            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+            window.player.spSpent.def++;
+        }
+
+        window.isDirty = true;
+        updateTrainingUI();
+        syncUI();
+    }
+
+    function resetSP() {
+        const modal = document.getElementById('custom-confirm-modal');
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function confirmResetSP() {
+        if (typeof actualResetSP === 'function') {
+            actualResetSP();
+        }
+        closeConfirmModal();
+    }
+
+    function closeConfirmModal() {
+        const modal = document.getElementById('custom-confirm-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function actualResetSP() {
+        if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+        const spent = window.player.spSpent;
+
+        // Reverse stats (Approximate)
+        // Divide by 1.2^count
+        if (spent.hp > 0) {
+            window.player.bHp = Math.ceil(window.player.bHp / Math.pow(1.20, spent.hp));
+            window.player.sp += spent.hp;
+            spent.hp = 0;
+        }
+        if (spent.atk > 0) {
+            window.player.bAtk = Math.ceil(window.player.bAtk / Math.pow(1.20, spent.atk));
+            window.player.sp += spent.atk;
+            spent.atk = 0;
+        }
+        if (spent.def > 0) {
+            window.player.bDef = Math.ceil(window.player.bDef / Math.pow(1.20, spent.def));
+            window.player.sp += spent.def;
+            spent.def = 0;
+        }
+
+        window.isDirty = true;
+        updateTrainingUI();
+        syncUI();
+    }
+
+    function updateTrainingUI() {
+        if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+        document.getElementById('tr-sp-count').innerText = window.player.sp;
+
+        document.getElementById('tr-hp-val').innerText = window.formatNumber(window.player.bHp);
+        const hpSpent = document.getElementById('tr-hp-spent');
+        if (hpSpent) hpSpent.innerText = `(+${window.player.spSpent.hp})`;
+
+        document.getElementById('tr-atk-val').innerText = window.formatNumber(window.player.bAtk);
+        const atkSpent = document.getElementById('tr-atk-spent');
+        if (atkSpent) atkSpent.innerText = `(+${window.player.spSpent.atk})`;
+
+        document.getElementById('tr-def-val').innerText = window.formatNumber(window.player.bDef);
+        const defSpent = document.getElementById('tr-def-spent');
+        if (defSpent) defSpent.innerText = `(+${window.player.spSpent.def})`;
+    }
+
     function doEquip() {
         if (window.player.selected === -1) return;
         const stackItem = window.player.inv[window.player.selected];
@@ -916,9 +1019,31 @@
         }
     }
 
+    // --- CUSTOM ALERT SYSTEM ---
+    let alertCallback = null;
+    function customAlert(msg, callback = null) {
+        const modal = document.getElementById('custom-alert-modal');
+        const text = document.getElementById('alert-msg');
+        if (!modal || !text) return;
+        text.innerHTML = msg;
+        alertCallback = callback;
+        modal.style.display = 'flex';
+    };
+
+    function closeAlert() {
+        const modal = document.getElementById('custom-alert-modal');
+        if (modal) modal.style.display = 'none';
+        if (alertCallback) {
+            const cb = alertCallback;
+            alertCallback = null;
+            cb();
+        }
+    };
+
     // --- EXPOSE NECESSARY FUNCTIONS TO WINDOW ---
     window.initGame = initGame;
     window.showTab = showTab;
+    window.saveGame = saveGame;
     window.claimSupply = claimSupply;
     window.tapTrain = tapTrain;
     window.openTraining = openTraining;
@@ -926,7 +1051,10 @@
     window.spendSP = spendSP;
     window.resetSP = resetSP;
     window.confirmResetSP = confirmResetSP;
+    window.actualResetSP = actualResetSP;
     window.closeConfirmModal = closeConfirmModal;
+    window.customAlert = customAlert;
+    window.closeAlert = closeAlert;
     window.doEquip = doEquip;
     window.mergeItems = mergeItems;
     window.closeLevelUp = closeLevelUp;
