@@ -1,0 +1,21 @@
+{
+  "name": "TapBangerz: Ascension",
+  "short_name": "Bangerz",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#FF8C00",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "IMG_0061.PNG",
+      "sizes": "192x192",
+      "type": "image/png"
+    },  
+    {
+      "src": "IMG_0062.PNG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

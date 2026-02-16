@@ -67,6 +67,7 @@
     <script src="game.js" defer></script>
     <script src="Ranks.js" defer></script>
     <script src="advance.js" defer></script>
+    <script src="tapEvent.js" defer></script>
     <script src="dungeons.js" defer></script> <!-- NEW -->
 </head>
 
@@ -150,8 +151,15 @@
     <!-- GACHA STYLE HUB SCREEN -->
     <div id="view-char" class="screen active-screen">
         <div class="hub-overlay">
-            <!-- UPDATED: Added onclick to open details -->
-            <div class="rank-badge" id="ui-rank-badge" onclick="openDetails()">B</div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                <div class="rank-badge" id="ui-rank-badge" onclick="openDetails()">B</div>
+                <!-- TAP EVENT BUTTON -->
+                <div id="btn-tap-event" class="event-btn" style="display:none; position:static;"
+                    onclick="openTapEventInfo()">
+                    <div class="event-timer" id="tap-event-timer">00:00:00</div>
+                    <div class="event-label">TAP CHALLENGE</div>
+                </div>
+            </div>
             <div class="info-stack">
                 <div class="char-name" id="ui-name">Goku</div>
                 <div class="power-pill">⚡ <span id="ui-power">0</span></div>
@@ -840,7 +848,6 @@
                         style="padding:8px 15px; background:#2ecc71; border:none; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">+20%
                         (1 SP)</button>
                 </div>
-
             </div>
 
             <div class="tr-footer"
@@ -852,7 +859,87 @@
                     style="width:100%; padding:15px; background:#555; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">LEAVE
                     CHAMBER</button>
             </div>
+        </div>
+    </div>
 
+    <!-- TAP EVENT MINIGAME OVERLAY -->
+    <div id="tap-event-overlay"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:12000; flex-direction:column; align-items:center; justify-content:center;">
+        <div id="tap-game-container">
+            <div class="tap-speed-lines"></div>
+            <div class="tap-ui-header">
+                <div class="tap-stat-box">
+                    <span class="tap-label">LV GAINED</span>
+                    <span id="tap-level-display">0</span>
+                </div>
+                <div class="tap-stat-box tap-xp-bar-container">
+                    <div id="tap-xp-fill" style="width: 0%;"></div>
+                    <span class="tap-xp-text">BOOST PROGRESS</span>
+                </div>
+                <div class="tap-stat-box">
+                    <span class="tap-label">GOLD</span>
+                    <span id="tap-gold-display" style="color: gold;">0</span>
+                </div>
+            </div>
+
+            <div id="tap-timer-display"
+                style="position:absolute; top:120px; left:20px; font-family:'Bangers'; font-size:4rem; color:red; text-shadow:0 0 10px black; z-index:100;">
+                60s</div>
+
+            <div id="tap-combo-container" class="hidden">
+                <div id="tap-combo-count">0</div>
+                <div id="tap-combo-label">COMBO!</div>
+            </div>
+
+            <div class="tap-sprite-wrapper">
+                <div id="tap-action-sprite"></div>
+            </div>
+
+            <p class="tap-hint-text">TAP AS FAST AS YOU CAN!</p>
+            <div id="tap-fx-layer"></div>
+        </div>
+    </div>
+
+    <!-- TAP EVENT INFO MODAL -->
+    <div id="tap-info-modal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:13000; flex-direction:column; align-items:center; justify-content:center;">
+        <div
+            style="background:#222; border:2px solid var(--dbz-orange); border-radius:15px; padding:30px; width:85%; max-width:400px; text-align:center; box-shadow:0 0 30px var(--dbz-orange); color:white;">
+            <h2 style="font-family:'Bangers'; font-size:2.5rem; color:var(--dbz-yellow); margin-bottom:15px;">TAP
+                CHALLENGE</h2>
+            <p style="font-family:'Orbitron'; font-size:0.9rem; line-height:1.6; margin-bottom:20px;">
+                You can enter this challenge for 60 seconds every 15 minutes for the next 3 days to try and boost your
+                player stats and gold.
+            </p>
+            <div
+                style="background:rgba(0,0,0,0.5); padding:15px; border-radius:10px; margin-bottom:25px; font-size:0.8rem; text-align:left;">
+                <div style="color:#00e5ff; margin-bottom:5px;">• Tap the sprite to earn Gold and XP.</div>
+                <div style="color:#f1c40f; margin-bottom:5px;">• Higher combos give MORE rewards.</div>
+                <div style="color:#ff3e3e;">• Levels gained will be added to your main character!</div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeTapEventInfo()"
+                    style="flex:1; padding:12px; background:#444; border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.2rem; cursor:pointer;">CANCEL</button>
+                <button id="btn-start-tap" onclick="startTapEvent()"
+                    style="flex:1; padding:12px; background:linear-gradient(to bottom, #f1c40f, #f39c12); border:none; border-radius:8px; color:white; font-family:'Bangers'; font-size:1.2rem; cursor:pointer;">START!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAP EVENT RESULT MODAL -->
+    <div id="tap-result-modal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:14000; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="text-align:center; color:white;">
+            <h1 style="font-family:'Bangers'; font-size:4rem; color:var(--dbz-yellow); text-shadow:0 0 20px orange;">
+                TIME'S UP!</h1>
+            <div style="margin:30px 0; font-family:'Orbitron';">
+                <div style="font-size:1.5rem; margin-bottom:15px;">RESULTS:</div>
+                <div style="font-size:2rem; color:#00ff00;">+ <span id="tap-res-lvl">0</span> LEVELS</div>
+                <div style="font-size:2rem; color:gold;">+ <span id="tap-res-gold">0</span> GOLD</div>
+            </div>
+            <button onclick="closeTapResult()"
+                style="padding:15px 50px; background:white; color:black; border:none; border-radius:10px; font-family:'Bangers'; font-size:1.5rem; cursor:pointer;">COLLECT
+                & HUB</button>
         </div>
     </div>
 

@@ -1,42 +1,13 @@
-const CACHE_NAME = 'goku-rpg-v5.2.3';
+const CACHE_NAME = 'tapB-v1.1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
   './game.js',
-  './tapEvent.js',
-  './Ranks.js',
-  './dungeons.js',
-  './hub.js',
-  './soul.js',
-  './strategy.js',
-  './skills.js',
-  './gear.js',
-  './advance.js',
-  './battle.js',
-  './battleworld.js',
+  './style.css',
   './manifest.json',
-  './charged_b.png',
-  './hb_b.png',
-  './charged_s.png',
-  './IMG_0061.png',
-  './IMG_0081.png',
-  './IMG_0206.png',
-  './IMG_0287.png',
-  './IMG_0299.png',
-  './IMG_0300.png',
-  './IMG_0292.png',
-  './IMG_0222.png',
-  './majin_buu.png',
-  './freeza.png',
-  './cell.png',
-  './TapEvent/game.js',
-  './TapEvent/style.css',
-  './TapEvent/index.html',
-  './TapEvent/manifest.json',
-  './TapEvent/IMG_0061.PNG',
-  './TapEvent/IMG_0062.PNG',
-  './TapEvent/sss9.png'
+  './IMG_0061.PNG',
+  './IMG_0062.PNG',
+  './sss9.PNG'
 ];
 
 // Install Event: Cache files

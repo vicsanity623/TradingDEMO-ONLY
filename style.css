@@ -263,8 +263,8 @@ nav button.active {
 }
 
 .bottom-panel {
-    margin-bottom:0 !important;
-    padding-bottom:env(safe-area-inset-bottom);
+    margin-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom);
     background: #eef2f5;
     border-top-left-radius: 25px;
     border-top-right-radius: 25px;
@@ -454,16 +454,16 @@ nav button.active {
     box-shadow: 1px 1px 3px black;
 }
 
-.bot-nav{
-    position:sticky;
-    bottom:0;
-    left:0;
-    right:0;
-    background:#111;
-    padding:8px 0 calc(env(safe-area-inset-bottom) + 8px);
-    display:flex;
-    justify-content:space-around;
-    z-index:10;
+.bot-nav {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #111;
+    padding: 8px 0 calc(env(safe-area-inset-bottom) + 8px);
+    display: flex;
+    justify-content: space-around;
+    z-index: 10;
 }
 
 .nav-icon {
@@ -2347,4 +2347,215 @@ nav button.active {
     text-shadow: 0 0 5px black;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 10px;
+}
+
+/* --- TAP EVENT STYLES --- */
+.event-btn {
+    position: absolute;
+    top: 65px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--dbz-orange);
+    border-radius: 8px;
+    padding: 5px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+    animation: eventPulse 2s infinite;
+}
+
+@keyframes eventPulse {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 140, 0, 0.5);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(255, 140, 0, 0.8);
+        transform: scale(1.05);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(255, 140, 0, 0.5);
+        transform: scale(1);
+    }
+}
+
+.event-timer {
+    font-family: 'Orbitron';
+    font-size: 0.6rem;
+    color: #00e5ff;
+}
+
+.event-label {
+    font-family: 'Bangers';
+    font-size: 0.9rem;
+    color: white;
+}
+
+#tap-game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tap-ui-header {
+    position: absolute;
+    top: 20px;
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    z-index: 110;
+}
+
+.tap-stat-box {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid white;
+    padding: 8px;
+    border-radius: 8px;
+    color: white;
+    font-size: 1.2rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+.tap-xp-bar-container {
+    flex-grow: 1;
+    position: relative;
+    padding: 0;
+    background: #333;
+    overflow: hidden;
+}
+
+#tap-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00e5ff, #0099ff);
+    transition: width 0.2s;
+}
+
+.tap-xp-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#tap-combo-container {
+    position: absolute;
+    top: 120px;
+    right: 20px;
+    z-index: 300;
+    transform: rotate(-5deg);
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+#tap-combo-container.hidden {
+    opacity: 0;
+}
+
+#tap-combo-count {
+    font-size: 5rem;
+    color: #ff0055;
+    -webkit-text-stroke: 2px white;
+    text-shadow: 5px 5px 0px #000;
+    line-height: 0.8;
+}
+
+#tap-combo-label {
+    font-size: 1.5rem;
+    color: yellow;
+    -webkit-text-stroke: 1px black;
+}
+
+.tap-sprite-wrapper {
+    position: relative;
+    z-index: 5;
+    transition: transform 0.1s;
+}
+
+#tap-action-sprite {
+    background-image: url('TapEvent/sss9.PNG');
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    cursor: pointer;
+    transform-origin: top center;
+}
+
+.tap-float-text {
+    position: absolute;
+    pointer-events: none;
+    font-weight: bold;
+    animation: tapFloatUp 1s forwards;
+    z-index: 120;
+    -webkit-text-stroke: 1px black;
+}
+
+@keyframes tapFloatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-100px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+.tap-hint-text {
+    position: absolute;
+    bottom: 50px;
+    color: #aaa;
+    font-size: 1.2rem;
+    pointer-events: none;
+    animation: tapBlink 2s infinite;
+}
+
+@keyframes tapBlink {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.tap-level-banner {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    color: #fff;
+    font-family: 'Bangers';
+    text-shadow: 0 0 20px #00e5ff;
+    z-index: 2000;
+    animation: tapLevelUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes tapLevelUp {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.tap-heart-fx {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1100;
+    transition: all 1s ease-out;
 }

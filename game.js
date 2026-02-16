@@ -39,7 +39,8 @@
         // --- NEW DUNGEON PROPS ---
         dungeonKeys: 0,
         dungeonLevel: { buu: 1, frieza: 1, cell: 1 },
-        dailyLogin: { day: 1, lastClaimTime: 0 }
+        dailyLogin: { day: 1, lastClaimTime: 0 },
+        tapEvent: { baseTime: Date.now(), lastPlayed: 0 }
     };
 
     window.battle = {
@@ -752,6 +753,7 @@
         }
 
         if (window.SoulSystem) window.SoulSystem.updateBtnUI();
+        updateTapEventUI();
     }
 
     function updateVisualSlot(type, id) {
@@ -1074,5 +1076,115 @@
     window.syncUI = syncUI;
     window.popDamage = popDamage;
     window.toggleAutoMerge = toggleAutoMerge;
+
+    // --- TAP EVENT BRIDGE ---
+    window.openTapEventInfo = function () {
+        if (!window.player.tapEvent) window.player.tapEvent = { baseTime: Date.now(), lastPlayed: 0 };
+        const now = Date.now();
+        const diff = now - window.player.tapEvent.lastPlayed;
+        const cooldown = 15 * 60 * 1000;
+
+        const btnStart = document.getElementById('btn-start-tap');
+        if (diff < cooldown) {
+            const ms = cooldown - diff;
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            btnStart.disabled = true;
+            btnStart.innerText = `COOLDOWN (${m}m ${s}s)`;
+            btnStart.style.background = "#555";
+        } else {
+            btnStart.disabled = false;
+            btnStart.innerText = "START!";
+            btnStart.style.background = "linear-gradient(to bottom, #f1c40f, #f39c12)";
+        }
+
+        document.getElementById('tap-info-modal').style.display = 'flex';
+    };
+
+    window.closeTapEventInfo = function () {
+        document.getElementById('tap-info-modal').style.display = 'none';
+    };
+
+    window.startTapEvent = function () {
+        window.closeTapEventInfo();
+        if (window.TapEvent) {
+            window.TapEvent.init();
+            window.TapEvent.start();
+            window.player.tapEvent.lastPlayed = Date.now();
+            window.isDirty = true;
+        }
+    };
+
+    window.applyTapRewards = function (results) {
+        const lvlGained = results.levels || 0;
+        const goldGained = results.gold || 0;
+
+        document.getElementById('tap-res-lvl').innerText = lvlGained;
+        document.getElementById('tap-res-gold').innerText = window.formatNumber(goldGained);
+        document.getElementById('tap-result-modal').style.display = 'flex';
+
+        // Add levels
+        for (let i = 0; i < lvlGained; i++) {
+            window.player.lvl++;
+            window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
+            window.player.bHp = Math.floor(window.player.bHp * 1.05) + 1000;
+            window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
+            window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
+
+            if (window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
+        }
+
+        window.player.coins += goldGained;
+        window.player.hp = window.GameState.gokuMaxHP;
+        window.isDirty = true;
+    };
+
+    window.closeTapResult = function () {
+        document.getElementById('tap-result-modal').style.display = 'none';
+        checkLevelUp(); // This will trigger the modal if levels were gained
+        syncUI();
+    };
+
+    function updateTapEventUI() {
+        if (!window.player.tapEvent) window.player.tapEvent = { baseTime: Date.now(), lastPlayed: 0 };
+        const now = Date.now();
+        const week = 7 * 24 * 3600 * 1000;
+        const activeDuration = 3 * 24 * 3600 * 1000;
+
+        let elapsed = now - window.player.tapEvent.baseTime;
+        if (elapsed >= week) {
+            window.player.tapEvent.baseTime = now;
+            elapsed = 0;
+        }
+
+        const btn = document.getElementById('btn-tap-event');
+        const timer = document.getElementById('tap-event-timer');
+
+        if (elapsed < activeDuration) {
+            // Event is Active
+            if (btn) btn.style.display = 'flex';
+            if (timer) {
+                const remaining = activeDuration - elapsed;
+                const d = Math.floor(remaining / 86400000);
+                const h = Math.floor((remaining % 86400000) / 3600000);
+                const m = Math.floor((remaining % 3600000) / 60000);
+                const s = Math.floor((remaining % 60000) / 1000);
+                timer.innerText = `${d}d ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+        } else {
+            // Event is Inactive
+            if (btn) btn.style.display = 'none';
+        }
+    }
+
+    // Wrap initGame to include TapEvent init
+    const originalInit = window.initGame;
+    window.initGame = function () {
+        if (originalInit) originalInit();
+        if (window.TapEvent) window.TapEvent.init();
+    };
+
+    // Update the existing loop/intervals to call updateTapEventUI
+    setInterval(updateTapEventUI, 1000);
 
 })();

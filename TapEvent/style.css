@@ -1,0 +1,236 @@
+:root {
+    --primary: #ff0055;
+    --secondary: #00e5ff;
+    --bg: #1a1a1a;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg);
+    font-family: 'Bangers', cursive;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: black;
+}
+
+/* UI Stats */
+.ui-header {
+    position: absolute;
+    top: 20px;
+    width: 90%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    z-index: 10;
+}
+
+.stat-box {
+    background: rgba(0, 0, 0, 0.8);
+    border: 3px solid white;
+    padding: 10px;
+    border-radius: 8px;
+    color: white;
+    font-size: 1.5rem;
+    min-width: 60px;
+    text-align: center;
+    box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+}
+
+.xp-bar-container {
+    flex-grow: 1;
+    position: relative;
+    padding: 0;
+    border: 3px solid white;
+    background: #333;
+    overflow: hidden;
+}
+
+#xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00e5ff, #0099ff);
+    transition: width 0.2s;
+}
+
+.xp-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+    text-shadow: 2px 2px 0 #000;
+    z-index: 2;
+}
+
+/* Combo Counter */
+#combo-container {
+    position: absolute;
+    top: 15%;
+    z-index: 300;
+    transform: rotate(-5deg);
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+#combo-container.hidden {
+    opacity: 0;
+}
+
+#combo-count {
+    font-size: 5rem;
+    z-index: 300;
+    color: var(--primary);
+    -webkit-text-stroke: 2px white;
+    text-shadow: 5px 5px 0px #000;
+    line-height: 0.8;
+}
+
+#combo-label {
+    font-size: 2rem;
+    z-index: 300;
+    color: yellow;
+    letter-spacing: 2px;
+    -webkit-text-stroke: 1px black;
+}
+
+/* Sprite Setup */
+.sprite-wrapper {
+    position: relative;
+    z-index: 5;
+    transition: transform 0.1s;
+}
+
+#action-sprite {
+    /* DEFAULT SIZE - JS WILL OVERRIDE THIS */
+    width: 200px;
+    height: 200px;
+    background-image: url('sss9.PNG');
+    /* YOUR IMAGE NAME HERE */
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    cursor: pointer;
+    transform-origin: top center;
+    transform: scale(0.8);
+}
+
+/* Physics Effects */
+.pulse-anim {
+    animation: pulse 0.1s linear;
+}
+
+.shake-screen {
+    animation: shake 0.3s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.95) brightness(1.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-2px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(4px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-6px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(6px, 0, 0);
+    }
+}
+
+/* Floating Text (Popups) */
+.float-text {
+    position: absolute;
+    pointer-events: none;
+    font-size: 2rem;
+    font-weight: bold;
+    animation: floatUp 1s forwards;
+    z-index: 20;
+    -webkit-text-stroke: 1px black;
+    text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-100px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Hint Text */
+.hint-text {
+    position: absolute;
+    bottom: 50px;
+    color: #666;
+    font-size: 1.2rem;
+    pointer-events: none;
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* --- IDLE HEARTBEAT ANIMATION --- */
+/* This class is added by JS when velocity is low */
+.idle-mode {
+    animation: breathe 2s infinite ease-in-out;
+}
+
+@keyframes breathe {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.03);
+        filter: brightness(1.1);
+    }
+
+    /* Slight grow & glow */
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}

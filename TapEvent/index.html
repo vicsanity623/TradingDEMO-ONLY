@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bangerz</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000"> <!-- Change hex to match your game bg -->
+    <link rel="apple-touch-icon" href="IMG_0061.PNG">
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Background Speed Lines Effect -->
+        <div class="speed-lines"></div>
+
+        <!-- UI Header -->
+        <div class="ui-header">
+            <div class="stat-box">
+                <span class="label">LEVEL</span>
+                <span id="level-display">1</span>
+            </div>
+            <div class="stat-box xp-bar-container">
+                <div id="xp-fill" style="width: 0%;"></div>
+                <span class="xp-text">XP</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">GOLD</span>
+                <span id="gold-display" style="color: gold;">0</span>
+            </div>
+        </div>
+
+        <!-- Combo Counter (Hidden until active) -->
+        <div id="combo-container" class="hidden">
+            <div id="combo-count">0</div>
+            <div id="combo-label">COMBO!</div>
+        </div>
+
+        <!-- The Main Sprite Button -->
+        <div class="sprite-wrapper">
+            <div id="action-sprite"></div>
+        </div>
+
+        <!-- Instructional Text -->
+        <p class="hint-text">TAP FAST TO CHARGE!</p>
+
+        <!-- Container for floating particles -->
+        <div id="fx-layer"></div>
+    </div>
+
+    <script src="game.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW Registered!', reg))
+                    .catch(err => console.log('SW Failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
