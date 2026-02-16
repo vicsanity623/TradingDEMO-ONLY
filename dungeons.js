@@ -360,8 +360,14 @@
         if (dist > 5) {
             p.vx += (dx / dist) * physics.magnet;
             p.vy += (dy / dist) * physics.magnet;
-            b.vx -= (dx / dist) * physics.magnet;
-            b.vy -= (dy / dist) * physics.magnet;
+            
+            // Only pull boss if not stunned from a crit
+            if (!b.stun || b.stun <= 0) {
+                b.vx -= (dx / dist) * physics.magnet;
+                b.vy -= (dy / dist) * physics.magnet;
+            } else {
+                b.stun--; // Decrease stun timer
+            }
         }
 
         // Apply Velocity
@@ -404,20 +410,12 @@
     }
 
     function triggerHit(p, b) {
-        // Bounce back physics
-        const dx = b.x - p.x;
-        const dy = b.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        p.vx -= (dx / dist) * physics.bounce;
-        p.vy -= (dy / dist) * physics.bounce;
-        b.vx += (dx / dist) * physics.bounce;
-        b.vy += (dy / dist) * physics.bounce;
-
-        // Damage Calc
+        // Damage Calc (Moved up)
         const playerPower = window.GameState.gokuPower || 100;
-        const critChance = window.player.critChance || 0.05;
-        const critDmgMult = window.player.critDamage || 1.5;
+        // Use global player stats if available, else defaults
+        // Note: You might want to pull crit from window.player directly if stored there
+        const critChance = (window.player.rank * 0.05) + 0.1; // Example crit logic matching battle.js
+        const critDmgMult = 2.0; 
 
         let dmg = playerPower * (0.9 + Math.random() * 0.2);
         let isCrit = false;
@@ -425,6 +423,26 @@
         if (Math.random() < critChance) {
             isCrit = true;
             dmg *= critDmgMult;
+        }
+
+        // Bounce back physics
+        const dx = b.x - p.x;
+        const dy = b.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        // --- NEW IMPACT LOGIC ---
+        // Normal bounce for player
+        p.vx -= (dx / dist) * physics.bounce;
+        p.vy -= (dy / dist) * physics.bounce;
+        
+        // Massive blowback for Boss on Crit
+        const force = isCrit ? (physics.bounce * 8) : physics.bounce;
+        b.vx += (dx / dist) * force;
+        b.vy += (dy / dist) * force;
+        
+        if (isCrit) {
+            // Apply Stun to prevent magnet pull immediately
+            physics.boss.stun = 20; // 20 frames of no magnet
         }
 
         dmg = Math.floor(dmg);
