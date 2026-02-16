@@ -36,6 +36,7 @@
         dragonShards: 0,
         advanceLevel: 0,
         sp: 0,
+        // --- NEW DUNGEON PROPS ---
         dungeonKeys: 0,
         dungeonLevel: { buu: 1, frieza: 1, cell: 1 },
         dailyLogin: { day: 1, lastClaimTime: 0 }
@@ -84,33 +85,14 @@
     // --- MATH & STATS ---
     function getSoulMult() {
         const lvl = window.player.soulLevel || 1;
+        // EXPONENTIAL GROWTH: 1.5 ^ Level
+        // Level 1 = 1.5x
+        // Level 10 = 57x
         return Math.pow(1.5, lvl);
     }
 
     function getAdvMult() {
         return 1 + ((window.player.advanceLevel || 0) * 0.1); // e.g. Lvl 35 = 4.5x
-    }
-
-    function getHpAdvMult() {
-        const lvl = window.player.advanceLevel || 0;
-        if(lvl < 3) return 1.0;
-
-        const bonus = 1.15 + ((lvl - 3) * 0.05); 
-        return 1 + bonus; // Add to existing 100% base
-    }
-
-    function getDefAdvMult() {
-        const lvl = window.player.advanceLevel || 0;
-        if(lvl < 6) return 1.0;
-        const bonus = 1.20 + ((lvl - 6) * 0.05); 
-        return 1 + bonus;
-    }
-
-    function getAtkAdvMult() {
-        const lvl = window.player.advanceLevel || 0;
-        if(lvl < 12) return 1.0;
-        const bonus = 1.25 + ((lvl - 12) * 0.05); 
-        return 1 + bonus;
     }
 
     window.GameState = {
@@ -176,52 +158,6 @@
 
         let critChance = 1 + (p.rank * 0.5);
         if (advLvl >= 5) critChance += 5 + ((advLvl - 5) * 0.5);
-        // Populate Main Stats
-        document.getElementById('det-power').innerText = window.formatNumber(totalPower);
-        document.getElementById('det-hp').innerText = window.formatNumber(maxHp);
-        document.getElementById('det-atk').innerText = window.formatNumber(totalPower);
-        document.getElementById('det-def').innerText = window.formatNumber(defense);
-
-        document.getElementById('det-soul').innerHTML = `
-            <div style="display:flex; justify-content:space-between; width:100%;">
-                <span>💎 Soul Boost:</span> <span style="color:#00ffff">x${sMult.toFixed(1)}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; width:100%; margin-top:2px;">
-                <span>⚙️ Gear Adv:</span> <span style="color:#00ff00">+${Math.round((aMult - 1) * 100)}%</span>
-            </div>
-        `;
-
-        document.getElementById('det-crit').innerText = `${critChance.toFixed(1)}%`;
-        document.getElementById('det-coins').innerText = window.formatNumber(p.coins);
-
-        // Inject Extra Stats
-        let extraContainer = document.getElementById('det-extra-stats');
-        if (!extraContainer) {
-            extraContainer = document.createElement('div');
-            extraContainer.id = 'det-extra-stats';
-            extraContainer.style.marginTop = '10px';
-            extraContainer.style.borderTop = '1px solid #444';
-            extraContainer.style.paddingTop = '10px';
-            const coinRow = document.getElementById('det-coins').parentNode;
-            coinRow.parentNode.insertBefore(extraContainer, coinRow);
-        }
-
-        // Logic for display strings
-        let extraHtml = "";
-        
-        // Show specific HP/ATK/DEF boosts if active
-        if (advLvl >= 3) {
-            const val = 115 + ((advLvl - 3) * 5);
-            extraHtml += `<div class="stat-row"><span>❤️ HP Boost</span> <span style="color:#ff3e3e">+${val}%</span></div>`;
-        }
-        if (advLvl >= 6) {
-            const val = 120 + ((advLvl - 6) * 5);
-            extraHtml += `<div class="stat-row"><span>🛡️ DEF Boost</span> <span style="color:#2ecc71">+${val}%</span></div>`;
-        }
-        if (advLvl >= 12) {
-            const val = 125 + ((advLvl - 12) * 5);
-            extraHtml += `<div class="stat-row"><span>⚔️ ATK Boost</span> <span style="color:#3498db">+${val}%</span></div>`;
-        }
 
         let evasion = 0;
         if (advLvl >= 50) evasion = 15;
