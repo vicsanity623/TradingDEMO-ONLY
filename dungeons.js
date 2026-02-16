@@ -10,21 +10,21 @@
                 name: "Majin Buu",
                 img: "majin_buu.png",
                 baseHp: 100000000000, // 100B
-                rewards: { shards: 50, coins: 100000 },
+                rewards: { shards: 1, coins: 500 },
                 color: "#ff79c6"
             },
             frieza: {
                 name: "Frieza",
                 img: "freeza.png",
                 baseHp: 150000000000, // 150B
-                rewards: { souls: 50, coins: 200000 },
+                rewards: { souls: 1, coins: 1000 },
                 color: "#bd93f9"
             },
             cell: {
                 name: "Cell",
                 img: "cell.png",
                 baseHp: 200000000000, // 200B
-                rewards: { gearChance: true, coins: 300000 },
+                rewards: { gearChance: true, coins: 2500 },
                 color: "#50fa7b"
             }
         },
@@ -393,7 +393,7 @@
         // Collision Check
         if (dist < 12 && physics.hitCooldown <= 0) {
             triggerHit(p, b);
-            physics.hitCooldown = 15; // Delay between hits
+            physics.hitCooldown = 5; // Delay between hits
         }
         if (physics.hitCooldown > 0) physics.hitCooldown--;
 
@@ -613,7 +613,7 @@
 
             window.player.dungeonLevel[bossData.key]++;
 
-            const scaler = Math.pow(1.05, bossData.lvl - 1);
+            const scaler = Math.pow(1.01, bossData.lvl - 1);
             let rewardsHtml = '';
 
             if (bossData.rewards.coins) {
@@ -632,7 +632,7 @@
                 rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`;
             }
             if (bossData.rewards.gearChance) {
-                const qty = Math.floor(Math.random() * 3) + 1;
+                const qty = Math.floor(Math.random() * 4) + 1;
                 if (window.addToInventory) {
                     for (let i = 0; i < qty; i++) {
                         window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * bossData.lvl, rarity: 3 });
