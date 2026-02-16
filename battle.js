@@ -984,8 +984,8 @@
 
         // Key Drop Logic
         let keyDrop = 0;
-        if (Math.random() < 0.51) {
-            keyDrop = Math.floor(Math.random() * 9) + 1;
+        if (Math.random() < 0.12) {
+            keyDrop = Math.floor(Math.random() * 2) + 1;
             window.player.dungeonKeys = (window.player.dungeonKeys || 0) + keyDrop;
         }
 
