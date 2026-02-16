@@ -565,7 +565,7 @@
                 }
             }
 
-            if (e.hp <= 0) {
+            if(e.hp <= 0) {
                 spawnLoot(e.x, e.y, true);
 
                 // SOUL LOGIC
@@ -579,6 +579,11 @@
 
                 enemies.splice(i, 1);
                 kills++;
+                
+                // --- NEW: Track Total Explore Kills for Profile ---
+                window.player.exploreKills = (window.player.exploreKills || 0) + 1;
+                // --------------------------------------------------
+
                 checkQuestProgress();
             }
         }
