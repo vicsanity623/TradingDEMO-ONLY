@@ -10,7 +10,7 @@
                 name: "Majin Buu",
                 img: "majin_buu.png",
                 baseHp: 100000000000, // 100B
-                rewards: { shards: 3, coins: 500 },
+                rewards: { shards: 1, coins: 500 },
                 color: "#ff79c6"
             },
             frieza: {
@@ -655,7 +655,7 @@
 
             window.player.dungeonLevel[bossData.key]++;
 
-            const scaler = Math.pow(1.04, bossData.lvl - 1);
+            const scaler = Math.pow(1.03, bossData.lvl - 1);
             let rewardsHtml = '';
 
             if (bossData.rewards.coins) {
