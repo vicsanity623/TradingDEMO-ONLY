@@ -49,8 +49,9 @@
                 startKi: lvl >= 40 ? 20 : 0,
                 bossSlayer: lvl >= 45 ? 20 : 0,
                 zenkai: lvl >= 60,
-                // New Visual Indicators for Lvl 3 and 12 logic
+                // Visual Indicators
                 hpBoost: lvl >= 3,
+                defBoost: lvl >= 6, // NEW: Defense Boost
                 atkBoost: lvl >= 12
             };
         },
@@ -89,6 +90,7 @@
             const bubble = document.getElementById('bulma-speech');
             if(lvl < 3) bubble.innerText = "Level 3 gives a huge HP Boost!";
             else if(lvl < 5) bubble.innerText = "Level 5 unlocks Critical Hits!";
+            else if(lvl < 6) bubble.innerText = "Level 6 gives a huge Defense Boost!";
             else if(lvl < 10) bubble.innerText = "Level 10 unlocks Life Steal!";
             else if(lvl < 12) bubble.innerText = "Level 12 gives a huge Attack Boost!";
             else if (lvl < 15) bubble.innerText = "Level 15 unlocks Evasion!";
@@ -107,7 +109,6 @@
 
             let statsHtml = `<div class="adv-stat-row"><span>Stat Boost:</span> <span style="color:#00ff00">+${(bonuses.statMult*100).toFixed(0)}% ➤ +${(nextBonuses.statMult*100).toFixed(0)}%</span></div>`;
             
-            // Helper to render rows
             const addRow = (label, curr, next, unlockLvl) => {
                 if(lvl >= (unlockLvl-1) || next > 0) {
                     const color = lvl >= unlockLvl ? '#00ff00' : '#777';
@@ -116,16 +117,23 @@
                 }
             };
             
-            // NEW: HP Boost (Lvl 3)
+            // HP Boost (Lvl 3)
             if(lvl >= 2 || bonuses.hpBoost) {
                 const color = lvl >= 3 ? '#ff3e3e' : '#777';
                 statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>HP Boost:</span> <span>${lvl >= 3 ? "+115%" : "Locked"}</span></div>`;
             }
 
             addRow("Crit Chance", bonuses.critChance, nextBonuses.critChance, 5);
+
+            // NEW: Defense Boost (Lvl 6)
+            if(lvl >= 5 || bonuses.defBoost) {
+                const color = lvl >= 6 ? '#2ecc71' : '#777';
+                statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>DEF Boost:</span> <span>${lvl >= 6 ? "+120%" : "Locked"}</span></div>`;
+            }
+
             addRow("Life Steal", bonuses.lifeSteal, nextBonuses.lifeSteal, 10);
             
-            // NEW: Attack Boost (Lvl 12)
+            // Attack Boost (Lvl 12)
             if(lvl >= 11 || bonuses.atkBoost) {
                 const color = lvl >= 12 ? '#3498db' : '#777';
                 statsHtml += `<div class="adv-stat-row" style="color:${color}"><span>ATK Boost:</span> <span>${lvl >= 12 ? "+125%" : "Locked"}</span></div>`;
