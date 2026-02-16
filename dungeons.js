@@ -10,14 +10,14 @@
                 name: "Majin Buu",
                 img: "majin_buu.png",
                 baseHp: 100000000000, // 100B
-                rewards: { shards: 1, coins: 500 },
+                rewards: { shards: 3, coins: 500 },
                 color: "#ff79c6"
             },
             frieza: {
                 name: "Frieza",
                 img: "freeza.png",
                 baseHp: 150000000000, // 150B
-                rewards: { souls: 1, coins: 1000 },
+                rewards: { souls: 10, coins: 1000 },
                 color: "#bd93f9"
             },
             cell: {
