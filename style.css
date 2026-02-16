@@ -2410,6 +2410,7 @@ nav button.active {
 .tap-ui-header {
     position: absolute;
     top: 20px;
+    top: calc(20px + env(safe-area-inset-top));
     width: 90%;
     display: flex;
     justify-content: space-between;
@@ -2458,6 +2459,7 @@ nav button.active {
 #tap-combo-container {
     position: absolute;
     top: 120px;
+    top: calc(120px + env(safe-area-inset-top));
     right: 20px;
     z-index: 300;
     transform: rotate(-5deg);
