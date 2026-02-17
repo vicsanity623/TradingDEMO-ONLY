@@ -90,29 +90,13 @@
         const drawX = rect.left;
         const drawY = rect.top;
 
-        // Try to draw image to get pixel data
-        try {
-            if (!element.complete || element.naturalWidth === 0) throw new Error("Image not loaded");
-            // Draw once to read data, then clear
-            ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
-        } catch (e) {
-            // Fallback if image tainted or missing
-            if (!reverse) {
-                element.style.transition = "opacity 1.5s, transform 1.5s";
-                element.style.opacity = "0";
-                element.style.transform = `scale(0.5) translateY(-30px) rotate(${direction === 'left' ? -20 : 20}deg)`;
-            } else {
-                element.style.transition = "opacity 0.5s";
-                element.style.opacity = "1";
-            }
-            canvas.remove();
-            return;
-        }
-
         const particles = [];
         const density = 4;
 
+        // Try to get pixel data for particle effect
         try {
+            // Draw image to canvas to read pixel data
+            ctx.drawImage(element, drawX, drawY, rect.width, rect.height);
             const imgData = ctx.getImageData(drawX, drawY, rect.width, rect.height);
             const data = imgData.data;
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear original image from canvas

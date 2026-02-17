@@ -124,7 +124,7 @@
 
 
     // --- VISUAL EFFECTS: THANOS SNAP ---
-    function explodeSprite(element) {
+    function explodeSprite(element, direction) {
         if (!element) return;
 
         const rect = element.getBoundingClientRect();
@@ -181,7 +181,7 @@
                             x: drawX + x,
                             y: drawY + y,
                             color: `rgba(${r},${g},${b},${a / 255})`,
-                            vx: (Math.random() - 0.5) * 4,
+                            vx: (Math.random() - 0.5) * 4 + (direction === 'left' ? -4 : 4),
                             vy: (Math.random() - 0.5) * 4 - 2, // Slight upward drift
                             life: 1.0 + Math.random() * 0.5
                         });
