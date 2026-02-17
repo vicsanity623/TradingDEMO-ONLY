@@ -3,13 +3,13 @@
    RPG SKILL SYSTEM
    ============================ */
 
-(function() {
+(function () {
 
     /* -------------------------
        CONSTANTS
     ------------------------- */
     const STORAGE_KEY = 'GOKU_SKILLS_V1';
-    
+
     // Default Skill Data
     const DEFAULT_SKILLS = {
         doubleHit: {
@@ -69,7 +69,7 @@
     ------------------------- */
     function updateUnlocks() {
         if (!window.GameState) return;
-        
+
         if (GameState.gokuLevel >= 30) skills.doubleHit.unlocked = true;
         if (GameState.gokuLevel >= 50) skills.focus.unlocked = true;
         if (GameState.gokuLevel >= 70) skills.kameBlast.unlocked = true;
@@ -106,7 +106,7 @@
 
     Skills.useDoubleHit = function (battleRef) {
         const s = skills.doubleHit;
-        
+
         if (!s.unlocked || !canUse(s) || !battleRef || !battleRef.active || !battleRef.enemy) return 0;
 
         s.lastUsed = now();
@@ -115,7 +115,7 @@
         // Visual Feedback
         if (window.popDamage) {
             const floatText = document.createElement('div');
-            floatText.className = 'pop skill-text'; 
+            floatText.className = 'pop skill-text';
             floatText.innerText = "DOUBLE HIT!";
             floatText.style.color = '#ff9900';
             floatText.style.fontSize = '2.5rem';
@@ -127,10 +127,10 @@
             setTimeout(() => floatText.remove(), 1000);
         }
 
-        const duration = 3000; 
+        const duration = 3000;
         const hitsPerSecond = 10;
         const intervalTime = 1000 / hitsPerSecond;
-        const dmgPerHit = Math.ceil((window.GameState ? GameState.gokuPower : 10) * 0.4); 
+        const dmgPerHit = Math.ceil((window.GameState ? GameState.gokuPower : 10) * 0.4);
 
         const rapidInterval = setInterval(() => {
             if (!window.GameState || !GameState.inBattle || !battleRef.active || battleRef.enemy.hp <= 0) {
@@ -161,15 +161,41 @@
 
         GameState.gokuHP = Math.min(GameState.gokuMaxHP, GameState.gokuHP + healAmount);
 
-        // Visual
-        const floatText = document.createElement('div');
-        floatText.className = 'pop';
-        floatText.innerText = "FOCUS HEAL!";
-        floatText.style.color = '#2ecc71'; 
-        floatText.style.left = '50%';
-        floatText.style.top = '40%';
-        document.body.appendChild(floatText);
-        setTimeout(() => floatText.remove(), 1000);
+        // Green particle healing visual
+        const playerContainer = document.getElementById('view-char') || document.body;
+
+        // Spawn 18 green particles
+        for (let i = 0; i < 18; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'focus-particle';
+
+            // Random position around center
+            const angle = (Math.PI * 2 * i) / 18;
+            const distance = 20 + Math.random() * 40;
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+
+            particle.style.left = `calc(50% + ${x}px)`;
+            particle.style.top = `calc(50% + ${y}px)`;
+            particle.style.animationDelay = `${i * 0.05}s`;
+
+            playerContainer.appendChild(particle);
+            setTimeout(() => particle.remove(), 1500);
+        }
+
+        // Heal amount text
+        const healText = document.createElement('div');
+        healText.className = 'pop';
+        healText.innerText = `+${window.formatNumber ? window.formatNumber(Math.floor(healAmount)) : Math.floor(healAmount)}`;
+        healText.style.color = '#2ecc71';
+        healText.style.fontSize = '2rem';
+        healText.style.fontWeight = 'bold';
+        healText.style.textShadow = '0 0 10px #2ecc71, 0 0 20px #2ecc71';
+        healText.style.left = '50%';
+        healText.style.top = '30%';
+        healText.style.zIndex = '9999';
+        playerContainer.appendChild(healText);
+        setTimeout(() => healText.remove(), 1200);
 
         save();
         return healAmount;
@@ -203,12 +229,12 @@
         }
 
         if (skills.kameBlast.unlocked && canUse(skills.kameBlast)) {
-            if(battleRef && battleRef.active && battleRef.enemy) {
-                 const dmg = Skills.useKameBlast();
-                 if(dmg > 0) {
-                     battleRef.enemy.hp -= dmg;
-                     if(window.popDamage) window.popDamage(dmg, 'e-box', true);
-                 }
+            if (battleRef && battleRef.active && battleRef.enemy) {
+                const dmg = Skills.useKameBlast();
+                if (dmg > 0) {
+                    battleRef.enemy.hp -= dmg;
+                    if (window.popDamage) window.popDamage(dmg, 'e-box', true);
+                }
             }
         }
     };
@@ -218,12 +244,12 @@
     ------------------------- */
     Skills.openSkillScreen = function () {
         updateUnlocks();
-        
+
         const overlay = document.getElementById('skills-overlay');
-        if(!overlay) return; 
-        
+        if (!overlay) return;
+
         const container = document.getElementById('skills-list-container');
-        if(container) {
+        if (container) {
             container.innerHTML = `
                 ${renderSkillCard(skills.doubleHit, 'Level 30')}
                 ${renderSkillCard(skills.focus, 'Level 50')}
@@ -234,16 +260,16 @@
         overlay.style.display = 'flex';
     };
 
-    Skills.closeSkillScreen = function() {
+    Skills.closeSkillScreen = function () {
         const overlay = document.getElementById('skills-overlay');
-        if(overlay) overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     };
 
     function renderSkillCard(skill, unlockText) {
         const locked = !skill.unlocked;
         const cd = (skill.cooldown / 1000).toFixed(1);
         const progress = Math.min(100, (skill.xp / skill.xpToNext) * 100);
-        
+
         return `
         <div class="skill-card ${locked ? 'locked' : ''}">
             <div class="skill-header">
@@ -264,10 +290,34 @@
     }
 
     function triggerKameVisual() {
-        const beam = document.createElement('div');
-        beam.className = 'kame-visual-beam';
-        document.body.appendChild(beam);
-        setTimeout(() => beam.remove(), 3000);
+        const flash = document.createElement('div');
+        flash.className = 'kame-visual-beam';
+        document.body.appendChild(flash);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            flash.style.opacity = '0';
+            flash.style.transition = 'opacity 0.5s ease-out';
+
+            // Charge phase
+            requestAnimationFrame(() => {
+                flash.style.opacity = '0.3';
+
+                // Flash phase
+                setTimeout(() => {
+                    flash.style.transition = 'opacity 0.3s ease-out';
+                    flash.style.opacity = '0.9';
+
+                    // Fade out
+                    setTimeout(() => {
+                        flash.style.transition = 'opacity 1.2s ease-in';
+                        flash.style.opacity = '0';
+
+                        setTimeout(() => flash.remove(), 1200);
+                    }, 300);
+                }, 500);
+            });
+        });
     }
 
     window.Skills = Skills;
