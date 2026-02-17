@@ -237,7 +237,7 @@
         Object.keys(DUNGEON_CONFIG.BOSSES).forEach(key => {
             const boss = DUNGEON_CONFIG.BOSSES[key];
             const lvl = window.player.dungeonLevel[key] || 1;
-            const hp = boss.baseHp * Math.pow(20, lvl - 1);
+            const hp = boss.baseHp * Math.pow(7, lvl - 1);
 
             const card = document.createElement('div');
             card.className = 'dungeon-card';
@@ -289,7 +289,7 @@
         const lvl = window.player.dungeonLevel[bossKey];
 
         // Calc HP
-        const bossHp = bossConfig.baseHp * Math.pow(20, lvl - 1);
+        const bossHp = bossConfig.baseHp * Math.pow(7, lvl - 1);
         const bossAtk = (window.GameState.gokuMaxHP * 0.01) + (bossHp * 0.0001);
 
         activeBoss = {
