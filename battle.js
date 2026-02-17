@@ -1041,7 +1041,7 @@
                 xpTextEl.style.color = "#00ff00";
                 xpTextEl.style.textShadow = "0 0 5px #00ff00";
             } else {
-                xpTextEl.innerText = `${Math.floor(window.player.xp)} / ${Math.floor(window.player.nextXp)}`;
+                xpTextEl.innerText = `${window.formatNumber(window.player.xp)} / ${window.formatNumber(window.player.nextXp)}`;
                 xpTextEl.style.color = "white";
                 xpTextEl.style.textShadow = "none";
             }
@@ -1102,7 +1102,7 @@
         }
 
         document.getElementById('r-lvl').innerText = window.player.lvl;
-        document.getElementById('r-xp-text').innerText = `${Math.floor(window.player.xp)} / ${Math.floor(window.player.nextXp)}`;
+        document.getElementById('r-xp-text').innerText = `${window.formatNumber(window.player.xp)} / ${window.formatNumber(window.player.nextXp)}`;
         const xpPct = Math.min(100, (window.player.xp / window.player.nextXp) * 100);
         document.getElementById('r-bar-xp').style.width = xpPct + "%";
         document.getElementById('r-xp').innerText = "0";

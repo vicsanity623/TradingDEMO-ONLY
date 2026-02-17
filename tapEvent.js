@@ -17,7 +17,7 @@
         gold: 0,
         level: 0,
         xp: 0,
-        xpToNext: 100,
+        xpToNext: 1000,
         combo: 0,
         maxCombo: 0,
         comboTimer: null,
@@ -25,7 +25,7 @@
         velocity: 0,
         intensity: 0,
         pulsePhase: 0,
-        timeLeft: 60,
+        timeLeft: 25,
         timerInterval: null,
         active: false,
         fxObjects: [] // Combined pool for all canvas effects
@@ -86,12 +86,12 @@
             state.gold = 0;
             state.level = 0;
             state.xp = 0;
-            state.xpToNext = 100;
+            state.xpToNext = 1000;
             state.combo = 0;
             state.maxCombo = 0;
             state.velocity = 0;
             state.intensity = 0;
-            state.timeLeft = 60;
+            state.timeLeft = 25;
             state.active = true;
             state.fxObjects = [];
 

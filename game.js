@@ -100,27 +100,39 @@
         get gokuLevel() { return window.player.lvl; },
 
         get gokuPower() {
-            const rawAtk = window.player.bAtk + (window.player.rank * 400) + (window.player.gear.w?.val || 0);
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, atkBoost: 0 };
+            const soulMult = getSoulMult();
+            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+
+            const weaponVal = (window.player.gear.w?.val || 0) * gearMult * soulMult;
+            const rawAtk = window.player.bAtk + (window.player.rank * 400) + weaponVal;
             const mult = 1 + adv.statMult + (adv.atkBoost / 100);
-            return Math.floor(rawAtk * getSoulMult() * mult);
+            return Math.floor(rawAtk * soulMult * mult);
         },
 
         get gokuDefense() {
-            const rawDef = window.player.bDef + (window.player.rank * 150) + (window.player.gear.a?.val || 0);
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, defBoost: 0 };
+            const soulMult = getSoulMult();
+            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+
+            const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            const rawDef = window.player.bDef + (window.player.rank * 150) + armorVal;
             const mult = 1 + adv.statMult + (adv.defBoost / 100);
-            return Math.floor(rawDef * getSoulMult() * mult);
+            return Math.floor(rawDef * soulMult * mult);
         },
 
         get gokuHP() { return window.player.hp; },
         set gokuHP(v) { window.player.hp = v; },
 
         get gokuMaxHP() {
-            const rawHp = window.player.bHp + (window.player.rank * 2500) + (window.player.gear.a?.val || 0);
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, hpBoost: 0 };
+            const soulMult = getSoulMult();
+            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+
+            const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            const rawHp = window.player.bHp + (window.player.rank * 2500) + armorVal;
             const mult = 1 + adv.statMult + (adv.hpBoost / 100);
-            return Math.floor(rawHp * getSoulMult() * mult);
+            return Math.floor(rawHp * soulMult * mult);
         },
         inBattle: false
     };
