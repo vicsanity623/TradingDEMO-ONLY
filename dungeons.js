@@ -655,7 +655,7 @@
 
             window.player.dungeonLevel[bossData.key]++;
 
-            const scaler = Math.pow(1.03, bossData.lvl - 1);
+            const scaler = Math.pow(1.015, bossData.lvl - 1);
             let rewardsHtml = '';
 
             if (bossData.rewards.coins) {
