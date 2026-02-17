@@ -658,7 +658,8 @@
 
         document.getElementById('ui-rank-badge').innerText = RANKS[window.player.rank].substring(0, 2);
         document.getElementById('ui-name').innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
-        document.getElementById('ui-lvl').innerText = window.player.lvl;
+        const trueLvl = (window.player.rank * 100) + window.player.lvl;
+        document.getElementById('ui-lvl').innerText = trueLvl;
 
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
         document.getElementById('ui-def').innerText = window.formatNumber(def);
