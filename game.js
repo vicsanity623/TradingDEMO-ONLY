@@ -1127,7 +1127,7 @@
         if (!window.player.tapEvent) window.player.tapEvent = { baseTime: Date.now(), lastPlayed: 0 };
         const now = Date.now();
         const diff = now - window.player.tapEvent.lastPlayed;
-        const cooldown = 15 * 60 * 1000;
+        const cooldown = 15 * 60 * 1000; // 15 Minutes
 
         const btnStart = document.getElementById('btn-start-tap');
         if (diff < cooldown) {
@@ -1160,6 +1160,7 @@
         }
     };
 
+    // --- CRITICAL FIX HERE ---
     window.applyTapRewards = function (results) {
         const lvlGained = results.levels || 0;
         const goldGained = results.gold || 0;
@@ -1168,26 +1169,47 @@
         document.getElementById('tap-res-gold').innerText = window.formatNumber(goldGained);
         document.getElementById('tap-result-modal').style.display = 'flex';
 
-        // Add levels
+        // We must replicate the EXACT math from checkLevelUp() inside this loop
+        // so the player gets the correct stats for every level gained.
         for (let i = 0; i < lvlGained; i++) {
             window.player.lvl++;
-            window.player.sp = (window.player.sp || 0) + 2; // Award 2 SP per level gained
+            
+            // 1. Award SP
+            window.player.sp = (window.player.sp || 0) + 2; 
+
+            // 2. Increase XP Requirement (Exponential Scaling)
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
+
+            // 3. Increase Base Stats (The 5% compounding growth)
             window.player.bHp = Math.floor(window.player.bHp * 1.05) + 1000;
             window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
             window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
 
-            if (window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
+            // 4. Handle Rank Reset (Level 100 -> 1)
+            if (window.player.lvl >= 100) { 
+                window.player.lvl = 1; 
+                window.player.rank++; 
+            }
         }
 
+        // Apply Gold
         window.player.coins += goldGained;
+        
+        // Reset XP to 0. Since you got "Free Levels", you start the new level fresh.
+        // This prevents logic bugs where you might have enough XP to double-level.
+        window.player.xp = 0;
+        
+        // Full Heal
         window.player.hp = window.GameState.gokuMaxHP;
+        
         window.isDirty = true;
     };
 
     window.closeTapResult = function () {
         document.getElementById('tap-result-modal').style.display = 'none';
-        checkLevelUp(); // This will trigger the modal if levels were gained
+        // Even though we manually applied levels, we run this just in case
+        // there are any lingering states, and to sync the UI.
+        checkLevelUp(); 
         syncUI();
     };
 
