@@ -678,13 +678,13 @@
                 const bonusQty = Math.floor(bossData.lvl / 10);
                 const qty = baseQty + bonusQty;
 
-                // Scale rarity: 3=Rare, 4=SR, 5=SS, 6=SSS
+                // Scale rarity: 3=Rare, 4=Legendary, 5=SS, 6=SSS
                 let rarity = 3;
                 if (bossData.lvl >= 20) rarity = 6;
                 else if (bossData.lvl >= 15) rarity = 5;
                 else if (bossData.lvl >= 8) rarity = 4;
 
-                const rarityNames = ["Common", "Uncommon", "Rare", "Super Rare", "SS Grade", "SSS Grade"];
+                const rarityNames = ["Basic Gear", "Rare Gear", "Legendary Gear", "S Gear", "SS Gear", "SSS Gear"];
                 const rName = rarityNames[rarity - 1] || "Rare";
 
                 if (window.addToInventory) {
