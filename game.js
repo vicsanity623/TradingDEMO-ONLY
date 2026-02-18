@@ -84,16 +84,8 @@
     }
 
     // --- MATH & STATS ---
-    function getSoulMult() {
-        const lvl = window.player.soulLevel || 1;
-        // EXPONENTIAL GROWTH: 1.5 ^ Level
-        // Level 1 = 1.5x
-        // Level 10 = 57x
-        return Math.pow(1.5, lvl);
-    }
-
     function getAdvMult() {
-        return 1 + ((window.player.advanceLevel || 0) * 0.1); // e.g. Lvl 35 = 4.5x
+        return 1 + ((window.player.advanceLevel || 0) * 0.1); 
     }
 
     window.GameState = {
@@ -101,8 +93,11 @@
 
         get gokuPower() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, atkBoost: 0 };
-            const soulMult = getSoulMult();
-            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+            
+            // LINK TO SOUL SYSTEM
+            const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+            
+            const gearMult = 1 + adv.statMult; 
 
             const weaponVal = (window.player.gear.w?.val || 0) * gearMult * soulMult;
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + weaponVal;
@@ -112,8 +107,11 @@
 
         get gokuDefense() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, defBoost: 0 };
-            const soulMult = getSoulMult();
-            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+            
+            // LINK TO SOUL SYSTEM
+            const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+            
+            const gearMult = 1 + adv.statMult;
 
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
             const rawDef = window.player.bDef + (window.player.rank * 150) + armorVal;
@@ -126,8 +124,11 @@
 
         get gokuMaxHP() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, hpBoost: 0 };
-            const soulMult = getSoulMult();
-            const gearMult = 1 + adv.statMult; // Advance boosts apply to gear
+            
+            // LINK TO SOUL SYSTEM
+            const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+            
+            const gearMult = 1 + adv.statMult;
 
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
             const rawHp = window.player.bHp + (window.player.rank * 2500) + armorVal;
@@ -502,7 +503,7 @@
         let xpMult = 1.0, coinMult = 1.0;
         if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01));
         if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01));
-        const soulMult = 1 + (window.player.soulLevel * 0.1);
+        const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
 
         const xpGain = Math.floor(baseXp * xpMult * soulMult);
         const coinGain = Math.floor(baseCoins * coinMult * soulMult);
