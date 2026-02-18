@@ -93,30 +93,40 @@
 
         get gokuPower() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, atkBoost: 0 };
-            
-            // LINK TO SOUL SYSTEM
             const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
             
-            const gearMult = 1 + adv.statMult; 
+            // --- NEW SP MULTIPLIER ---
+            // 20% Additive Boost per point spent
+            const spCount = (window.player.spSpent && window.player.spSpent.atk) || 0;
+            const spMult = 1 + (spCount * 0.20); 
+            // -------------------------
 
+            const gearMult = 1 + adv.statMult; 
             const weaponVal = (window.player.gear.w?.val || 0) * gearMult * soulMult;
+            
+            // Note: We multiply the Final Result by spMult, making it very valuable
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + weaponVal;
             const mult = 1 + adv.statMult + (adv.atkBoost / 100);
-            return Math.floor(rawAtk * soulMult * mult);
+            
+            return Math.floor(rawAtk * soulMult * mult * spMult);
         },
 
         get gokuDefense() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, defBoost: 0 };
-            
-            // LINK TO SOUL SYSTEM
             const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
-            
-            const gearMult = 1 + adv.statMult;
 
+            // --- NEW SP MULTIPLIER ---
+            const spCount = (window.player.spSpent && window.player.spSpent.def) || 0;
+            const spMult = 1 + (spCount * 0.20); 
+            // -------------------------
+
+            const gearMult = 1 + adv.statMult; 
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            
             const rawDef = window.player.bDef + (window.player.rank * 150) + armorVal;
             const mult = 1 + adv.statMult + (adv.defBoost / 100);
-            return Math.floor(rawDef * soulMult * mult);
+            
+            return Math.floor(rawDef * soulMult * mult * spMult);
         },
 
         get gokuHP() { return window.player.hp; },
@@ -124,16 +134,20 @@
 
         get gokuMaxHP() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, hpBoost: 0 };
-            
-            // LINK TO SOUL SYSTEM
             const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
-            
-            const gearMult = 1 + adv.statMult;
 
+            // --- NEW SP MULTIPLIER ---
+            const spCount = (window.player.spSpent && window.player.spSpent.hp) || 0;
+            const spMult = 1 + (spCount * 0.20); 
+            // -------------------------
+
+            const gearMult = 1 + adv.statMult; 
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
+            
             const rawHp = window.player.bHp + (window.player.rank * 2500) + armorVal;
             const mult = 1 + adv.statMult + (adv.hpBoost / 100);
-            return Math.floor(rawHp * soulMult * mult);
+            
+            return Math.floor(rawHp * soulMult * mult * spMult);
         },
         inBattle: false
     };
@@ -964,22 +978,16 @@
             return;
         }
 
+        // Initialize object if missing
+        if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+
         window.player.sp--;
 
-        // 20% Compounding Boost
-        if (stat === 'hp') {
-            window.player.bHp = Math.floor(window.player.bHp * 1.20);
-            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-            window.player.spSpent.hp++;
-        } else if (stat === 'atk') {
-            window.player.bAtk = Math.floor(window.player.bAtk * 1.20);
-            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-            window.player.spSpent.atk++;
-        } else if (stat === 'def') {
-            window.player.bDef = Math.floor(window.player.bDef * 1.20);
-            if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-            window.player.spSpent.def++;
-        }
+        // We ONLY increase the counter now. 
+        // GameState calculates the actual bonus automatically.
+        if (stat === 'hp') window.player.spSpent.hp++;
+        else if (stat === 'atk') window.player.spSpent.atk++;
+        else if (stat === 'def') window.player.spSpent.def++;
 
         window.isDirty = true;
         updateTrainingUI();
@@ -992,9 +1000,7 @@
     }
 
     function confirmResetSP() {
-        if (typeof actualResetSP === 'function') {
-            actualResetSP();
-        }
+        actualResetSP();
         closeConfirmModal();
     }
 
@@ -1005,46 +1011,62 @@
 
     function actualResetSP() {
         if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-        const spent = window.player.spSpent;
+        
+        // Calculate total spent
+        const totalSpent = (window.player.spSpent.hp || 0) + 
+                           (window.player.spSpent.atk || 0) + 
+                           (window.player.spSpent.def || 0);
 
-        // Reverse stats (Approximate)
-        // Divide by 1.2^count
-        if (spent.hp > 0) {
-            window.player.bHp = Math.ceil(window.player.bHp / Math.pow(1.20, spent.hp));
-            window.player.sp += spent.hp;
-            spent.hp = 0;
-        }
-        if (spent.atk > 0) {
-            window.player.bAtk = Math.ceil(window.player.bAtk / Math.pow(1.20, spent.atk));
-            window.player.sp += spent.atk;
-            spent.atk = 0;
-        }
-        if (spent.def > 0) {
-            window.player.bDef = Math.ceil(window.player.bDef / Math.pow(1.20, spent.def));
-            window.player.sp += spent.def;
-            spent.def = 0;
-        }
+        // Refund SP
+        window.player.sp += totalSpent;
+
+        // Reset counters to 0
+        window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+
+        // We DO NOT divide stats anymore, because we never multiplied the Base Stat.
+        // The Multiplier simply disappears from GameState automatically.
 
         window.isDirty = true;
         updateTrainingUI();
         syncUI();
+        window.customAlert("SP Reset Successful!");
     }
 
     function updateTrainingUI() {
         if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
+        
         document.getElementById('tr-sp-count').innerText = window.player.sp;
 
-        document.getElementById('tr-hp-val').innerText = window.formatNumber(window.player.bHp);
+        // Visuals: Show the Current Total Bonus
+        // HP
+        const hpCount = window.player.spSpent.hp || 0;
+        const hpBonus = Math.round(hpCount * 20); // 20% per point
+        document.getElementById('tr-hp-val').innerText = window.formatNumber(window.GameState.gokuMaxHP);
         const hpSpent = document.getElementById('tr-hp-spent');
-        if (hpSpent) hpSpent.innerText = `(+${window.player.spSpent.hp})`;
+        if (hpSpent) {
+            hpSpent.innerText = `(+${hpBonus}%)`;
+            hpSpent.style.color = hpBonus > 0 ? '#00ff00' : '#777';
+        }
 
-        document.getElementById('tr-atk-val').innerText = window.formatNumber(window.player.bAtk);
+        // ATK
+        const atkCount = window.player.spSpent.atk || 0;
+        const atkBonus = Math.round(atkCount * 20);
+        document.getElementById('tr-atk-val').innerText = window.formatNumber(window.GameState.gokuPower);
         const atkSpent = document.getElementById('tr-atk-spent');
-        if (atkSpent) atkSpent.innerText = `(+${window.player.spSpent.atk})`;
+        if (atkSpent) {
+            atkSpent.innerText = `(+${atkBonus}%)`;
+            atkSpent.style.color = atkBonus > 0 ? '#00ff00' : '#777';
+        }
 
-        document.getElementById('tr-def-val').innerText = window.formatNumber(window.player.bDef);
+        // DEF
+        const defCount = window.player.spSpent.def || 0;
+        const defBonus = Math.round(defCount * 20);
+        document.getElementById('tr-def-val').innerText = window.formatNumber(window.GameState.gokuDefense);
         const defSpent = document.getElementById('tr-def-spent');
-        if (defSpent) defSpent.innerText = `(+${window.player.spSpent.def})`;
+        if (defSpent) {
+            defSpent.innerText = `(+${defBonus}%)`;
+            defSpent.style.color = defBonus > 0 ? '#00ff00' : '#777';
+        }
     }
 
     function doEquip() {
