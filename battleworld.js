@@ -100,7 +100,7 @@
             const d = document.createElement('div');
             d.id = 'rpg-timer-display';
             d.style.position = 'absolute';
-            d.style.top = '140px'; // Below Soul Meter
+            d.style.top = '160px'; // Below Soul Meter
             d.style.left = '20px';
             d.style.color = '#ff3e3e';
             d.style.fontFamily = 'Impact, sans-serif';
