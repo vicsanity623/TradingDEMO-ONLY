@@ -25,8 +25,6 @@
     let timeLeft = 90;
     let exitTimer = null;
     let physicsFrame = null;
-    
-    // Skill Ticker
     let skillInterval = null;
 
     const physics = {
@@ -35,7 +33,7 @@
         magnet: 0.15, friction: 0.94, bounce: 2.0, hitCooldown: 0
     };
 
-    // --- DAILY LOGIN LOGIC (Unchanged) ---
+    // --- DAILY LOGIN LOGIC ---
     window.checkDailyLogin = function () {
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
@@ -151,6 +149,11 @@
     window.startDungeon = function (bossKey) {
         if (window.player.dungeonKeys < 1) { window.customAlert("No Dungeon Keys left!"); return; }
         window.player.dungeonKeys--; window.isDirty = true;
+        
+        // --- CRITICAL FIX 1: Turn on Combat State ---
+        if(window.GameState) window.GameState.inBattle = true;
+        // --------------------------------------------
+
         if (window.showTab) window.showTab(null);
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById('view-dungeon-battle').classList.add('active-screen');
@@ -192,20 +195,21 @@
             updateDungeonUI();
         }, 1000);
 
-        // --- SKILL TICKER ---
-        // We run this every 500ms to check if we can fire a skill
+        // --- SKILL TICKER (500ms) ---
         skillInterval = setInterval(() => {
             if(!activeBoss || activeBoss.hp <= 0) return;
             
-            // Create a fake battle object so skills.js understands what to hit
+            // Adapter for skills.js
             const dungeonBattleAdapter = {
                 active: true,
-                enemy: activeBoss // Maps boss to 'enemy'
+                enemy: activeBoss // Map boss to enemy
             };
             
+            // Trigger Skills
             if(window.Skills && typeof window.Skills.autoBattleTick === 'function') {
                 window.Skills.autoBattleTick(dungeonBattleAdapter);
-                updateDungeonUI(); // Update UI in case Focus healed us or Blast hurt boss
+                // Force Update UI in case Focus/Kame happened
+                updateDungeonUI();
             }
         }, 500);
 
@@ -262,7 +266,6 @@
         let isCrit = false;
         if (Math.random() < critChance) { isCrit = true; dmg *= critDmgMult; }
 
-        // Bounce
         const dx = b.x - p.x; const dy = b.y - p.y; const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         p.vx -= (dx / dist) * physics.bounce; p.vy -= (dy / dist) * physics.bounce;
         const force = isCrit ? (physics.bounce * 15) : physics.bounce;
@@ -372,6 +375,10 @@
     }
 
     window.stopDungeon = function () {
+        // --- CRITICAL FIX 2: Turn OFF Combat State ---
+        if(window.GameState) window.GameState.inBattle = false;
+        // ---------------------------------------------
+        
         activeBoss = null;
         if (battleTimer) clearInterval(battleTimer);
         if (physicsFrame) cancelAnimationFrame(physicsFrame);
