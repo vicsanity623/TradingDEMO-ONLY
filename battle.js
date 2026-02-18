@@ -326,13 +326,30 @@
         const modal = document.getElementById('stage-details-modal');
         if (!modal) return;
 
+        // Enemy Power Scale (Keep this matching your spawn logic)
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
         const estAtk = Math.floor(250 * scale);
         const recPower = Math.floor((estAtk * 15) + estHp);
 
-        const xp = 100 * stageNum * window.battle.world;
-        const coins = 250;
+        // --- NEW REWARD MATH (PREVIEW) ---
+        // 1. Get Soul Multiplier (Inflation Handler)
+        const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+        
+        // 2. World Multiplier (Exponential Difficulty Reward)
+        // Worlds get much harder, so rewards must jump significantly (3.5x per World)
+        const worldMult = Math.pow(3.5, window.battle.world - 1);
+
+        // 3. Base Calculation
+        // XP: Base 200 + Stage Scaling * World * Soul
+        const baseXp = (200 + (stageNum * 50));
+        const xp = Math.floor(baseXp * worldMult * soulMult);
+
+        // Gold: Base 300 + Stage Scaling * World * Soul
+        const baseCoins = (300 + (stageNum * 50));
+        const coins = Math.floor(baseCoins * worldMult * soulMult);
+        // ---------------------------------
+
         let drops = "Common";
         if (stageNum % 5 === 0) drops = "High";
         if (stageNum === 20) drops = "LEGENDARY";
@@ -369,8 +386,11 @@
         document.getElementById('sd-enemy-img').src = imgUrl;
         document.getElementById('sd-enemy-name').innerText = name;
         document.getElementById('sd-power').innerText = window.formatNumber ? window.formatNumber(recPower) : recPower;
-        document.getElementById('sd-xp').innerText = xp;
-        document.getElementById('sd-coins').innerText = coins;
+        
+        // Format these because they will get HUGE
+        document.getElementById('sd-xp').innerText = window.formatNumber ? window.formatNumber(xp) : xp;
+        document.getElementById('sd-coins').innerText = window.formatNumber ? window.formatNumber(coins) : coins;
+        
         document.getElementById('sd-drops').innerText = drops;
 
         const aura = document.querySelector('.enemy-aura');
@@ -906,8 +926,15 @@
         if (isNaN(startPct)) startPct = 0;
         let oldLvl = window.player.lvl;
 
-        let xpGain = 100 * window.battle.stage * window.battle.world;
-        let coinGain = 250;
+        // --- NEW REWARD MATH (ACTUAL) ---
+        const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+        const worldMult = Math.pow(3.5, window.battle.world - 1);
+
+        // Base Calculations
+        let xpGain = Math.floor((200 + (window.battle.stage * 50)) * worldMult * soulMult);
+        let coinGain = Math.floor((300 + (window.battle.stage * 50)) * worldMult * soulMult);
+        
+        // Boss Bonus (5x)
         let bossSouls = 0;
         if (window.battle.stage === 20) {
             xpGain *= 5;
@@ -916,20 +943,22 @@
             window.player.souls = (window.player.souls || 0) + bossSouls;
         }
 
+        // Advance System Multipliers
         if (adv && adv.goldMult > 0) {
-            coinGain *= (1 + (adv.goldMult / 100));
+            coinGain = Math.floor(coinGain * (1 + (adv.goldMult / 100)));
         }
         if (adv && adv.xpMult > 0) {
-            xpGain *= (1 + (adv.xpMult / 100));
+            xpGain = Math.floor(xpGain * (1 + (adv.xpMult / 100)));
         }
 
         window.player.xp += xpGain;
         window.player.coins += coinGain;
+        // --------------------------------
 
         const log = document.getElementById('log');
         if (log) log.innerHTML = `<div style="color:cyan">> WON! +${window.formatNumber ? window.formatNumber(xpGain) : xpGain} XP</div>`;
 
-        // --- DROP LOGIC ---
+        // --- DROP LOGIC (Unchanged, looks good) ---
         let dropText = "";
         let dropCount = 0;
         const qty = Math.floor(Math.random() * 4);
@@ -1052,7 +1081,7 @@
                 autoStartNext();
             };
 
-            let time = 3;
+            let time = 4;
             btnNext.innerText = `NEXT STAGE (${time})`;
 
             if (window.battle.autoTimerId) clearTimeout(window.battle.autoTimerId);
