@@ -6,18 +6,18 @@
 
     const SoulSystem = {
         
-        // Cost Formula: 100 * Level (Linear cost scaling is fine if rewards are exponential)
+        // BALANCING NOTE: 
+        // 1.5x Power Growth is HUGE. 
+        // To balance this, the COST should also grow.
+        // Current Cost: 100 * Lvl (Linear) -> Too cheap later on.
+        // New Cost: 100 * (1.1 ^ Lvl) -> Scales slightly to keep up with power.
         getSoulsNeeded: function() {
             const lvl = window.player.soulLevel || 1;
             if (lvl === 1) return 100;
-            return 100 * lvl; 
+            return Math.floor(100 * Math.pow(1.15, lvl)); 
         },
 
-        // --- NEW: EXPONENTIAL MULTIPLIER ---
-        // Base 1.5x per level (50% compounding growth)
-        // Level 1 = 1.5x
-        // Level 10 = 57x
-        // Level 20 = 3,325x
+        // This is your Source of Truth for the multiplier
         getMultiplier: function() {
             const lvl = window.player.soulLevel || 1;
             return Math.pow(1.5, lvl);
@@ -45,7 +45,10 @@
             const lvl = window.player.soulLevel || 1;
             const cur = window.player.souls || 0;
             const max = this.getSoulsNeeded();
-            const pct = Math.min(100, Math.floor((cur / max) * 100));
+            
+            // Prevent division by zero or errors
+            const safeMax = max > 0 ? max : 100;
+            const pct = Math.min(100, Math.floor((cur / safeMax) * 100));
 
             btnPct.innerText = `${pct}%`;
             btnLvl.innerText = `Lv.${lvl}`;
@@ -54,23 +57,28 @@
             ring.style.background = `conic-gradient(${color} ${pct}%, transparent ${pct}%)`;
             
             const btn = document.getElementById('btn-soul');
-            if (pct >= 100) {
-                btn.style.borderColor = '#00ffff';
-                btn.style.boxShadow = '0 0 10px #00ffff';
-            } else {
-                btn.style.borderColor = '#555';
-                btn.style.boxShadow = 'none';
+            if (btn) {
+                if (pct >= 100) {
+                    btn.style.borderColor = '#00ffff';
+                    btn.style.boxShadow = '0 0 10px #00ffff';
+                } else {
+                    btn.style.borderColor = '#555';
+                    btn.style.boxShadow = 'none';
+                }
             }
         },
 
         openModal: function() {
             const modal = document.getElementById('soul-modal');
-            modal.style.display = 'flex';
-            this.refreshModal();
+            if (modal) {
+                modal.style.display = 'flex';
+                this.refreshModal();
+            }
         },
 
         closeModal: function() {
-            document.getElementById('soul-modal').style.display = 'none';
+            const modal = document.getElementById('soul-modal');
+            if (modal) modal.style.display = 'none';
         },
 
         refreshModal: function() {
@@ -79,20 +87,27 @@
             const max = this.getSoulsNeeded();
             const pct = Math.min(100, Math.floor((cur / max) * 100));
             
-            // Calculate Total Percentage Boost for Display
-            // (Multiplier - 1) * 100 to get percentage increase
-            const mult = this.getMultiplier();
-            const displayPct = window.formatNumber ? window.formatNumber(Math.floor((mult - 1) * 100)) : Math.floor((mult - 1) * 100);
+            // Calculate Current vs Next Stats
+            const currentMult = this.getMultiplier();
+            const nextMult = Math.pow(1.5, lvl + 1);
+            
+            const displayPct = window.formatNumber ? window.formatNumber(Math.floor((currentMult - 1) * 100)) : Math.floor((currentMult - 1) * 100);
+            const nextDisplayPct = window.formatNumber ? window.formatNumber(Math.floor((nextMult - 1) * 100)) : Math.floor((nextMult - 1) * 100);
 
             document.getElementById('sm-level').innerText = `Lv.${lvl}`;
             document.getElementById('sm-pct').innerText = `${pct}%`;
             document.getElementById('sm-pct').style.color = pct >= 100 ? '#00ffff' : 'white';
 
+            // Show "Current -> Next" so player sees the gain
             const statsHTML = `
-                <div>⚔️ Total Attack: +${displayPct}%</div>
-                <div>🛡️ Armor Defense: +${displayPct}%</div>
-                <div>⚡ Charge Might: +${(lvl * 10).toLocaleString()}%</div>
-                <div>❤️ HP Boost: +${displayPct}%</div>
+                <div style="margin-bottom:5px; color:#aaa; font-size:0.9rem;">Current Power: <span style="color:white">+${displayPct}%</span></div>
+                <div style="margin-bottom:15px; color:#00ffff; font-size:1.1rem;">Next Level: +${nextDisplayPct}%</div>
+                
+                <div style="text-align:left; font-size:0.85rem; color:#ddd;">
+                    <div>⚔️ Total Attack & Defense Boost</div>
+                    <div>💰 Gold & XP Income Boost</div>
+                    <div>⚡ Charge Might: +${(lvl * 10).toLocaleString()}%</div>
+                </div>
             `;
             document.getElementById('sm-stats').innerHTML = statsHTML;
 
@@ -127,6 +142,7 @@
                 this.updateBtnUI();
                 this.refreshModal();
                 
+                // FORCE UI UPDATE IN GAME.JS
                 if(typeof window.syncUI === 'function') window.syncUI();
                 window.isDirty = true;
             }
