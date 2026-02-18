@@ -8,7 +8,7 @@
         SAVE_KEY: 'dbz_gacha_save',
         CACHE_KEY: 'dbz_api_cache',
         SAVE_INTERVAL: 30000,
-        CAPSULE_COOLDOWN: 300000
+        CAPSULE_COOLDOWN: 3600000
     };
 
     const ASSETS = {
