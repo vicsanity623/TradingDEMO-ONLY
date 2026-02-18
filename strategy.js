@@ -10,100 +10,114 @@
     let pendingOfflineGold = 0;
     let pendingItems = [];
     let offlineMinutes = 0;
+    let offlineSeconds = 0;
+
+    // --- HELPER: FORMAT TIME ---
+    function formatTime(totalSeconds) {
+        if (totalSeconds < 60) return `${totalSeconds}s`;
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    }
 
     // --- INITIALIZATION ---
     function initStrategy() {
-        // Safety check for player object
-        if (typeof player === 'undefined' || !player) return;
+        if (typeof window.player === 'undefined' || !window.player) return;
 
         const now = Date.now();
-        const lastSave = player.lastSave || now;
+        const lastSave = window.player.lastSave || now;
         const diffMs = now - lastSave;
 
-        // Minimum 2 minutes to trigger offline gains
+        // Minimum 2 minutes (120000ms) to trigger offline gains
         if (diffMs >= 120000) { 
+            offlineSeconds = Math.floor(diffMs / 1000);
             offlineMinutes = Math.floor(diffMs / 60000);
-            const multiplier = (player.rank || 0) + 1;
             
-            // Calc Gains
-            pendingOfflineXp = offlineMinutes * 225 * multiplier;
-            pendingOfflineGold = offlineMinutes * 500 * multiplier;
+            // Capped at 24 hours (86400 seconds) to prevent infinite abuse
+            if (offlineSeconds > 86400) offlineSeconds = 86400;
 
-            // Item Logic: ~50% chance every 30 mins
+            const rankMult = (window.player.rank || 0) + 1;
+            const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+            const trueLvl = (window.player.rank * 100) + (window.player.lvl || 1);
+
+            // --- XP CALCULATION (PERCENTAGE BASED) ---
+            // Goal: 1 Hour Offline = ~10% of a level
+            // 10% / 60 mins = ~0.16% per minute
+            // 0.0016 * nextXp * minutes
+            let xpPerMin = Math.floor(window.player.nextXp * 0.002); 
+            // Safety fallback for very low levels
+            if (xpPerMin < 100) xpPerMin = 100 + (trueLvl * 10);
+            
+            pendingOfflineXp = Math.floor(xpPerMin * (offlineSeconds / 60));
+
+            // --- GOLD CALCULATION (EXPONENTIAL) ---
+            // Base scaled by level * Soul Multiplier
+            // This ensures gold keeps up with inflation
+            let goldPerMin = (500 + (trueLvl * 100) + Math.pow(trueLvl, 1.8)) * soulMult;
+            pendingOfflineGold = Math.floor(goldPerMin * (offlineSeconds / 60));
+
+            // --- ITEM LOGIC ---
+            // 1 Item roll every 30 minutes
             pendingItems = [];
             const itemRolls = Math.floor(offlineMinutes / 30); 
-            for(let i = 0; i < itemRolls; i++) {
-                if(Math.random() > 0.5) { 
-                    pendingItems.push({
-                        n: "Training Gear", 
-                        type: Math.random() > 0.5 ? 'w' : 'a', 
-                        val: 700,
-                        rarity: 1 
-                    });
-                }
-            }
-
-            console.log(`[Strategy] Offline: ${offlineMinutes}m. XP: ${pendingOfflineXp}, Gold: ${pendingOfflineGold}`);
             
-            // Visual Indicator
-            updateStrategyButton(true);
-        }
-    }
+            if (itemRolls > 0) {
+                for(let i = 0; i < itemRolls; i++) {
+                    if(Math.random() > 0.4) { // 60% Chance per roll
+                        // Item Tier Scaling
+                        const tier = Math.min(10, Math.max(1, Math.floor(trueLvl / 20)));
+                        let baseVal = 700 * tier * rankMult;
+                        
+                        let name = "Saiyan Gear";
+                        if (tier >= 2) name = "Elite Gear";
+                        if (tier >= 3) name = "Legendary Gear";
+                        if (tier >= 4) name = "God Gear";
+                        if (tier >= 6) name = "Omni Gear";
 
-    function updateStrategyButton(active) {
-        const btns = document.querySelectorAll(".side-btn");
-        btns.forEach(btn => {
-            // Check if this is the Strategy button
-            if(btn.innerHTML.includes('Strategy') || btn.innerText.includes('Strategy')) {
-                if (active) {
-                    btn.style.borderColor = "#00ff00";
-                    btn.style.boxShadow = "0 0 10px #00ff00";
-                    if(!btn.querySelector('.strat-dot')) {
-                        const dot = document.createElement('div');
-                        dot.className = 'strat-dot';
-                        // Inline style for simplicity, or move to CSS
-                        dot.style.cssText = "position:absolute; top:0; right:0; width:10px; height:10px; background:red; border-radius:50%; box-shadow:0 0 5px red;";
-                        btn.appendChild(dot);
+                        pendingItems.push({
+                            n: name, 
+                            type: Math.random() > 0.5 ? 'w' : 'a', 
+                            val: baseVal,
+                            rarity: tier 
+                        });
                     }
-                } else {
-                    btn.style.borderColor = "#555";
-                    btn.style.boxShadow = "none";
-                    const dot = btn.querySelector('.strat-dot');
-                    if(dot) dot.remove();
                 }
             }
-        });
+
+            console.log(`[Strategy] Offline: ${formatTime(offlineSeconds)}. XP: ${pendingOfflineXp}, Gold: ${pendingOfflineGold}`);
+            
+            // Show the modal immediately if there are gains
+            openStrategy();
+        }
     }
 
     // --- UI INTERACTION ---
     function openStrategy() {
-        if(pendingOfflineXp <= 0) {
-            // Non-blocking notification (console or simple visual shake/toast)
-            console.log("Capsule Gravitron is charging (Requires > 2m offline).");
-            return;
-        }
+        if(pendingOfflineXp <= 0 && pendingOfflineGold <= 0) return;
 
-        const modal = document.getElementById('strategy-modal');
-        if (!modal) return; // HTML must exist in index.html
+        const modal = document.getElementById('strategy-modal'); // You might need to rename your modal ID in HTML or here to match
+        // NOTE: In your screenshot it says "OFFLINE REPORT", check if that ID is 'offline-report-modal' or similar. 
+        // If you are using the existing 'strategy-modal', keep this.
+        
+        if (!modal) return; 
 
         modal.style.display = 'flex';
         
-        const timeEl = document.getElementById('strat-time');
-        const multEl = document.getElementById('strat-mult');
+        // Update UI Elements based on your screenshot structure
+        const timeEl = document.getElementById('strat-time'); // "Time Away"
+        const multEl = document.getElementById('strat-mult'); // "Rank Multiplier"
         
-        if(timeEl) timeEl.innerText = offlineMinutes;
-        if(multEl) {
-            const multiplier = (player.rank || 0) + 1;
-            multEl.innerText = `x${multiplier}`;
-        }
+        if(timeEl) timeEl.innerText = formatTime(offlineSeconds);
+        if(multEl) multEl.innerText = `x${(window.player.rank || 0) + 1}`;
         
         // Display Results
         const xpEl = document.getElementById('strat-xp-display');
         const goldEl = document.getElementById('strat-gold-display');
         const itemEl = document.getElementById('strat-item-display');
 
-        if(xpEl) xpEl.innerText = "+" + pendingOfflineXp.toLocaleString() + " XP";
-        if(goldEl) goldEl.innerText = "+" + pendingOfflineGold.toLocaleString() + " COINS";
+        if(xpEl) xpEl.innerText = "+" + window.formatNumber(pendingOfflineXp) + " XP";
+        if(goldEl) goldEl.innerText = "+" + window.formatNumber(pendingOfflineGold) + " COINS";
         
         if(itemEl) {
             if(pendingItems.length > 0) {
@@ -111,23 +125,23 @@
                 itemEl.style.color = "#00ff00";
             } else {
                 itemEl.innerText = "No Items Found";
-                itemEl.style.color = "#00d2ff";
+                itemEl.style.color = "#555";
             }
         }
     }
 
     function claimStrategy() {
-        // Apply Rewards
-        if (typeof player !== 'undefined') {
-            player.xp += pendingOfflineXp;
-            player.coins += pendingOfflineGold;
+        if (!window.player) return;
 
-            if (pendingItems.length > 0) {
-                if (typeof window.addToInventory === 'function') {
-                    pendingItems.forEach(item => window.addToInventory(item));
-                } else {
-                    player.inv.push(...pendingItems);
-                }
+        // Apply Rewards
+        window.player.xp += pendingOfflineXp;
+        window.player.coins += pendingOfflineGold;
+
+        if (pendingItems.length > 0) {
+            if (typeof window.addToInventory === 'function') {
+                pendingItems.forEach(item => window.addToInventory(item));
+            } else {
+                window.player.inv.push(...pendingItems);
             }
         }
 
@@ -141,19 +155,13 @@
         pendingOfflineGold = 0;
         pendingItems = [];
         offlineMinutes = 0;
+        offlineSeconds = 0;
         
         // UI & Save Updates
         if(typeof window.syncUI === 'function') window.syncUI();
-        
-        if (typeof player !== 'undefined') player.lastSave = Date.now(); 
-        
-        // Removed explicit saveGame() call to avoid redundancy 
-        // as player.lastSave update + next loop save is sufficient, 
-        // but keeping if immediate persistence is critical.
-        // if(typeof window.saveGame === 'function') window.saveGame();
+        window.player.lastSave = Date.now(); 
         
         closeStrategy();
-        updateStrategyButton(false);
     }
 
     function closeStrategy() {
