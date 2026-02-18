@@ -9,21 +9,21 @@
             buu: {
                 name: "Majin Buu",
                 img: "majin_buu.png",
-                baseHp: 100000000000, // 100B
+                baseHp: 1000, // 100B
                 rewards: { shards: 1, coins: 500 },
                 color: "#ff79c6"
             },
             frieza: {
                 name: "Frieza",
                 img: "freeza.png",
-                baseHp: 150000000000, // 150B
+                baseHp: 2000, // 150B
                 rewards: { souls: 10, coins: 1000 },
                 color: "#bd93f9"
             },
             cell: {
                 name: "Cell",
                 img: "cell.png",
-                baseHp: 200000000000, // 200B
+                baseHp: 3000, // 200B
                 rewards: { gearChance: true, coins: 2500 },
                 color: "#50fa7b"
             }
