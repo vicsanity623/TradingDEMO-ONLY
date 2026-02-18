@@ -322,63 +322,40 @@
 
     function openStageDetails(stageNum) {
         window.battle.selectedStage = stageNum;
-
         const modal = document.getElementById('stage-details-modal');
         if (!modal) return;
 
-        // Enemy Power Scale (Keep this matching your spawn logic)
+        // --- MATH: PREVIEW ---
+        // Match handleWin logic exactly
+        const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
+        const worldMult = Math.pow(3.5, window.battle.world - 1);
+        
+        const baseXp = (200 + (stageNum * 50));
+        const xp = Math.floor(baseXp * worldMult * soulMult);
+        
+        const baseCoins = (300 + (stageNum * 50));
+        const coins = Math.floor(baseCoins * worldMult * soulMult);
+
         const scale = Math.pow(1.8, stageNum) * Math.pow(25, window.battle.world - 1);
         const estHp = Math.floor(250 * scale);
         const estAtk = Math.floor(250 * scale);
         const recPower = Math.floor((estAtk * 15) + estHp);
 
-        // --- NEW REWARD MATH (PREVIEW) ---
-        // 1. Get Soul Multiplier (Inflation Handler)
-        const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
-        
-        // 2. World Multiplier (Exponential Difficulty Reward)
-        // Worlds get much harder, so rewards must jump significantly (3.5x per World)
-        const worldMult = Math.pow(3.5, window.battle.world - 1);
-
-        // 3. Base Calculation
-        // XP: Base 200 + Stage Scaling * World * Soul
-        const baseXp = (200 + (stageNum * 50));
-        const xp = Math.floor(baseXp * worldMult * soulMult);
-
-        // Gold: Base 300 + Stage Scaling * World * Soul
-        const baseCoins = (300 + (stageNum * 50));
-        const coins = Math.floor(baseCoins * worldMult * soulMult);
-        // ---------------------------------
-
         let drops = "Common";
         if (stageNum % 5 === 0) drops = "High";
         if (stageNum === 20) drops = "LEGENDARY";
+        if ((window.battle.world === 1 && stageNum >= 15) || window.battle.world > 1) drops += " + 💎";
 
-        if ((window.battle.world === 1 && stageNum >= 15) || window.battle.world > 1) {
-            drops += " + 💎";
-        }
-
-        let imgUrl = "";
-        let name = "Enemy";
-
+        let imgUrl = "", name = "Enemy";
         if (window.apiData && window.apiData.characters) {
             if (stageNum === 20) {
-                let bossName = "Frieza";
-                const wMod = window.battle.world % 3;
-                if (wMod === 2) bossName = "Cell";
-                if (wMod === 0) bossName = "Majin";
+                let bossName = "Frieza"; const wMod = window.battle.world % 3; if (wMod === 2) bossName = "Cell"; if (wMod === 0) bossName = "Majin";
                 let charData = window.apiData.characters.find(c => c.name.includes(bossName));
                 if (!charData) charData = window.apiData.characters[(window.battle.world * 5) % window.apiData.characters.length];
-
-                imgUrl = charData ? charData.image : "";
-                name = "BOSS " + (charData ? charData.name : "Titan");
+                imgUrl = charData ? charData.image : ""; name = "BOSS " + (charData ? charData.name : "Titan");
             } else {
                 const charIdx = (stageNum + (window.battle.world * 3)) % window.apiData.characters.length;
-                let dat = window.apiData.characters[charIdx];
-                if (dat) {
-                    imgUrl = dat.image;
-                    name = dat.name;
-                }
+                let dat = window.apiData.characters[charIdx]; if (dat) { imgUrl = dat.image; name = dat.name; }
             }
         }
 
@@ -386,27 +363,13 @@
         document.getElementById('sd-enemy-img').src = imgUrl;
         document.getElementById('sd-enemy-name').innerText = name;
         document.getElementById('sd-power').innerText = window.formatNumber ? window.formatNumber(recPower) : recPower;
-        
-        // Format these because they will get HUGE
         document.getElementById('sd-xp').innerText = window.formatNumber ? window.formatNumber(xp) : xp;
         document.getElementById('sd-coins').innerText = window.formatNumber ? window.formatNumber(coins) : coins;
-        
         document.getElementById('sd-drops').innerText = drops;
-
-        const aura = document.querySelector('.enemy-aura');
-        if (aura) {
-            aura.style.background = (stageNum === 20)
-                ? "radial-gradient(circle, rgba(255,0,0,0.8), transparent 70%)"
-                : "radial-gradient(circle, rgba(0,255,255,0.6), transparent 70%)";
-        }
-
         modal.style.display = 'flex';
     }
 
-    function closeStageDetails() {
-        const modal = document.getElementById('stage-details-modal');
-        if (modal) modal.style.display = 'none';
-    }
+    function closeStageDetails() { const modal = document.getElementById('stage-details-modal'); if (modal) modal.style.display = 'none'; }
 
     function confirmStart() {
         closeStageDetails();
@@ -922,6 +885,7 @@
             tEl.style.color = "var(--dbz-yellow)";
         }
 
+        // Snapshot current state for animation
         let startPct = (window.player.xp / window.player.nextXp) * 100;
         if (isNaN(startPct)) startPct = 0;
         let oldLvl = window.player.lvl;
@@ -951,14 +915,20 @@
             xpGain = Math.floor(xpGain * (1 + (adv.xpMult / 100)));
         }
 
-        window.player.xp += xpGain;
-        window.player.coins += coinGain;
+        // --- CRITICAL FIX: FORCE NUMBER TYPE ---
+        // Prevents string concatenation bugs (e.g., "100" + 50 = "10050")
+        window.player.xp = Number(window.player.xp) + Number(xpGain);
+        window.player.coins = Number(window.player.coins) + Number(coinGain);
+        
+        // --- FORCE SAVE IMMEDIATELY ---
+        window.isDirty = true;
+        if (typeof window.saveGame === 'function') window.saveGame();
         // --------------------------------
 
         const log = document.getElementById('log');
         if (log) log.innerHTML = `<div style="color:cyan">> WON! +${window.formatNumber ? window.formatNumber(xpGain) : xpGain} XP</div>`;
 
-        // --- DROP LOGIC (Unchanged, looks good) ---
+        // --- DROP LOGIC ---
         let dropText = "";
         let dropCount = 0;
         const qty = Math.floor(Math.random() * 4);
@@ -1035,6 +1005,7 @@
         if (dropsHtml === "") dropText = "NONE";
         else dropText = dropsHtml;
 
+        // Check Level Up AFTER adding XP
         if (typeof window.checkLevelUp === 'function') checkLevelUp();
 
         let leveledUp = (window.player.lvl > oldLvl);
@@ -1042,6 +1013,7 @@
         if (typeof window.syncUI === 'function') syncUI();
         if (window.Skills) Skills.autoBattleTick();
 
+        // Update Modal UI
         document.getElementById('r-xp').innerText = window.formatNumber ? window.formatNumber(xpGain) : xpGain;
         document.getElementById('r-coins').innerText = window.formatNumber ? window.formatNumber(coinGain) : coinGain;
         document.getElementById('r-drops').innerHTML = dropText;
@@ -1175,5 +1147,8 @@
     window.openStageDetails = openStageDetails;
     window.closeStageDetails = closeStageDetails;
     window.confirmStart = confirmStart;
+    
+    // Explicitly expose handleWin if other scripts need it (though mainly internal)
+    window.handleWin = handleWin;
 
 })();
