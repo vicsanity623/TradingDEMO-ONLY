@@ -477,13 +477,29 @@
         if (now - window.player.lastCapsule < CONFIG.CAPSULE_COOLDOWN) return;
 
         window.player.lastCapsule = now;
-        const lvl = window.player.lvl || 1;
+        
+        // 1. CALCULATE TRUE LEVEL (Fixes the Level 100 reset issue)
+        // If Rank is 2 and Level is 1, True Level is 201.
+        const trueLvl = (window.player.rank * 100) + (window.player.lvl || 1);
         const advLvl = window.player.advanceLevel || 0;
 
-        let baseXp = 500 + (lvl * 250) + (Math.pow(lvl, 1.8) * 10);
-        let baseCoins = 1000 + (lvl * 150) + (Math.pow(lvl, 1.7) * 5);
-        let xpMult = 1.0, coinMult = 1.0;
+        // 2. XP CALCULATION (Scaling Fix)
+        // We calculate two options and pick the best one:
+        // Option A: Exponential growth based on True Level (Good for low levels)
+        let flatXp = 500 + (trueLvl * 250) + (Math.pow(trueLvl, 2.2) * 10);
+        
+        // Option B: Percentage of current requirement (The "Never Insignificant" Fix)
+        // Guaranteed to give at least 5% to 8% of the bar per drop
+        let scaledXp = Math.floor(window.player.nextXp * 0.08); 
+        
+        let baseXp = Math.max(flatXp, scaledXp);
 
+        // 3. COIN CALCULATION
+        // Coins need to scale with True Level to afford high rarity merges
+        let baseCoins = 1000 + (trueLvl * 200) + (Math.pow(trueLvl, 2.1) * 5);
+
+        // Apply Multipliers
+        let xpMult = 1.0, coinMult = 1.0;
         if (advLvl >= 25) coinMult += (0.10 + ((advLvl - 25) * 0.01));
         if (advLvl >= 30) xpMult += (0.10 + ((advLvl - 30) * 0.01));
         const soulMult = 1 + (window.player.soulLevel * 0.1);
@@ -496,11 +512,17 @@
 
         let dropName = null;
         if (Math.random() < 0.35) {
-            const tier = Math.min(6, Math.max(1, Math.floor(window.player.lvl / 20)));
-            let val = 700 * tier;
+            // Updated to use trueLvl for gear tiers too
+            const tier = Math.min(10, Math.max(1, Math.floor(trueLvl / 20)));
+            let val = 700 * tier * Math.max(1, window.player.rank); // Scale value with Rank
+            
+            // Dynamic naming based on tier/rarity
             let name = "Saiyan Gear";
             if (tier >= 2) name = "Elite Gear";
             if (tier >= 3) name = "Legendary Gear";
+            if (tier >= 4) name = "God Gear";
+            if (tier >= 6) name = "Omni Gear";
+            
             window.addToInventory({ n: name, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: tier });
             dropName = name;
         }
@@ -511,6 +533,26 @@
         saveGame();
         showSupplyToast(xpGain, coinGain, dropName);
         updateCapsuleBtn();
+    }
+
+    function tapTrain() {
+        // 1. CALCULATE TRUE LEVEL
+        const trueLvl = (window.player.rank * 100) + window.player.lvl;
+        
+        // 2. XP CALCULATION
+        // Base: True Level * 2
+        // Scaling: 0.2% of your current XP bar (Takes ~500 taps to level up regardless of level)
+        let xpVal = Math.max(trueLvl * 2, Math.floor(window.player.nextXp * 0.002));
+
+        window.player.xp += xpVal;
+        
+        // Coin gain slightly boosted by rank
+        window.player.coins += (1 + window.player.rank);
+        
+        window.isDirty = true;
+        popDamage(`+${window.formatNumber(xpVal)} XP`, 'view-char', true);
+        checkLevelUp();
+        syncUI();
     }
 
     function updateCapsuleBtn() {
@@ -532,16 +574,6 @@
             btn.style.background = "#222";
             btn.style.border = "1px solid #444";
         }
-    }
-
-    function tapTrain() {
-        const gain = Math.ceil(window.player.lvl / 2);
-        window.player.xp += gain;
-        window.player.coins += 1;
-        window.isDirty = true;
-        popDamage(`+${gain} XP`, 'view-char', true);
-        checkLevelUp();
-        syncUI();
     }
 
     function saveGame() {
