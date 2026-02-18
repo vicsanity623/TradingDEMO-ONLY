@@ -147,40 +147,16 @@
 
         handleReward: function () {
             this.killCount++;
-
-            // --- DYNAMIC REWARD CALCULATION ---
-            
-            // 1. Get current Max XP (The size of the bar)
             const maxXP = window.player.nextXp || 100;
             const currentLvl = window.GameState.gokuLevel || 1;
-
-            // 2. XP FORMULA: Percentage of Bar
-            // 0.05 = 5% of the bar per kill (approx 20 kills to level up)
-            // We use Math.max(10, ...) to ensure a Level 1 player gets at least 10 XP
-            const xpReward = Math.max(10, Math.floor(maxXP * 0.05));
-
-            // ALTERNATIVE: If you prefer the "Math Power" method you asked for:
-            // This creates a curve (10 -> 300 -> 9000...)
-            // const xpReward = Math.floor(10 * Math.pow(currentLvl, 2.2));
-
-            // 3. GOLD FORMULA: Scale gold linearly by level
-            // Level 1 = 5g, Level 10 = 30g, Level 90 = 230g
+            const xpReward = Math.max(2, Math.floor(maxXP * 0.0005));
             const goldReward = Math.floor(5 + (currentLvl * 2.5));
-
-            // ----------------------------------
-
-            // Apply to Player State
             window.player.xp += xpReward;
             window.player.coins += goldReward;
-
-            // --- THIS IS THE FIX ---
-            // Trigger the global level-up check from game.js
             if (window.checkLevelUp) {
                 window.checkLevelUp();
             }
-            // -----------------------
 
-            // Souls Logic: 5 kills = 2 souls
             if (this.killCount % 5 === 0) {
                 if (window.SoulSystem) {
                     window.SoulSystem.gainSoul();
@@ -188,19 +164,13 @@
                     this.showFloat("+2 SOULS", "#00ffff");
                 }
             } else {
-                // Show floating text with the dynamic gold amount
                 this.showFloat(`+${goldReward} G`, "#f1c40f");
-                
-                // Optional: You could also show the XP gained
-                // this.showFloat(`+${window.formatNumber(xpReward)} XP`, "#ffffff");
+
             }
 
-            // Update UI Bars directly for smoothness
             const xpBar = document.getElementById('bar-xp');
             if (xpBar) {
-                // Use updated window.player.nextXp (in case checkLevelUp changed it)
-                const currentNextXp = window.player.nextXp; 
-                const xpPct = (window.player.xp / currentNextXp) * 100;
+                const xpPct = (window.player.xp / window.player.nextXp) * 100;
                 xpBar.style.width = xpPct + "%";
             }
             const xpText = document.getElementById('hub-xp-text');
@@ -213,6 +183,19 @@
             }
         },
 
+        showFloat: function (text, color) {
+            const el = document.createElement('div');
+            el.className = 'hub-float';
+            el.innerText = text;
+            el.style.color = color;
+            el.style.left = this.playerEl.style.left;
+            el.style.top = this.playerEl.style.top;
+            this.container.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+    }
+
     window.HubBattle = HubBattle;
 
 })();
+

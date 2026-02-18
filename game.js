@@ -85,7 +85,7 @@
 
     // --- MATH & STATS ---
     function getAdvMult() {
-        return 1 + ((window.player.advanceLevel || 0) * 0.1); 
+        return 1 + ((window.player.advanceLevel || 0) * 0.1);
     }
 
     window.GameState = {
@@ -94,20 +94,20 @@
         get gokuPower() {
             const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : { statMult: 0, atkBoost: 0 };
             const soulMult = window.SoulSystem ? window.SoulSystem.getMultiplier() : 1;
-            
+
             // --- NEW SP MULTIPLIER ---
             // 20% Additive Boost per point spent
             const spCount = (window.player.spSpent && window.player.spSpent.atk) || 0;
-            const spMult = 1 + (spCount * 0.20); 
+            const spMult = 1 + (spCount * 0.20);
             // -------------------------
 
-            const gearMult = 1 + adv.statMult; 
+            const gearMult = 1 + adv.statMult;
             const weaponVal = (window.player.gear.w?.val || 0) * gearMult * soulMult;
-            
+
             // Note: We multiply the Final Result by spMult, making it very valuable
             const rawAtk = window.player.bAtk + (window.player.rank * 400) + weaponVal;
             const mult = 1 + adv.statMult + (adv.atkBoost / 100);
-            
+
             return Math.floor(rawAtk * soulMult * mult * spMult);
         },
 
@@ -117,15 +117,15 @@
 
             // --- NEW SP MULTIPLIER ---
             const spCount = (window.player.spSpent && window.player.spSpent.def) || 0;
-            const spMult = 1 + (spCount * 0.20); 
+            const spMult = 1 + (spCount * 0.20);
             // -------------------------
 
-            const gearMult = 1 + adv.statMult; 
+            const gearMult = 1 + adv.statMult;
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
-            
+
             const rawDef = window.player.bDef + (window.player.rank * 150) + armorVal;
             const mult = 1 + adv.statMult + (adv.defBoost / 100);
-            
+
             return Math.floor(rawDef * soulMult * mult * spMult);
         },
 
@@ -138,15 +138,15 @@
 
             // --- NEW SP MULTIPLIER ---
             const spCount = (window.player.spSpent && window.player.spSpent.hp) || 0;
-            const spMult = 1 + (spCount * 0.20); 
+            const spMult = 1 + (spCount * 0.20);
             // -------------------------
 
-            const gearMult = 1 + adv.statMult; 
+            const gearMult = 1 + adv.statMult;
             const armorVal = (window.player.gear.a?.val || 0) * gearMult * soulMult;
-            
+
             const rawHp = window.player.bHp + (window.player.rank * 2500) + armorVal;
             const mult = 1 + adv.statMult + (adv.hpBoost / 100);
-            
+
             return Math.floor(rawHp * soulMult * mult * spMult);
         },
         inBattle: false
@@ -335,6 +335,23 @@
         }
     };
 
+    function formatTime(ms) {
+        if (ms <= 0) return "0s";
+
+        let totalSeconds = Math.floor(ms / 1000);
+        let hours = Math.floor(totalSeconds / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
+
+        // Returns format: 1h 20m 05s or 20m 05s if hours is 0
+        let display = "";
+        if (hours > 0) display += hours + "h ";
+        if (minutes > 0 || hours > 0) display += minutes.toString().padStart(2, '0') + "m ";
+        display += seconds.toString().padStart(2, '0') + "s";
+
+        return display;
+    }
+
     // --- BOOST HANDLER (GOLD DUMP) ---
     function setupBoostHandler() {
         const btn = document.getElementById('btn-boost');
@@ -492,7 +509,7 @@
         if (now - window.player.lastCapsule < CONFIG.CAPSULE_COOLDOWN) return;
 
         window.player.lastCapsule = now;
-        
+
         // 1. CALCULATE TRUE LEVEL (Fixes the Level 100 reset issue)
         // If Rank is 2 and Level is 1, True Level is 201.
         const trueLvl = (window.player.rank * 100) + (window.player.lvl || 1);
@@ -502,11 +519,11 @@
         // We calculate two options and pick the best one:
         // Option A: Exponential growth based on True Level (Good for low levels)
         let flatXp = 500 + (trueLvl * 250) + (Math.pow(trueLvl, 2.2) * 10);
-        
+
         // Option B: Percentage of current requirement (The "Never Insignificant" Fix)
         // Guaranteed to give at least 5% to 8% of the bar per drop
-        let scaledXp = Math.floor(window.player.nextXp * 0.04); 
-        
+        let scaledXp = Math.floor(window.player.nextXp * 0.04);
+
         let baseXp = Math.max(flatXp, scaledXp);
 
         // 3. COIN CALCULATION
@@ -530,14 +547,14 @@
             // Updated to use trueLvl for gear tiers too
             const tier = Math.min(10, Math.max(1, Math.floor(trueLvl / 20)));
             let val = 700 * tier * Math.max(1, window.player.rank); // Scale value with Rank
-            
+
             // Dynamic naming based on tier/rarity
             let name = "Saiyan Gear";
             if (tier >= 2) name = "Rare Gear";
             if (tier >= 3) name = "Legendary Gear";
             if (tier >= 4) name = "S Gear";
             if (tier >= 6) name = "SS Gear";
-            
+
             window.addToInventory({ n: name, type: Math.random() > 0.5 ? 'w' : 'a', val: val, rarity: tier });
             dropName = name;
         }
@@ -553,17 +570,17 @@
     function tapTrain() {
         // 1. CALCULATE TRUE LEVEL
         const trueLvl = (window.player.rank * 100) + window.player.lvl;
-        
+
         // 2. XP CALCULATION
         // Base: True Level * 2
         // Scaling: 0.2% of your current XP bar (Takes ~500 taps to level up regardless of level)
-        let xpVal = Math.max(trueLvl * 2, Math.floor(window.player.nextXp * 0.0013));
+        let xpVal = Math.max(trueLvl * 2, Math.floor(window.player.nextXp * 0.00005));
 
         window.player.xp += xpVal;
-        
+
         // Coin gain slightly boosted by rank
         window.player.coins += (1 + window.player.rank);
-        
+
         window.isDirty = true;
         popDamage(`+${window.formatNumber(xpVal)} XP`, 'view-char', true);
         checkLevelUp();
@@ -573,17 +590,32 @@
     function updateCapsuleBtn() {
         const btn = document.getElementById('btn-supply');
         if (!btn) return;
-        const diff = Date.now() - (window.player.lastCapsule || 0);
 
-        if (diff >= CONFIG.CAPSULE_COOLDOWN) {
+        const remainingMs = CONFIG.CAPSULE_COOLDOWN - (Date.now() - (window.player.lastCapsule || 0));
+
+        if (remainingMs <= 0) {
             btn.innerHTML = "<i>🎁</i> Supply Ready!";
             btn.classList.add('btn-ready');
             btn.style.color = "#fff";
             btn.style.background = "linear-gradient(to bottom, #2ecc71, #27ae60)";
             btn.style.border = "1px solid #2ecc71";
         } else {
-            const sec = Math.ceil((CONFIG.CAPSULE_COOLDOWN - diff) / 1000);
-            btn.innerHTML = `<i>⏳</i> ${sec}s`;
+            // --- NEW FORMATTING LOGIC ---
+            let totalSeconds = Math.floor(remainingMs / 1000);
+            let h = Math.floor(totalSeconds / 3600);
+            let m = Math.floor((totalSeconds % 3600) / 60);
+            let s = totalSeconds % 60;
+
+            // Create a display string: HHh MMm SSs
+            // padStart(2, '0') ensures "5s" looks like "05s"
+            let timeStr = "";
+            if (h > 0) timeStr += `${h}h `;
+            timeStr += `${m.toString().padStart(2, '0')}m `;
+            timeStr += `${s.toString().padStart(2, '0')}s`;
+
+            btn.innerHTML = `<i>⏳</i> ${timeStr}`;
+            // -----------------------------
+
             btn.classList.remove('btn-ready');
             btn.style.color = "#777";
             btn.style.background = "#222";
@@ -1011,11 +1043,11 @@
 
     function actualResetSP() {
         if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-        
+
         // Calculate total spent
-        const totalSpent = (window.player.spSpent.hp || 0) + 
-                           (window.player.spSpent.atk || 0) + 
-                           (window.player.spSpent.def || 0);
+        const totalSpent = (window.player.spSpent.hp || 0) +
+            (window.player.spSpent.atk || 0) +
+            (window.player.spSpent.def || 0);
 
         // Refund SP
         window.player.sp += totalSpent;
@@ -1034,7 +1066,7 @@
 
     function updateTrainingUI() {
         if (!window.player.spSpent) window.player.spSpent = { hp: 0, atk: 0, def: 0 };
-        
+
         document.getElementById('tr-sp-count').innerText = window.player.sp;
 
         // Visuals: Show the Current Total Bonus
@@ -1196,9 +1228,9 @@
         // so the player gets the correct stats for every level gained.
         for (let i = 0; i < lvlGained; i++) {
             window.player.lvl++;
-            
+
             // 1. Award SP
-            window.player.sp = (window.player.sp || 0) + 2; 
+            window.player.sp = (window.player.sp || 0) + 2;
 
             // 2. Increase XP Requirement (Exponential Scaling)
             window.player.nextXp = Math.floor(window.player.nextXp * 1.3);
@@ -1209,22 +1241,22 @@
             window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
 
             // 4. Handle Rank Reset (Level 100 -> 1)
-            if (window.player.lvl >= 100) { 
-                window.player.lvl = 1; 
-                window.player.rank++; 
+            if (window.player.lvl >= 100) {
+                window.player.lvl = 1;
+                window.player.rank++;
             }
         }
 
         // Apply Gold
         window.player.coins += goldGained;
-        
+
         // Reset XP to 0. Since you got "Free Levels", you start the new level fresh.
         // This prevents logic bugs where you might have enough XP to double-level.
         window.player.xp = 0;
-        
+
         // Full Heal
         window.player.hp = window.GameState.gokuMaxHP;
-        
+
         window.isDirty = true;
     };
 
@@ -1232,7 +1264,7 @@
         document.getElementById('tap-result-modal').style.display = 'none';
         // Even though we manually applied levels, we run this just in case
         // there are any lingering states, and to sync the UI.
-        checkLevelUp(); 
+        checkLevelUp();
         syncUI();
     };
 
