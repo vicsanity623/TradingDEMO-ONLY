@@ -279,6 +279,9 @@
             if (!window.player.dungeonLevel) window.player.dungeonLevel = { buu: 1, frieza: 1, cell: 1 };
             if (!window.player.dailyLogin) window.player.dailyLogin = { day: 1, lastClaimTime: 0 };
 
+            // --- NEW: Gear Stones ---
+            if (!window.player.gearStones) window.player.gearStones = { w: 0, a: 0 };
+
             const loader = document.getElementById('loader');
             if (loader) {
                 setTimeout(() => {
@@ -844,6 +847,29 @@
             equipBtn.innerHTML = `<span>SELECT GEAR</span>`;
         }
 
+        // --- NEW: Gear Stone Synchronization ---
+        const gsWCount = document.getElementById('gs-w-count');
+        const gsACount = document.getElementById('gs-a-count');
+        const gsWContainer = document.getElementById('gs-w-container');
+        const gsAContainer = document.getElementById('gs-a-container');
+
+        if (gsWCount && gsWContainer) {
+            if (window.player.gearStones.w > 0) {
+                gsWContainer.style.display = 'flex';
+                gsWCount.innerText = window.player.gearStones.w;
+            } else {
+                gsWContainer.style.display = 'none';
+            }
+        }
+        if (gsACount && gsAContainer) {
+            if (window.player.gearStones.a > 0) {
+                gsAContainer.style.display = 'flex';
+                gsACount.innerText = window.player.gearStones.a;
+            } else {
+                gsAContainer.style.display = 'none';
+            }
+        }
+
         if (window.SoulSystem) window.SoulSystem.updateBtnUI();
         updateTapEventUI();
     }
@@ -967,6 +993,164 @@
         if (mergedSomething && isAutoMerging) {
             setTimeout(processAutoMerge, 200);
         }
+    }
+
+    // --- NEW: BACKPACK AUTO MERGE ---
+    function autoMergeGear() {
+        if (window.player.coins < 500) {
+            window.customAlert("Not enough coins! (Costs 500)");
+            return;
+        }
+
+        let mergesHappened = 0;
+        let mergedAnythingThisPass = true;
+        const RARITY_LIMIT = 10;
+        const MERGE_REQ = 3;
+
+        while (mergedAnythingThisPass) {
+            mergedAnythingThisPass = false;
+
+            // Group items by exact type, rarity, and val
+            let groups = {};
+            window.player.inv.forEach((item, index) => {
+                if (item.rarity >= RARITY_LIMIT) return; // Ignore SSS5 items
+
+                const key = `${item.type}_${item.rarity}_${item.val}`;
+                if (!groups[key]) {
+                    groups[key] = { indices: [], item: item };
+                }
+
+                // Track quantities per stack
+                let remainingQty = item.qty;
+                while (remainingQty > 0) {
+                    groups[key].indices.push(index);
+                    remainingQty--;
+                }
+            });
+
+            // Find valid merges
+            for (const key in groups) {
+                const group = groups[key];
+                if (group.indices.length >= MERGE_REQ) {
+                    // Extract exactly 3 indices to merge
+                    const targetIndices = group.indices.slice(0, MERGE_REQ);
+                    mergedAnythingThisPass = true;
+                    mergesHappened++;
+
+                    // Decrement 3 quantities safely
+                    let qtyRemoved = 0;
+                    window.player.inv.forEach(invItem => {
+                        if (qtyRemoved < MERGE_REQ && invItem.type === group.item.type && invItem.rarity === group.item.rarity && invItem.val === group.item.val && invItem.qty > 0) {
+                            let take = Math.min(invItem.qty, MERGE_REQ - qtyRemoved);
+                            invItem.qty -= take;
+                            qtyRemoved += take;
+                        }
+                    });
+
+                    // Remove empty stacks
+                    window.player.inv = window.player.inv.filter(invItem => invItem.qty > 0);
+
+                    // Add upgraded item
+                    const upgradedItem = {
+                        n: group.item.n,
+                        type: group.item.type,
+                        val: group.item.val * 2,
+                        rarity: group.item.rarity + 1,
+                        qty: 1
+                    };
+                    window.addToInventory(upgradedItem);
+
+                    break; // Run the while loop again with fresh array
+                }
+            }
+        }
+
+        if (mergesHappened > 0) {
+            window.player.coins -= 500;
+            window.isDirty = true;
+            syncUI();
+            if (window.GearSystem && typeof window.GearSystem.render === 'function') {
+                window.GearSystem.render(); // Re-render backpack UI if open
+            }
+            window.popDamage("MERGED!", 'view-char');
+        } else {
+            window.customAlert("No matching gear found to merge! Needs 3 of exact matching gear.");
+        }
+    }
+
+    // --- NEW: SMELTING SYSTEM ---
+    function smeltInventory() {
+        const modal = document.getElementById('smelt-modal');
+
+        let weaponsFound = 0;
+        let armorsFound = 0;
+
+        window.player.inv.forEach(item => {
+            if (item.type === 'w') weaponsFound += item.qty;
+            if (item.type === 'a') armorsFound += item.qty;
+        });
+
+        if (weaponsFound < 10 && armorsFound < 10) {
+            if (modal) modal.style.display = 'none';
+            window.customAlert("You need at least 10 weapons OR 10 armors to smelt a Gear Stone!");
+            return;
+        }
+
+        const newWeaponStones = Math.floor(weaponsFound / 10);
+        const newArmorStones = Math.floor(armorsFound / 10);
+
+        // Limit to 99 max
+        window.player.gearStones.w = Math.min(99, window.player.gearStones.w + newWeaponStones);
+        window.player.gearStones.a = Math.min(99, window.player.gearStones.a + newArmorStones);
+
+        // Destroy all gear in inventory
+        window.player.inv = [];
+        window.player.selected = -1;
+
+        if (modal) modal.style.display = 'none';
+
+        window.isDirty = true;
+        syncUI();
+        if (window.GearSystem && typeof window.GearSystem.render === 'function') {
+            window.GearSystem.render();
+        }
+
+        let alertMsg = `Smelting Complete!<br><br>Destroyed ${weaponsFound} Weapons<br>Destroyed ${armorsFound} Armors<br><br>`;
+        if (newWeaponStones > 0) alertMsg += `Created ${newWeaponStones} Weapon Gear Stone(s)<br>`;
+        if (newArmorStones > 0) alertMsg += `Created ${newArmorStones} Armor Gear Stone(s)<br>`;
+
+        window.customAlert(alertMsg);
+    }
+
+    function useGearStone(type) {
+        if (!window.player.gearStones[type] || window.player.gearStones[type] <= 0) {
+            window.customAlert("You have no Gear Stones for this slot!");
+            return;
+        }
+
+        const gear = window.player.gear[type];
+        if (!gear || gear.rarity < 10) {
+            window.customAlert("You can only use Gear Stones on SSS5 equipped gear.");
+            return;
+        }
+
+        // Consume 1 stone
+        window.player.gearStones[type]--;
+
+        // 1.5% Boost per stone, compounding
+        gear.val = Math.floor(gear.val * 1.015);
+
+        window.isDirty = true;
+
+        // Update player stats visually immediately
+        updateStatsOnly();
+        syncUI();
+        if (window.GearSystem && typeof window.GearSystem.render === 'function') {
+            window.GearSystem.render();
+        }
+
+        const emoji = type === 'w' ? '⚔️' : '🛡️';
+        window.popDamage(`${emoji} POWER UP!`, 'view-char', true);
     }
 
     function removeItems(templateItem, qtyToRemove) {
@@ -1176,6 +1360,9 @@
     window.syncUI = syncUI;
     window.popDamage = popDamage;
     window.toggleAutoMerge = toggleAutoMerge;
+    window.autoMergeGear = autoMergeGear;
+    window.smeltInventory = smeltInventory;
+    window.useGearStone = useGearStone;
 
     // --- TAP EVENT BRIDGE ---
     window.openTapEventInfo = function () {

@@ -93,7 +93,15 @@
             list.innerHTML = '';
             const fragment = document.createDocumentFragment();
 
-            const inventory = (typeof window.player !== 'undefined' && window.player.inv) ? window.player.inv : [];
+            let inventory = (typeof window.player !== 'undefined' && window.player.inv) ? window.player.inv : [];
+
+            // Auto-sort inventory by highest rarity, then by value
+            if (inventory.length > 0) {
+                inventory.sort((a, b) => {
+                    if (b.rarity !== a.rarity) return b.rarity - a.rarity;
+                    return b.val - a.val;
+                });
+            }
 
             inventory.forEach((item, i) => {
                 const slot = document.createElement('div');
@@ -136,10 +144,22 @@
             const sellBtn = document.getElementById('g-sell-btn');
             const sellAllBtn = document.getElementById('g-sell-all-btn');
             const detailsBtn = document.getElementById('g-details-btn');
+            const smeltBtn = document.getElementById('g-smelt-btn');
 
             if (sellBtn) sellBtn.disabled = !hasItem;
             if (sellAllBtn) sellAllBtn.disabled = !hasItem;
             if (detailsBtn) detailsBtn.disabled = !hasItem;
+
+            if (smeltBtn && window.player && window.player.gear) {
+                const w = window.player.gear.w;
+                const a = window.player.gear.a;
+                // Only show if SSS5 (rarity 10) is equipped in both slots
+                if (w && w.rarity === 10 && a && a.rarity === 10) {
+                    smeltBtn.style.display = 'block';
+                } else {
+                    smeltBtn.style.display = 'none';
+                }
+            }
 
             // Reset Info Box if no selection
             if (!hasItem) {
@@ -268,7 +288,8 @@
 
     window.GearSystem = {
         open: () => GearSystem.open(),
-        close: () => GearSystem.close()
+        close: () => GearSystem.close(),
+        render: () => GearSystem.render()
     };
 
     GearSystem.init();

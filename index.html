@@ -241,6 +241,36 @@
                         <span>🛡️</span>
                         <div class="slot-label">ARMOR</div>
                     </div>
+                    <!-- GEAR STONE SLOTS (New) -->
+                    <div class="gs-slot-container"
+                        style="display:flex; flex-direction:column; align-items:center; display:none;"
+                        id="gs-w-container">
+                        <div class="slot-box" style="border-color:#2ecc71; background:rgba(46, 204, 113, 0.1);">
+                            <span style="font-size:1.2rem;">⚔️✨</span>
+                            <div class="slot-label" style="color:#2ecc71;">GEAR STONE</div>
+                            <div
+                                style="font-family:'Bangers'; color:#fff; font-size:1.5rem; text-shadow:1px 1px #000; margin-top:2px;">
+                                X<span id="gs-w-count">0</span></div>
+                        </div>
+                        <button class="g-btn-green"
+                            style="width:100%; padding:2px; font-size:1rem; margin-top:2px; border-radius:5px;"
+                            onclick="useGearStone('w')">USE</button>
+                    </div>
+
+                    <div class="gs-slot-container"
+                        style="display:flex; flex-direction:column; align-items:center; display:none;"
+                        id="gs-a-container">
+                        <div class="slot-box" style="border-color:#2ecc71; background:rgba(46, 204, 113, 0.1);">
+                            <span style="font-size:1.2rem;">🛡️✨</span>
+                            <div class="slot-label" style="color:#2ecc71;">GEAR STONE</div>
+                            <div
+                                style="font-family:'Bangers'; color:#fff; font-size:1.5rem; text-shadow:1px 1px #000; margin-top:2px;">
+                                X<span id="gs-a-count">0</span></div>
+                        </div>
+                        <button class="g-btn-green"
+                            style="width:100%; padding:2px; font-size:1rem; margin-top:2px; border-radius:5px;"
+                            onclick="useGearStone('a')">USE</button>
+                    </div>
                 </div>
             </div>
 
@@ -489,19 +519,58 @@
             </div>
             <div class="g-btn-row">
                 <button id="g-details-btn" class="g-btn g-btn-blue" disabled>DETAILS</button>
+                <button id="g-auto-merge-btn" class="g-btn"
+                    style="background: linear-gradient(to bottom, #8e44ad, #9b59b6); border-color:#8e44ad;"
+                    onclick="window.autoMergeGear()">⚡ AUTO MERGE</button>
                 <button id="g-sell-btn" class="g-btn g-btn-green" disabled>SELL ITEM</button>
-                <button id="g-sell-all-btn" class="g-btn g-btn-green" style="background:#e67e22;" disabled>SELL
+            </div>
+            <div class="g-btn-row" style="margin-top:5px;">
+                <button id="g-sell-all-btn" class="g-btn g-btn-green" style="background:#e67e22; flex:1;" disabled>SELL
                     STACK</button>
+                <button id="g-smelt-btn" class="g-btn"
+                    style="background: linear-gradient(to bottom, #c0392b, #e74c3c); border-color:#c0392b; flex:1; display:none;"
+                    onclick="document.getElementById('smelt-modal').style.display='flex'">🔥 SMELT ALL</button>
             </div>
         </div>
     </div>
 
     <!-- GEAR DETAILS MODAL -->
-    <div id="g-modal" style="display:none;">
-        <h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3>
-        <div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div>
-        <div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div>
-        <button id="g-modal-close" class="g-btn g-btn-blue" style="width:100%">GOT IT</button>
+    <div id="g-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:100000; align-items:center; justify-content:center;">
+        <div
+            style="background:#ecf0f1; border-radius:10px; width:90%; max-width:400px; padding:20px; text-align:center; box-shadow:0 0 20px rgba(0,0,0,0.5);">
+            <h3 id="gm-name" style="font-family:'Bangers'; color:#2c3e50; font-size:1.8rem;"></h3>
+            <div id="gm-body" style="font-size:0.9rem; margin-bottom:20px;"></div>
+            <div id="gm-price" style="color:#27ae60; font-weight:bold; margin-bottom:20px;"></div>
+            <button id="g-modal-close" class="g-btn g-btn-blue" style="width:100%"
+                onclick="document.getElementById('g-modal').style.display='none'">GOT IT</button>
+        </div>
+    </div>
+
+    <!-- SMELT WARNING MODAL -->
+    <div id="smelt-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:110000; flex-direction:column; align-items:center; justify-content:center;">
+        <div
+            style="background:#1a1a2e; border:3px solid #e74c3c; border-radius:15px; padding:30px; width:85%; max-width:400px; text-align:center; box-shadow:0 0 30px #c0392b;">
+            <div
+                style="font-family:'Bangers'; color:#e74c3c; font-size:2.5rem; margin-bottom:15px; text-shadow:0 0 10px red;">
+                🔥 SMELT ALL 🔥</div>
+            <div style="font-family:'Orbitron'; color:white; font-size:0.9rem; margin-bottom:20px; line-height:1.5;">
+                Are you sure you want to smelt <span style="color:#e74c3c; font-weight:bold;">ALL</span> non-equipped
+                Normal Gear in your backpack into Gear Stones?<br><br>
+                For every 10 weapons, you get 1 Weapon Gear Stone.<br>
+                For every 10 armors, you get 1 Armor Gear Stone.<br><br>
+                <span style="color:#f1c40f;">⚠️ Any gear that is not divisible by 10 will be burned and lost
+                    forever!</span>
+            </div>
+            <div style="display:flex; justify-content:center; gap:15px;">
+                <button onclick="document.getElementById('smelt-modal').style.display='none'"
+                    style="flex:1; padding:12px; background:#555; border:none; border-radius:10px; color:white; font-family:'Bangers'; font-size:1.4rem; cursor:pointer;">CANCEL</button>
+                <button onclick="window.smeltInventory()"
+                    style="flex:1; padding:12px; background:linear-gradient(to bottom, #c0392b, #e74c3c); border:none; border-radius:10px; color:white; font-family:'Bangers'; font-size:1.4rem; cursor:pointer; box-shadow:0 4px 0 #922b21;">SMELT
+                    IT</button>
+            </div>
+        </div>
     </div>
 
     <!-- SKILLS OVERLAY -->
@@ -715,7 +784,7 @@
 
     <!-- CUSTOM ALERT MODAL -->
     <div id="custom-alert-modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center;">
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:120000; align-items:center; justify-content:center;">
         <div
             style="background:#1a1a2e; border:3px solid var(--dbz-yellow); border-radius:15px; padding:30px; width:85%; max-width:400px; text-align:center; box-shadow:0 0 30px var(--dbz-orange);">
             <div id="alert-msg"
