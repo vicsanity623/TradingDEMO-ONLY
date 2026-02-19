@@ -123,7 +123,12 @@
             floatText.style.top = '25%';
             floatText.style.zIndex = 100;
             floatText.style.textShadow = '2px 2px 0 #000';
-            document.body.appendChild(floatText);
+
+            // Append to appropriate container based on active screen
+            const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+            const targetContainer = isDungeon ? document.getElementById('dungeon-arena') : document.body;
+            if (targetContainer) targetContainer.appendChild(floatText);
+
             setTimeout(() => floatText.remove(), 1000);
         }
 
@@ -133,13 +138,21 @@
         const dmgPerHit = Math.ceil((window.GameState ? GameState.gokuPower : 10) * 0.4);
 
         const rapidInterval = setInterval(() => {
-            if (!window.GameState || !GameState.inBattle || !battleRef.active || battleRef.enemy.hp <= 0) {
+            const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+            if (!window.GameState || (!GameState.inBattle && !isDungeon) || !battleRef.active || battleRef.enemy.hp <= 0) {
                 clearInterval(rapidInterval);
                 return;
             }
 
             battleRef.enemy.hp -= dmgPerHit;
-            if (window.popDamage) window.popDamage(dmgPerHit, 'e-box');
+            if (window.popDamage) {
+                const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+                if (isDungeon && window.createDungeonPop) {
+                    window.createDungeonPop(dmgPerHit, 'db-boss-img', '#ff9900', false);
+                } else {
+                    window.popDamage(dmgPerHit, 'e-box');
+                }
+            }
 
         }, intervalTime);
 
@@ -159,10 +172,22 @@
         const healPercent = Math.min(100, 12 + s.level * 4);
         const healAmount = GameState.gokuMaxHP * (healPercent / 100);
 
-        GameState.gokuHP = Math.min(GameState.gokuMaxHP, GameState.gokuHP + healAmount);
+        const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+        if (isDungeon && window.player) {
+            window.player.hp = Math.min(GameState.gokuMaxHP, window.player.hp + healAmount);
+        } else {
+            GameState.gokuHP = Math.min(GameState.gokuMaxHP, GameState.gokuHP + healAmount);
+        }
 
         // Green particle healing visual
-        const playerContainer = document.getElementById('view-char') || document.body;
+        const inBattle = document.getElementById('view-battle')?.classList.contains('active-screen');
+        let playerContainerId = 'view-char';
+        if (inBattle) playerContainerId = 'p-box';
+
+        let playerContainer = document.getElementById(playerContainerId);
+        if (isDungeon) playerContainer = document.querySelector('.db-player-box');
+
+        if (!playerContainer) playerContainer = document.body;
 
         // Spawn 18 green particles
         for (let i = 0; i < 18; i++) {
@@ -215,16 +240,21 @@
         return damage;
     };
 
-    // Called every frame/tick by battle.js
     Skills.autoBattleTick = function (battleRef) {
         updateUnlocks();
-        if (!window.GameState || !GameState.inBattle) return;
+        const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+
+        if (!window.GameState || (!GameState.inBattle && !isDungeon)) {
+            return;
+        }
 
         if (skills.doubleHit.unlocked && canUse(skills.doubleHit)) {
             Skills.useDoubleHit(battleRef);
         }
 
-        if (skills.focus.unlocked && canUse(skills.focus) && GameState.gokuHP < GameState.gokuMaxHP * 0.6) {
+        const hpToCheck = isDungeon && window.player ? window.player.hp : GameState.gokuHP;
+
+        if (skills.focus.unlocked && canUse(skills.focus) && hpToCheck < GameState.gokuMaxHP * 0.6) {
             Skills.useFocus();
         }
 
@@ -233,7 +263,13 @@
                 const dmg = Skills.useKameBlast();
                 if (dmg > 0) {
                     battleRef.enemy.hp -= dmg;
-                    if (window.popDamage) window.popDamage(dmg, 'e-box', true);
+                    if (window.popDamage) {
+                        if (isDungeon && window.createDungeonPop) {
+                            window.createDungeonPop(dmg, 'db-boss-img', 'cyan', true);
+                        } else {
+                            window.popDamage(dmg, 'e-box', true);
+                        }
+                    }
                 }
             }
         }
@@ -292,7 +328,10 @@
     function triggerKameVisual() {
         const flash = document.createElement('div');
         flash.className = 'kame-visual-beam';
-        document.body.appendChild(flash);
+
+        const isDungeon = document.getElementById('view-dungeon-battle')?.classList.contains('active-screen');
+        const targetContainer = isDungeon ? document.getElementById('dungeon-arena') : document.body;
+        if (targetContainer) targetContainer.appendChild(flash);
 
         // Trigger animation
         requestAnimationFrame(() => {

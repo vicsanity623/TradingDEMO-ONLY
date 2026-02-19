@@ -158,8 +158,10 @@
     window.startDungeon = function (bossKey) {
         if (window.player.dungeonKeys < 1) { window.customAlert("No Dungeon Keys left!"); return; }
         window.player.dungeonKeys--; window.isDirty = true;
-        if (window.GameState) window.GameState.inBattle = true;
+
         if (window.showTab) window.showTab(null);
+        if (window.GameState) window.GameState.inBattle = true;
+
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById('view-dungeon-battle').classList.add('active-screen');
 
@@ -206,6 +208,17 @@
             if (window.Skills && typeof window.Skills.autoBattleTick === 'function') {
                 window.Skills.autoBattleTick(dungeonBattleAdapter);
                 updateDungeonUI();
+
+                // Check if boss died from a skill tick
+                if (activeBoss.hp <= 0 && physicsFrame) {
+                    activeBoss.hp = 0; updateDungeonUI();
+                    if (physicsFrame) cancelAnimationFrame(physicsFrame);
+                    if (battleTimer) clearInterval(battleTimer);
+                    if (skillInterval) clearInterval(skillInterval);
+                    if (physics.boss.el) explodeSprite(physics.boss.el, 'right');
+                    setTimeout(() => endDungeon(true), 2000);
+                    return;
+                }
             }
         }, 500);
 
@@ -326,7 +339,7 @@
         document.getElementById('db-player-hp-text').innerText = `${window.formatNumber(window.player.hp)}`;
     }
 
-    function createDungeonPop(val, targetId, color, isCrit) {
+    window.createDungeonPop = function (val, targetId, color, isCrit) {
         const container = document.getElementById('db-fx-container'); if (!container) return;
         const el = document.createElement('div'); el.innerText = (isCrit ? "CRIT! " : "") + "-" + window.formatNumber(val); el.style.position = 'absolute'; el.style.color = color; el.style.fontWeight = '900'; el.style.fontSize = isCrit ? '2.5rem' : '1.5rem'; el.style.textShadow = isCrit ? '0 0 10px orange, 0 0 5px black' : '0 0 4px black'; el.style.fontFamily = 'Bangers'; el.style.zIndex = 50; el.style.pointerEvents = 'none';
         if (targetId === 'db-boss-img') { el.style.right = (15 + Math.random() * 10) + "%"; el.style.bottom = (40 + Math.random() * 10) + "%"; } else { el.style.left = (15 + Math.random() * 10) + "%"; el.style.bottom = (40 + Math.random() * 10) + "%"; }
