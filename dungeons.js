@@ -77,8 +77,17 @@
         if (reward.shards) window.player.dragonShards += reward.shards;
         if (reward.souls) window.player.souls += reward.souls;
         if (reward.gear && window.addToInventory) {
+            // Fix Daily Gear to also use standard values
+            let val = 3500; // Default Legendary
+            if (reward.gear.rarity === 4) val = 8500;
+            if (reward.gear.rarity === 6) val = 50000;
+
+            let name = "Legendary Gear";
+            if (reward.gear.rarity === 4) name = "S Gear";
+            if (reward.gear.rarity === 6) name = "SSS Gear";
+
             for (let i = 0; i < reward.gear.count; i++) {
-                window.addToInventory({ n: "Daily Gear", type: reward.gear.type, val: 5000 * reward.gear.rarity, rarity: reward.gear.rarity });
+                window.addToInventory({ n: name, type: reward.gear.type, val: val, rarity: reward.gear.rarity });
             }
         }
         window.player.dailyLogin.lastClaimTime = Date.now();
@@ -149,11 +158,7 @@
     window.startDungeon = function (bossKey) {
         if (window.player.dungeonKeys < 1) { window.customAlert("No Dungeon Keys left!"); return; }
         window.player.dungeonKeys--; window.isDirty = true;
-        
-        // --- CRITICAL FIX 1: Turn on Combat State ---
-        if(window.GameState) window.GameState.inBattle = true;
-        // --------------------------------------------
-
+        if (window.GameState) window.GameState.inBattle = true;
         if (window.showTab) window.showTab(null);
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById('view-dungeon-battle').classList.add('active-screen');
@@ -195,20 +200,11 @@
             updateDungeonUI();
         }, 1000);
 
-        // --- SKILL TICKER (500ms) ---
         skillInterval = setInterval(() => {
-            if(!activeBoss || activeBoss.hp <= 0) return;
-            
-            // Adapter for skills.js
-            const dungeonBattleAdapter = {
-                active: true,
-                enemy: activeBoss // Map boss to enemy
-            };
-            
-            // Trigger Skills
-            if(window.Skills && typeof window.Skills.autoBattleTick === 'function') {
+            if (!activeBoss || activeBoss.hp <= 0) return;
+            const dungeonBattleAdapter = { active: true, enemy: activeBoss };
+            if (window.Skills && typeof window.Skills.autoBattleTick === 'function') {
                 window.Skills.autoBattleTick(dungeonBattleAdapter);
-                // Force Update UI in case Focus/Kame happened
                 updateDungeonUI();
             }
         }, 500);
@@ -356,13 +352,41 @@
             if (bossData.rewards.coins) { const amt = Math.floor(bossData.rewards.coins * scaler) + (bossData.lvl * 1000); window.player.coins += amt; rewardsHtml += `<div style="color:#f1c40f">💰 +${window.formatNumber(amt)} Coins</div>`; }
             if (bossData.rewards.shards) { const amt = Math.ceil(bossData.rewards.shards * scaler) + Math.floor(bossData.lvl / 2); window.player.dragonShards += amt; rewardsHtml += `<div style="color:#3498db">💎 +${amt} Shards</div>`; }
             if (bossData.rewards.souls) { const amt = Math.ceil(bossData.rewards.souls * scaler) + Math.floor(bossData.lvl / 5); window.player.souls += amt; rewardsHtml += `<div style="color:#9b59b6">👻 +${amt} Souls</div>`; }
+
+            // --- FIXED GEAR LOGIC TO MATCH MERGE SYSTEM ---
             if (bossData.rewards.gearChance) {
-                const baseQty = Math.floor(Math.random() * 4) + 1; const bonusQty = Math.floor(bossData.lvl / 10); const qty = baseQty + bonusQty;
-                let rarity = 3; if (bossData.lvl >= 20) rarity = 6; else if (bossData.lvl >= 15) rarity = 5; else if (bossData.lvl >= 8) rarity = 4;
-                const rarityNames = ["Basic Gear", "Rare Gear", "Legendary Gear", "S Gear", "SS Gear", "SSS Gear"]; const rName = rarityNames[rarity - 1] || "Rare";
-                if (window.addToInventory) { for (let i = 0; i < qty; i++) { window.addToInventory({ n: "Dungeon Gear", type: Math.random() > 0.5 ? 'w' : 'a', val: 5000 * Math.pow(1.2, bossData.lvl - 1), rarity: rarity }); } }
-                rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} ${rName} Gear</div>`;
+                const baseQty = Math.floor(Math.random() * 4) + 1;
+                const bonusQty = Math.floor(bossData.lvl / 10);
+                const qty = baseQty + bonusQty;
+
+                // Determine Rarity
+                let rarity = 3;
+                if (bossData.lvl >= 50) rarity = 6;
+                else if (bossData.lvl >= 30) rarity = 5;
+                else if (bossData.lvl >= 15) rarity = 4;
+
+                // HARD-SET Values based on Rarity (to ensure merging works)
+                let val = 3500; // Legendary (Rarity 3)
+                let rName = "Legendary Gear";
+
+                if (rarity === 4) { val = 8500; rName = "S Gear"; }
+                if (rarity === 5) { val = 20000; rName = "SS Gear"; }
+                if (rarity === 6) { val = 50000; rName = "SSS Gear"; }
+
+                if (window.addToInventory) {
+                    for (let i = 0; i < qty; i++) {
+                        window.addToInventory({
+                            n: rName,
+                            type: Math.random() > 0.5 ? 'w' : 'a',
+                            val: val,
+                            rarity: rarity
+                        });
+                    }
+                }
+                rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} ${rName}</div>`;
             }
+            // ----------------------------------------------
+
             list.innerHTML = rewardsHtml; window.saveGame();
         } else { title.innerText = "DEFEATED"; title.style.color = "#e74c3c"; list.innerHTML = "<div style='color:#ccc'>You were overwhelmed!</div>"; }
 
@@ -375,10 +399,7 @@
     }
 
     window.stopDungeon = function () {
-        // --- CRITICAL FIX 2: Turn OFF Combat State ---
-        if(window.GameState) window.GameState.inBattle = false;
-        // ---------------------------------------------
-        
+        if (window.GameState) window.GameState.inBattle = false;
         activeBoss = null;
         if (battleTimer) clearInterval(battleTimer);
         if (physicsFrame) cancelAnimationFrame(physicsFrame);
