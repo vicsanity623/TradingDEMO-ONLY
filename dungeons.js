@@ -203,15 +203,29 @@
         }, 1000);
 
         skillInterval = setInterval(() => {
-            if (!activeBoss || activeBoss.hp <= 0) return;
+            if (!activeBoss) return;
+
+            // FIX: Catch deaths caused by external DoTs, Pets, or outside scripts
+            if (activeBoss.hp <= 0) {
+                activeBoss.hp = 0; 
+                updateDungeonUI();
+                if (physicsFrame) cancelAnimationFrame(physicsFrame);
+                if (battleTimer) clearInterval(battleTimer);
+                if (skillInterval) clearInterval(skillInterval);
+                if (physics.boss.el) explodeSprite(physics.boss.el, 'right');
+                setTimeout(() => endDungeon(true), 2000);
+                return;
+            }
+
             const dungeonBattleAdapter = { active: true, enemy: activeBoss };
             if (window.Skills && typeof window.Skills.autoBattleTick === 'function') {
                 window.Skills.autoBattleTick(dungeonBattleAdapter);
                 updateDungeonUI();
 
-                // Check if boss died from a skill tick
-                if (activeBoss.hp <= 0 && physicsFrame) {
-                    activeBoss.hp = 0; updateDungeonUI();
+                // Check if boss died directly from a skill tick
+                if (activeBoss.hp <= 0) {
+                    activeBoss.hp = 0; 
+                    updateDungeonUI();
                     if (physicsFrame) cancelAnimationFrame(physicsFrame);
                     if (battleTimer) clearInterval(battleTimer);
                     if (skillInterval) clearInterval(skillInterval);
@@ -387,13 +401,17 @@
                 if (rarity === 6) { val = 50000; rName = "SSS Gear"; }
 
                 if (window.addToInventory) {
-                    for (let i = 0; i < qty; i++) {
-                        window.addToInventory({
-                            n: rName,
-                            type: Math.random() > 0.5 ? 'w' : 'a',
-                            val: val,
-                            rarity: rarity
-                        });
+                    try {
+                        for (let i = 0; i < qty; i++) {
+                            window.addToInventory({
+                                n: rName,
+                                type: Math.random() > 0.5 ? 'w' : 'a',
+                                val: val,
+                                rarity: rarity
+                            });
+                        }
+                    } catch(err) {
+                        console.error("Inventory error during dungeon reward:", err);
                     }
                 }
                 rewardsHtml += `<div style="color:#e67e22">🎒 +${qty} ${rName}</div>`;
