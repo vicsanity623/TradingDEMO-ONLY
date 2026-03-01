@@ -27,8 +27,8 @@
     window.apiData = { characters: [], planets: [] };
 
     window.player = {
-        lvl: 5, rank: 0, xp: 0, nextXp: 285, coins: 500,
-        bAtk: 134, bDef: 71, bHp: 4917, hp: 4917, charge: 0,
+        lvl: 15, rank: 0, xp: 0, nextXp: 2850, coins: 5000,
+        bAtk: 6, bDef: 3, bHp: 1320, hp: 1000, charge: 0,
         inv: [], gear: { w: null, a: null }, selected: -1,
         lastCapsule: 0,
         soulLevel: 1,
@@ -454,7 +454,7 @@
             window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
             window.player.hp = window.GameState.gokuMaxHP;
 
-            if (window.player.lvl >= 100) { window.player.lvl = 1; window.player.rank++; }
+            window.player.rank = Math.floor(window.player.lvl / 100);
             leveledUp = true;
         }
 
@@ -512,7 +512,7 @@
 
         // 1. CALCULATE TRUE LEVEL (Fixes the Level 100 reset issue)
         // If Rank is 2 and Level is 1, True Level is 201.
-        const trueLvl = (window.player.rank * 100) + (window.player.lvl || 1);
+        const trueLvl = window.player.lvl || 1;
         const advLvl = window.player.advanceLevel || 0;
 
         // 2. XP CALCULATION (Scaling Fix)
@@ -569,7 +569,7 @@
 
     function tapTrain() {
         // 1. CALCULATE TRUE LEVEL
-        const trueLvl = (window.player.rank * 100) + window.player.lvl;
+        const trueLvl = window.player.lvl;
 
         // 2. XP CALCULATION
         // Base: True Level * 2
@@ -639,7 +639,21 @@
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                if (parsed.player) window.player = parsed.player;
+                if (parsed.player) {
+                    window.player = parsed.player;
+                    if (window.player.rank > 0 && window.player.lvl < 100) {
+                        window.player.lvl = (window.player.rank * 100) + window.player.lvl;
+                    }
+                    window.player.rank = Math.floor(window.player.lvl / 100);
+
+                    // Retroactively fix negative SP bug
+                    if (window.player.sp < 0) {
+                        const spSpent = window.player.spSpent || { hp: 0, atk: 0, def: 0 };
+                        const spentCount = (spSpent.hp || 0) + (spSpent.atk || 0) + (spSpent.def || 0);
+                        const totalExpectedSp = (window.player.lvl - 1) * 2;
+                        window.player.sp = Math.max(0, totalExpectedSp - spentCount);
+                    }
+                }
                 if (parsed.battle) {
                     window.battle.stage = parsed.battle.stage || 1;
                     window.battle.world = parsed.battle.world || 1;
@@ -749,7 +763,7 @@
 
         document.getElementById('ui-rank-badge').innerText = RANKS[window.player.rank].substring(0, 2);
         document.getElementById('ui-name').innerText = window.player.rank > 0 ? "Goku " + RANKS[window.player.rank] : "Goku";
-        const trueLvl = (window.player.rank * 100) + window.player.lvl;
+        const trueLvl = window.player.lvl;
         document.getElementById('ui-lvl').innerText = trueLvl;
 
         document.getElementById('ui-atk').innerText = window.formatNumber(atk);
@@ -1424,11 +1438,8 @@
             window.player.bAtk = Math.floor(window.player.bAtk * 1.05) + 20;
             window.player.bDef = Math.floor(window.player.bDef * 1.05) + 10;
 
-            // 4. Handle Rank Reset (Level 100 -> 1)
-            if (window.player.lvl >= 100) {
-                window.player.lvl = 1;
-                window.player.rank++;
-            }
+            // 4. Handle Rank (Infinite Level Cap)
+            window.player.rank = Math.floor(window.player.lvl / 100);
         }
 
         // Apply Gold
