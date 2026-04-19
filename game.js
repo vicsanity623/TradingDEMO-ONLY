@@ -1154,20 +1154,25 @@
         // Consume 1 stone
         window.player.gearStones[type]--;
 
-        // 1.5% Boost per stone, compounding
-        gear.val = Math.floor(gear.val * 1.015);
+        // ENDGAME BUFF: 
+        // 1. Add a massive flat base boost that scales with your Rank
+        const baseBump = 50000000 * (window.player.rank > 0 ? window.player.rank : 1);
+        
+        // 2. Multiply the total by 2.5x (A massive 150% compounding boost per stone)
+        gear.val = Math.floor((gear.val + baseBump) * 2.5);
 
         window.isDirty = true;
 
         // Update player stats visually immediately
-        updateStatsOnly();
+        if (typeof updateStatsOnly === 'function') updateStatsOnly();
         syncUI();
+        
         if (window.GearSystem && typeof window.GearSystem.render === 'function') {
             window.GearSystem.render();
         }
 
         const emoji = type === 'w' ? '⚔️' : '🛡️';
-        window.popDamage(`${emoji} POWER UP!`, 'view-char', true);
+        window.popDamage(`${emoji} MASSIVE POWER UP!`, 'view-char', true);
     }
 
     function removeItems(templateItem, qtyToRemove) {
