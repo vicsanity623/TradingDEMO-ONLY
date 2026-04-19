@@ -152,14 +152,9 @@
     // --- NUMBER FORMATTER ---
     window.formatNumber = function (num) {
         if (num == null || isNaN(num) || num <= 0) return "0";
-        
-        // Numbers under 1 million stay normal (e.g., 999,999)
         if (num < 1000000) return Math.floor(num).toLocaleString(); 
     
-        // Use Log10 to safely calculate the "tier" of the number without string length bugs
         const tier = Math.floor(Math.log10(num) / 3);
-        
-        // Divide the massive number down to a readable size (e.g., 100)
         const divisor = Math.pow(10, tier * 3);
         const shortValue = num / divisor;
     
@@ -169,7 +164,6 @@
         if (tier < suffixes.length) {
             suffix = suffixes[tier];
         } else {
-            // Replicate your original Alphabet logic safely
             let alphaNum = tier - suffixes.length;
             const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             
@@ -178,15 +172,10 @@
             } else {
                 let first = Math.floor(alphaNum / 26) - 1;
                 let second = alphaNum % 26;
-                
-                // Failsafe just in case numbers somehow exceed "ZZ"
                 if (first >= 26) return num.toExponential(2); 
-                
                 suffix = alphabet[first] + alphabet[second];
             }
         }
-    
-        // Format to 2 decimal places, but drop them if they are zeroes (e.g., "1.50" -> "1.5", "100.00" -> "100")
         return shortValue.toFixed(2).replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1') + suffix;
     };
 
