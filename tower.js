@@ -460,7 +460,11 @@
     
     const uCan = document.getElementById('uni-canvas');
     const uCtx = uCan.getContext('2d');
-    let uniState = { active: false, cx: 0, cy: 0, px: 0, py: 0, vx: 0, vy: 0, enemies: [], stars: [], req: null, dead: false, respawnTimer: 0, joy: { active: false, nx: 0, ny: 0 } };
+    let uniState = { 
+        active: false, cx: 0, cy: 0, px: 0, py: 0, vx: 0, vy: 0, 
+        enemies: [], stars: [], particles: [], texts: [], 
+        req: null, dead: false, joy: { active: false, nx: 0, ny: 0 } 
+    };
 
     const joyZone = document.getElementById('joystick-zone');
     const joyKnob = document.getElementById('joystick-knob');
@@ -496,14 +500,16 @@
 
     function initUniverse() {
         uCan.width = window.innerWidth; uCan.height = window.innerHeight;
-        // Generate Starfield
         uniState.stars = [];
         for(let i=0; i<200; i++) {
             uniState.stars.push({ x: Math.random()*5000 - 2500, y: Math.random()*5000 - 2500, size: Math.random()*2+1, color: Math.random() > 0.5 ? '#fff' : '#00e5ff' });
         }
         uniState.px = 0; uniState.py = 0; uniState.vx = 0; uniState.vy = 0;
-        uniState.enemies = []; uniState.dead = false;
+        uniState.enemies = []; uniState.particles = []; uniState.texts = []; uniState.dead = false;
         
+        // Ensure player is fully healed when entering
+        player.hp = getPlayerStats().hp;
+
         // Spawn initial swarm
         for(let i=0; i<10; i++) spawnUniEnemy(Math.random()*2000-1000, Math.random()*2000-1000);
         
@@ -511,8 +517,22 @@
     }
 
     function spawnUniEnemy(x, y) {
-        const hp = getPlayerStats().atk * 3; // Takes 3 hits to kill
-        uniState.enemies.push({ x: x, y: y, vx: 0, vy: 0, hp: hp, maxHp: hp, hist: [] });
+        const hp = getPlayerStats().atk * 3; // Takes exactly 3 hits to kill
+        uniState.enemies.push({ x: x, y: y, vx: 0, vy: 0, hp: hp, maxHp: hp, hist: [], hitCooldown: 0 });
+    }
+
+    function spawnParticles(x, y, color, count) {
+        for(let i=0; i<count; i++) {
+            uniState.particles.push({
+                x: x, y: y,
+                vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
+                life: 1.0, color: color
+            });
+        }
+    }
+
+    function spawnCanvasText(text, x, y, color) {
+        uniState.texts.push({ text: text, x: x, y: y, life: 1.0, color: color });
     }
 
     function universeLoop() {
@@ -532,11 +552,15 @@
         const pStats = getPlayerStats();
 
         // Player Movement
-        const speed = 15;
-        uniState.vx += uniState.joy.nx * speed * 0.1;
-        uniState.vy += uniState.joy.ny * speed * 0.1;
-        uniState.vx *= 0.95; uniState.vy *= 0.95; // Friction in space
+        const speed = 18;
+        uniState.vx += uniState.joy.nx * speed * 0.15;
+        uniState.vy += uniState.joy.ny * speed * 0.15;
+        uniState.vx *= 0.92; uniState.vy *= 0.92; // Friction in space
         uniState.px += uniState.vx; uniState.py += uniState.vy;
+
+        // Update UI HP Bar
+        const hpPct = Math.max(0, (player.hp / pStats.hp) * 100);
+        document.getElementById('uni-hp-fill').style.width = hpPct + '%';
 
         // Camera smoothly follows player
         uniState.cx += (uniState.px - uniState.cx) * 0.1;
@@ -545,7 +569,7 @@
         uCtx.save();
         uCtx.translate(w/2 - uniState.cx, h/2 - uniState.cy);
 
-        // Draw Stars (Parallax)
+        // Draw Stars
         uniState.stars.forEach(s => {
             uCtx.fillStyle = s.color;
             uCtx.beginPath(); uCtx.arc(s.x, s.y, s.size, 0, Math.PI*2); uCtx.fill();
@@ -564,45 +588,84 @@
             const dist = Math.sqrt(dx*dx + dy*dy);
 
             if(dist < 1500) { // Chase Range
-                e.vx += (dx/dist) * 0.5; e.vy += (dy/dist) * 0.5;
+                e.vx += (dx/dist) * 0.6; e.vy += (dy/dist) * 0.6;
             }
             e.vx *= 0.98; e.vy *= 0.98;
             e.x += e.vx; e.y += e.vy;
 
-            // Trail History
-            e.hist.unshift({x: e.x, y: e.y}); if(e.hist.length > 10) e.hist.pop();
-            
             // Draw Enemy Trail
+            e.hist.unshift({x: e.x, y: e.y}); if(e.hist.length > 10) e.hist.pop();
             if(e.hist.length > 2) {
                 uCtx.beginPath(); uCtx.moveTo(e.hist[0].x, e.hist[0].y);
                 for(let j=1; j<e.hist.length; j++) uCtx.lineTo(e.hist[j].x, e.hist[j].y);
-                uCtx.strokeStyle = 'red'; uCtx.lineWidth = 10; uCtx.stroke();
+                uCtx.strokeStyle = 'rgba(255, 0, 85, 0.5)'; uCtx.lineWidth = 8; uCtx.stroke();
             }
 
             // Draw Enemy
-            uCtx.fillStyle = 'red'; uCtx.beginPath(); uCtx.arc(e.x, e.y, 12, 0, Math.PI*2); uCtx.fill();
+            uCtx.fillStyle = '#ff0055'; uCtx.beginPath(); uCtx.arc(e.x, e.y, 14, 0, Math.PI*2); uCtx.fill();
 
-            // Collision (Combat)
-            if(dist < 30) {
-                e.hp -= pStats.atk * 0.2; // Deal damage
-                player.hp -= pStats.def * 0.05; // Take damage
+            // Draw Floating Health Bar
+            uCtx.fillStyle = 'red'; uCtx.fillRect(e.x - 20, e.y + 25, 40, 5);
+            uCtx.fillStyle = '#00ff00'; uCtx.fillRect(e.x - 20, e.y + 25, 40 * (e.hp/e.maxHp), 5);
+
+            // ACTIVE COLLISION & COMBAT
+            if(dist < 35) { // Hitbox overlaps
+                if (e.hitCooldown <= 0) {
+                    // Deal chunky damage
+                    e.hp -= pStats.atk;
+                    player.hp -= (pStats.hp * 0.05); // Player takes 5% damage per hit
+                    
+                    // Visual Clash
+                    spawnParticles(e.x, e.y, '#fff', 8); // White sparks
+                    spawnCanvasText(formatNum(pStats.atk), e.x, e.y - 20, 'gold');
+
+                    // Violent Knockback (The "Smash")
+                    e.vx -= (dx/dist)*30; e.vy -= (dy/dist)*30;
+                    uniState.vx += (dx/dist)*15; uniState.vy += (dy/dist)*15;
+                    
+                    e.hitCooldown = 20; // Wait 20 frames before they can damage each other again
+                }
                 
-                // Repel
-                e.vx -= (dx/dist)*15; e.vy -= (dy/dist)*15;
-                uniState.vx += (dx/dist)*10; uniState.vy += (dy/dist)*10;
-
-                // Enemy Dies -> Splitting mechanic
+                // Death Split
                 if(e.hp <= 0) {
                     uniState.enemies.splice(i, 1);
                     player.coins += 5000;
                     document.getElementById('uni-kills').innerText = parseInt(document.getElementById('uni-kills').innerText) + 1;
                     document.getElementById('uni-gold').innerText = formatNum(player.coins);
                     
-                    // Spawn 2 more!
-                    spawnUniEnemy(e.x + 50, e.y + 50);
-                    spawnUniEnemy(e.x - 50, e.y - 50);
+                    // MASSIVE EXPLOSION
+                    spawnParticles(e.x, e.y, '#ff0055', 30);
+                    spawnCanvasText("KILL!", e.x, e.y, 'cyan');
+                    
+                    // Spawn 2 new enemies slightly further away
+                    spawnUniEnemy(e.x + 100, e.y + 100);
+                    spawnUniEnemy(e.x - 100, e.y - 100);
+                    continue;
                 }
             }
+            if (e.hitCooldown > 0) e.hitCooldown--;
+        }
+
+        // Draw Particles
+        for(let i = uniState.particles.length - 1; i >= 0; i--) {
+            let p = uniState.particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+            if(p.life <= 0) { uniState.particles.splice(i, 1); continue; }
+            uCtx.globalAlpha = Math.max(0, p.life);
+            uCtx.fillStyle = p.color;
+            uCtx.beginPath(); uCtx.arc(p.x, p.y, 4, 0, Math.PI*2); uCtx.fill();
+            uCtx.globalAlpha = 1.0;
+        }
+
+        // Draw Floating Text
+        for(let i = uniState.texts.length - 1; i >= 0; i--) {
+            let t = uniState.texts[i];
+            t.y -= 2; t.life -= 0.03;
+            if(t.life <= 0) { uniState.texts.splice(i, 1); continue; }
+            uCtx.globalAlpha = Math.max(0, t.life);
+            uCtx.fillStyle = t.color; uCtx.font = '20px Bangers'; uCtx.textAlign = 'center';
+            uCtx.fillText(t.text, t.x, t.y);
+            uCtx.globalAlpha = 1.0;
         }
 
         // Death Check
