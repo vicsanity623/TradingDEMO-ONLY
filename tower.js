@@ -16,6 +16,7 @@
         floor: 1, bossKey: null,
         p: { hp: 0, maxHp: 0, atk: 0, def: 0, x: 20, y: 50, vx: 0, vy: 0, el: null },
         e: { hp: 0, maxHp: 0, atk: 0, def: 0, x: 80, y: 50, vx: 0, vy: 0, el: null, stun: 0 },
+        hitCooldown: 0, // <--- FIXED: Added missing cooldown tracker
         loopId: null
     };
 
@@ -177,7 +178,7 @@
                     <div style="font-family:'Bangers'; font-size:1.5rem; color:${d.color};">${d.name}</div>
                     <div style="font-size:0.8rem; color:#aaa;">HP: ${formatNum(d.hp)} | ATK: ${formatNum(d.atk)}</div>
                 </div>
-                <button class="btn btn-gold" style="padding:10px;" onclick="startCombat('dungeon', null, '${key}')">ENTER (1🗝️)</button>
+                <button class="btn btn-gold" style="padding:10px;" onclick="uiClick(event); startCombat('dungeon', null, '${key}')">ENTER (1🗝️)</button>
             `;
             list.appendChild(el);
         });
@@ -210,6 +211,7 @@
         combatState.type = type;
         combatState.floor = floor;
         combatState.bossKey = bossKey;
+        combatState.hitCooldown = 0;
 
         const stats = getPlayerStats();
         combatState.p = { hp: stats.hp, maxHp: stats.hp, atk: stats.atk, def: stats.def, x: 20, y: 50, vx: 0, vy: 0, el: document.getElementById('cb-player') };
@@ -270,27 +272,28 @@
         e.el.style.left = e.x + "%"; e.el.style.top = e.y + "%";
 
         // Collision
-        if (dist < 15 && physics.hitCooldown <= 0) {
-            physics.hitCooldown = 20;
+        if (dist < 15 && combatState.hitCooldown <= 0) {
+            combatState.hitCooldown = 20;
             
             // Player hits Enemy
             const pDmg = Math.max(1, Math.floor(p.atk * (0.8 + Math.random() * 0.4)));
             e.hp -= pDmg;
-            spawnPop(pDmg, e.x, e.y, 'gold');
+            spawnPop(formatNum(pDmg), e.x, e.y, 'gold');
             e.vx += (dx/dist) * 5; e.vy += (dy/dist) * 5;
             e.stun = 15;
 
             // Enemy hits Player
             const eDmg = Math.max(1, Math.floor(e.atk * (0.8 + Math.random() * 0.4) - (p.def * 0.2)));
             p.hp -= eDmg;
-            spawnPop(eDmg, p.x, p.y, 'red');
+            spawnPop(formatNum(eDmg), p.x, p.y, 'red');
             p.vx -= (dx/dist) * 5; p.vy -= (dy/dist) * 5;
 
             document.getElementById('combat-arena').style.animation = 'none';
             void document.getElementById('combat-arena').offsetWidth;
             document.getElementById('combat-arena').style.animation = 'shake 0.2s';
         }
-        if(physics.hitCooldown > 0) physics.hitCooldown--;
+        
+        if(combatState.hitCooldown > 0) combatState.hitCooldown--;
 
         updateCombatUI();
 
@@ -331,6 +334,10 @@
         const c = combatState;
         document.getElementById('cb-player-hp').style.width = Math.max(0, (c.p.hp / c.p.maxHp) * 100) + "%";
         document.getElementById('cb-boss-hp').style.width = Math.max(0, (c.e.hp / c.e.maxHp) * 100) + "%";
+        
+        // FIXED: Live Update the HP Text
+        const hpText = document.getElementById('cb-player-hp-text');
+        if (hpText) hpText.innerText = formatNum(Math.max(0, c.p.hp));
     }
 
     window.stopCombat = function() {
