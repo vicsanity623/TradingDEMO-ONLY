@@ -26,7 +26,8 @@
     let exitTimer = null;
     let physicsFrame = null;
     let skillInterval = null;
-    let skillStates = { doubleHit: 0, focus: 0, kameBlast: 0 }; // Tracks skill flashes
+    let skillStates = { doubleHit: 0, focus: 0, kameBlast: 0 };
+    let dungeonZenkaiUsed = false;
 
     const physics = {
         player: { x: 20, y: 50, vx: 0, vy: 0, el: null },
@@ -259,6 +260,7 @@
         physics.player = { x: 20, y: 50, vx: 0, vy: 0, el: playerImgEl };
         physics.boss = { x: 80, y: 50, vx: 0, vy: 0, el: bossImgEl, stun: 0 };
         physics.hitCooldown = 0;
+        dungeonZenkaiUsed = false;
 
         timeLeft = 90;
         updateDungeonUI();
@@ -433,6 +435,27 @@
             setTimeout(() => endDungeon(true), 2000);
             return;
         } else if (window.player.hp <= 0) {
+            
+            // --- NEW: DUNGEON ZENKAI REVIVE ---
+            if (window.player.advanceLevel >= 60 && !dungeonZenkaiUsed) {
+                dungeonZenkaiUsed = true;
+                
+                // Heal to 50%
+                window.player.hp = Math.floor(window.GameState.gokuMaxHP * 0.5);
+                
+                // Visual Effects
+                if (window.createDungeonPop) window.createDungeonPop("ZENKAI REVIVE!", 'db-player-img', '#2ecc71', true);
+                applyDungeonFlash(physics.player.el);
+                
+                // Violently knock the boss away and stun them to give breathing room
+                physics.boss.vx = 20; 
+                physics.boss.stun = 60; 
+                
+                updateDungeonUI();
+                return; // Stop the function here so the player doesn't die!
+            }
+            
+            // --- ACTUAL DEFEAT ---
             window.player.hp = 0; updateDungeonUI();
             if (physicsFrame) cancelAnimationFrame(physicsFrame);
             if (battleTimer) clearInterval(battleTimer);
