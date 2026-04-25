@@ -1,20 +1,8 @@
-const CACHE_NAME = 'goku-rpg-v5.6.4';
+const CACHE_NAME = 'goku-rpg-v6.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './game.js',
-  './tapEvent.js',
-  './Ranks.js',
-  './dungeons.js',
-  './hub.js',
-  './soul.js',
-  './strategy.js',
-  './skills.js',
-  './gear.js',
-  './advance.js',
-  './battle.js',
-  './battleworld.js',
+  './tower.js',
   './manifest.json',
   './charged_b.png',
   './hb_b.png',
@@ -29,14 +17,7 @@ const ASSETS_TO_CACHE = [
   './IMG_0222.png',
   './majin_buu.png',
   './freeza.png',
-  './cell.png',
-  './TapEvent/game.js',
-  './TapEvent/style.css',
-  './TapEvent/index.html',
-  './TapEvent/manifest.json',
-  './TapEvent/IMG_0061.PNG',
-  './TapEvent/IMG_0062.PNG',
-  './TapEvent/sss9.png'
+  './cell.png'
 ];
 
 // Install Event: Cache files
