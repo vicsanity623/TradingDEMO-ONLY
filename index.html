@@ -11,69 +11,124 @@
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        :root { --orange: #FF8C00; --yellow: #FFD700; --cyan: #00e5ff; --red: #ff0055; --bg: #050508; }
+        /* --- EPIC DBZ THEME VARIABLES --- */
+        :root { 
+            --orange: #FF8C00; --yellow: #FFD700; --cyan: #00e5ff; --red: #ff0055; 
+            --bg-dark: #050508; --panel-bg: rgba(20, 20, 30, 0.7);
+        }
+        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-        body, html { margin: 0; padding: 0; font-family: 'Orbitron', sans-serif; background: var(--bg); color: white; height: 100vh; overflow: hidden; }
         
-        /* Navigation */
-        nav { display: flex; background: rgba(0,0,0,0.9); border-bottom: 3px solid var(--orange); height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); z-index: 1000; position: relative; }
-        nav button { flex: 1; background: transparent; border: none; color: #666; font-family: 'Bangers'; font-size: 1.3rem; cursor: pointer; transition: 0.3s; }
-        nav button.active { color: var(--yellow); background: radial-gradient(circle at bottom, rgba(255,140,0,0.3) 0%, transparent 70%); text-shadow: 0 0 10px var(--orange); }
+        /* FIXED: Use 100dvh and flex-direction column on the body */
+        body, html { 
+            margin: 0; padding: 0; font-family: 'Orbitron', sans-serif; 
+            background: var(--bg-dark); color: white; 
+            height: 100dvh; /* Dynamic viewport height fixes mobile cutoff */
+            width: 100vw;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
         
-        .screen { display: none; flex: 1; height: calc(100vh - 60px - env(safe-area-inset-top)); overflow-y: auto; flex-direction: column; position: relative; background: radial-gradient(circle at top, #111, #000); }
+        /* --- NAVIGATION --- */
+        nav { 
+            display: flex; background: rgba(0,0,0,0.9); border-bottom: 3px solid var(--orange); 
+            height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); 
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4); z-index: 100; flex-shrink: 0;
+        }
+        nav button { 
+            flex: 1; background: transparent; border: none; color: #666; 
+            font-family: 'Bangers'; font-size: 1.3rem; cursor: pointer; transition: 0.3s; 
+        }
+        nav button.active { 
+            color: var(--yellow); background: radial-gradient(circle at bottom, rgba(255,140,0,0.3) 0%, transparent 70%); 
+            text-shadow: 0 0 10px var(--orange);
+        }
+        
+        /* FIXED: Screen takes remaining space, hides overflow, lets children scroll */
+        .screen { 
+            display: none; flex: 1; height: 100%; overflow: hidden; 
+            flex-direction: column; position: relative; 
+            background: radial-gradient(circle at top, #111, #000); 
+        }
         .active-screen { display: flex; animation: fadeIn 0.3s ease-out; }
         
-        .title { font-family: 'Bangers'; font-size: 2.8rem; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 15px currentColor; text-align: center; margin: 15px 0; }
+        /* --- TYPOGRAPHY & BARS --- */
+        .title { font-family: 'Bangers'; font-size: 2.8rem; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 15px currentColor; text-align: center; margin: 15px 0; flex-shrink: 0; }
+        
         .bar-bg { width: 100%; background: #111; height: 16px; border-radius: 8px; border: 2px solid #333; position: relative; overflow: hidden; box-shadow: inset 0 0 10px black; }
-        .bar-fill { height: 100%; transition: width 0.3s; }
+        .bar-fill { height: 100%; transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .bar-fill::after { content:''; position:absolute; right:0; top:0; height:100%; width:10px; background:white; filter:blur(2px); }
         
-        /* Hub */
-        .hub-top { padding: 20px; text-align: center; border-bottom: 2px solid var(--cyan); }
-        .avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid white; background: #000; margin: 0 auto; overflow: hidden; box-shadow: 0 0 20px var(--cyan); }
+        /* --- HUB STYLES --- */
+        .hub-top { padding: 30px 20px; text-align: center; background: radial-gradient(circle at top, #2a1b38, #000); border-bottom: 2px solid var(--cyan); box-shadow: 0 5px 20px rgba(0, 229, 255, 0.1); flex-shrink: 0; }
+        
+        .avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto; }
+        .avatar-aura { position: absolute; inset: -15px; border-radius: 50%; background: conic-gradient(from 0deg, transparent, var(--cyan), transparent 60%); animation: spinAura 2s linear infinite; filter: blur(5px); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid white; background: #000; position: relative; z-index: 2; overflow: hidden; box-shadow: 0 0 20px var(--cyan); }
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .hub-stats { display: flex; justify-content: space-around; padding: 15px; background: rgba(20,20,30,0.8); font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #333; }
         
+        .hub-stats { display: flex; justify-content: space-around; padding: 15px; background: var(--panel-bg); backdrop-filter: blur(10px); font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #333; flex-shrink: 0; }
+        
+        /* --- INVENTORY GRID --- */
+        /* FIXED: Allows only this section to scroll, forcing action buttons to stay at bottom */
         .inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 15px; flex: 1; overflow-y: auto; align-content: flex-start; }
-        .inv-item { aspect-ratio: 1; background: linear-gradient(135deg, #222, #111); border: 2px solid #444; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        .inv-item { aspect-ratio: 1; background: linear-gradient(135deg, #222, #111); border: 2px solid #444; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: 0.1s; }
+        .inv-item:active { transform: scale(0.9); }
         .inv-item.selected { border-color: var(--yellow); box-shadow: 0 0 15px rgba(255,215,0,0.5); background: #332b00; transform: translateY(-3px); }
-        .qty-badge { position: absolute; top: -6px; right: -6px; background: var(--red); padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; font-weight: 900; border: 2px solid #fff; }
+        .qty-badge { position: absolute; top: -6px; right: -6px; background: var(--red); padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; font-weight: 900; border: 2px solid #fff; box-shadow: 0 2px 5px black; }
         
-        .action-row { padding: 15px; background: rgba(0,0,0,0.9); border-top: 2px solid var(--cyan); display: flex; gap: 10px; position: sticky; bottom: 0; }
-        .btn { flex: 1; padding: 15px; font-family: 'Bangers'; font-size: 1.4rem; border: none; border-radius: 10px; color: white; cursor: pointer; text-shadow: 1px 1px 0px black; }
+        /* --- EPIC BUTTONS --- */
+        /* FIXED: Flex shrink 0 prevents squishing, safe-area-inset fixes iOS bottom swipe bar */
+        .action-row { padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: rgba(0,0,0,0.9); border-top: 2px solid var(--cyan); display: flex; gap: 10px; flex-shrink: 0; }
+        .btn { flex: 1; padding: 15px; font-family: 'Bangers'; font-size: 1.4rem; letter-spacing: 1px; border: none; border-radius: 10px; color: white; cursor: pointer; text-shadow: 1px 1px 0px black; transition: all 0.1s; position: relative; overflow: hidden; }
         .btn:active { transform: scale(0.95); filter: brightness(1.2); }
-        .btn-blue { background: linear-gradient(to bottom, #00d2ff, #0055ff); box-shadow: 0 4px 0 #0033aa; }
-        .btn-gold { background: linear-gradient(to bottom, #f1c40f, #e67e22); color: black; text-shadow: none; box-shadow: 0 4px 0 #b35900; }
-        .btn-green { background: linear-gradient(to bottom, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1e8449; }
+        
+        .btn-blue { background: linear-gradient(to bottom, #00d2ff, #0055ff); box-shadow: 0 4px 0 #0033aa, 0 0 15px rgba(0, 210, 255, 0.4); }
+        .btn-merge { background: linear-gradient(to bottom, #d63031, #922b21); box-shadow: 0 4px 0 #641e16, 0 0 15px rgba(214, 48, 49, 0.4); }
+        .btn-gold { background: linear-gradient(to bottom, #f1c40f, #e67e22); color: black; text-shadow: none; box-shadow: 0 4px 0 #b35900, 0 0 15px rgba(241, 196, 15, 0.4); }
+        .btn-green { background: linear-gradient(to bottom, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1e8449, 0 0 15px rgba(46, 204, 113, 0.4); }
         .btn-red { background: linear-gradient(to bottom, #e74c3c, #c0392b); box-shadow: 0 4px 0 #922b21; }
         
         /* Dashboards */
-        .dashboard { background: rgba(0,0,0,0.8); border-top: 2px solid #333; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem; }
+        .dashboard { background: rgba(0,0,0,0.8); border-top: 2px solid #333; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem; flex-shrink: 0; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
         .dash-card { background: #1a1a2e; padding: 10px; border-radius: 8px; border-left: 3px solid var(--cyan); }
         .dash-card span { color: #aaa; display: block; margin-bottom: 3px; }
         .dash-card div { font-size: 1rem; font-weight: bold; color: white; }
 
         /* Arena */
-        .arena { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #1a1a3a, #000); position: relative; overflow: hidden; }
-        .combat-unit { position: absolute; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }
-        .combat-unit img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.9)); }
-        #cb-enemy img { transform: scaleX(-1); }
+        .arena { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #1a1a3a, #000); position: relative; overflow: hidden; box-shadow: inset 0 0 50px black; }
+        .arena::before { content:''; position:absolute; inset:0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.03) 2px, rgba(0,255,255,0.03) 4px); pointer-events:none; } 
+        
+        .combat-unit { position: absolute; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); transition: filter 0.05s; }
+        .combat-unit img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.9)); will-change: transform; }
+        #cb-enemy img { transform: scaleX(-1); } 
         canvas.trail-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         
         /* Universe */
         #uni-canvas { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; z-index: 1; }
-        #joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; z-index: 100; touch-action: none; }
+        #joystick-zone { position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); left: 20px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; z-index: 100; touch-action: none; }
         #joystick-knob { position: absolute; width: 60px; height: 60px; background: rgba(0, 229, 255, 0.5); border: 2px solid cyan; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 15px cyan; }
         .uni-ui { position: absolute; top: 10px; left: 10px; z-index: 100; text-shadow: 2px 2px black; font-family: 'Bangers'; font-size: 1.5rem; pointer-events: none; }
         
         #respawn-overlay { display: none; position: absolute; inset: 0; background: rgba(100,0,0,0.8); z-index: 200; flex-direction: column; align-items: center; justify-content: center; }
         
         /* Modals */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .modal-box { background: rgba(15, 15, 20, 0.95); border: 2px solid var(--cyan); border-radius: 20px; width: 90%; max-width: 400px; padding: 20px; text-align: center; }
-        .pop { position: absolute; font-family: 'Bangers'; font-size: 2.5rem; -webkit-text-stroke: 1px black; z-index: 50; pointer-events: none; animation: popUp 0.8s forwards; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; }
+        .modal-box { background: rgba(15, 15, 20, 0.95); border: 2px solid var(--cyan); border-radius: 20px; width: 90%; max-width: 420px; padding: 25px; text-align: center; box-shadow: 0 0 40px rgba(0, 229, 255, 0.3); animation: popModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popModal { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
+        /* Tower Shop */
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); padding: 15px; border: 1px solid #444; border-radius: 12px; margin-bottom: 12px; transition: 0.2s; }
+        .shop-item:active { transform: scale(0.98); border-color: var(--yellow); }
+
+        /* Animations */
+        @keyframes spinAura { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pop { position: absolute; font-family: 'Bangers'; font-size: 2.5rem; font-weight: normal; -webkit-text-stroke: 1px black; z-index: 50; pointer-events: none; animation: popUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popUp { 0% { transform: scale(0.5) translateY(0); opacity: 1; } 50% { transform: scale(1.3) translateY(-30px); } 100% { transform: scale(1) translateY(-60px); opacity: 0; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .ui-burst { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: white; pointer-events: none; animation: burstAnim 0.5s ease-out forwards; z-index: 9999; }
+        @keyframes burstAnim { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+        .epic-shake { animation: shakeHeavy 0.3s cubic-bezier(.36,.07,.19,.97) both; filter: brightness(1.2) contrast(1.2); }
+        @keyframes shakeHeavy { 0%, 100% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(-8px, 5px) rotate(-1deg); } 50% { transform: translate(8px, -5px) rotate(1deg); } 75% { transform: translate(-5px, -8px) rotate(-1deg); } }
     </style>
 </head>
 <body>
