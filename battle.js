@@ -705,10 +705,10 @@
             setTimeout(handleWin, 2500);
 
         } else if (window.player.hp <= 0) {
-            // --- ZENKAI CHECK (Revive) ---
-            const adv = window.AdvanceSystem ? window.AdvanceSystem.getBonuses(window.player.advanceLevel || 0) : null;
-            if (adv && adv.zenkai && !window.battle.zenkaiUsed) {
-                triggerZenkaiRevive(); // Call new function
+            // --- FIXED ZENKAI CHECK ---
+            // Look directly at the advance level instead of adv.zenkai
+            if (window.player.advanceLevel >= 60 && !window.battle.zenkaiUsed) {
+                triggerZenkaiRevive(); 
                 return;
             }
             // --- DEFEAT SEQUENCE ---
