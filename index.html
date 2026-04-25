@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Goku: Endless Universe</title>
+    <title>Goku: Tower Ascension</title>
     
     <!-- PWA MANIFEST & MOBILE SETTINGS -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="IMG_0061.png">
@@ -16,242 +16,287 @@
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        :root { --orange: #FF8C00; --yellow: #FFD700; --cyan: #00e5ff; --red: #ff0055; --bg: #050508; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-        
-        body, html { 
-            margin: 0; padding: 0; font-family: 'Orbitron', sans-serif; 
-            background: var(--bg); color: white; 
-            height: 100dvh; width: 100vw; overflow: hidden; 
-            display: flex; flex-direction: column; 
+        /* --- EPIC DBZ THEME VARIABLES --- */
+        :root { 
+            --orange: #FF8C00; --yellow: #FFD700; --cyan: #00e5ff; --red: #ff0055; 
+            --bg-dark: #050508; --panel-bg: rgba(20, 20, 30, 0.7);
         }
         
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body, html { 
+            margin: 0; padding: 0; font-family: 'Orbitron', sans-serif; 
+            background: var(--bg-dark); color: white; height: 100vh; overflow: hidden; 
+        }
+        
+        /* --- NAVIGATION --- */
         nav { 
             display: flex; background: rgba(0,0,0,0.9); border-bottom: 3px solid var(--orange); 
             height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); 
-            z-index: 1000; flex-shrink: 0; 
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4); z-index: 100; position: relative;
         }
-        nav button { flex: 1; background: transparent; border: none; color: #666; font-family: 'Bangers'; font-size: 1.3rem; cursor: pointer; transition: 0.3s; }
-        nav button.active { color: var(--yellow); background: radial-gradient(circle at bottom, rgba(255,140,0,0.3) 0%, transparent 70%); text-shadow: 0 0 10px var(--orange); }
+        nav button { 
+            flex: 1; background: transparent; border: none; color: #666; 
+            font-family: 'Bangers'; font-size: 1.5rem; cursor: pointer; transition: 0.3s; 
+        }
+        nav button.active { 
+            color: var(--yellow); background: radial-gradient(circle at bottom, rgba(255,140,0,0.3) 0%, transparent 70%); 
+            text-shadow: 0 0 10px var(--orange);
+        }
         
-        .screen { display: none; flex: 1; height: 100%; overflow: hidden; flex-direction: column; position: relative; background: radial-gradient(circle at top, #111, #000); min-height: 0; }
+        .screen { display: none; flex: 1; height: calc(100vh - 60px - env(safe-area-inset-top)); overflow-y: auto; flex-direction: column; position: relative; }
         .active-screen { display: flex; animation: fadeIn 0.3s ease-out; }
         
-        .title { font-family: 'Bangers'; font-size: 2.8rem; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 15px currentColor; text-align: center; margin: 15px 0; flex-shrink: 0; }
-        .bar-bg { width: 100%; background: #111; height: 16px; border-radius: 8px; border: 2px solid #333; position: relative; overflow: hidden; box-shadow: inset 0 0 10px black; }
-        .bar-fill { height: 100%; transition: width 0.3s; }
+        /* --- TYPOGRAPHY & BARS --- */
+        .title { font-family: 'Bangers'; font-size: 3rem; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 15px currentColor; text-align: center; margin: 15px 0; }
         
-        /* Hub */
-        .hub-top { padding: 20px; text-align: center; border-bottom: 2px solid var(--cyan); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .avatar-container { position: relative; width: 90px; height: 90px; min-height: 90px; margin: 0 auto; flex-shrink: 0; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid white; background: #000; overflow: hidden; box-shadow: 0 0 20px var(--cyan); position: relative; z-index: 2; }
-        .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* Energy Beam Progress Bars */
+        .bar-bg { width: 100%; background: #111; height: 18px; border-radius: 10px; border: 2px solid #333; position: relative; overflow: hidden; box-shadow: inset 0 0 10px black; }
+        .bar-fill { height: 100%; transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .bar-fill::after { content:''; position:absolute; right:0; top:0; height:100%; width:10px; background:white; filter:blur(2px); } /* Glowing tip */
         
-        .hub-stats { display: flex; justify-content: space-around; padding: 15px; background: rgba(20,20,30,0.8); font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #333; flex-shrink: 0; }
+        /* --- HUB STYLES --- */
+        .hub-top { padding: 30px 20px; text-align: center; background: radial-gradient(circle at top, #2a1b38, #000); border-bottom: 2px solid var(--cyan); box-shadow: 0 5px 20px rgba(0, 229, 255, 0.1); position: relative; }
         
+        /* Avatar with Rotating Ki Aura */
+        .avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto; }
+        .avatar-aura { position: absolute; inset: -15px; border-radius: 50%; background: conic-gradient(from 0deg, transparent, var(--cyan), transparent 60%); animation: spinAura 2s linear infinite; filter: blur(5px); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid white; background: #000; position: relative; z-index: 2; overflow: hidden; box-shadow: 0 0 20px var(--cyan); }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .hub-stats { display: flex; justify-content: space-around; padding: 15px; background: var(--panel-bg); backdrop-filter: blur(10px); font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #333; }
+        
+        /* --- INVENTORY GRID --- */
         .inv-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 15px; flex: 1; overflow-y: auto; align-content: flex-start; }
-        .inv-item { aspect-ratio: 1; background: linear-gradient(135deg, #222, #111); border: 2px solid #444; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        .inv-item { aspect-ratio: 1; background: linear-gradient(135deg, #222, #111); border: 2px solid #444; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: 0.1s; }
+        .inv-item:active { transform: scale(0.9); }
         .inv-item.selected { border-color: var(--yellow); box-shadow: 0 0 15px rgba(255,215,0,0.5); background: #332b00; transform: translateY(-3px); }
-        .qty-badge { position: absolute; top: -6px; right: -6px; background: var(--red); padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; font-weight: 900; border: 2px solid #fff; }
+        .qty-badge { position: absolute; top: -6px; right: -6px; background: var(--red); padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; font-weight: 900; border: 2px solid #fff; box-shadow: 0 2px 5px black; }
         
-        .action-row { padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: rgba(0,0,0,0.9); border-top: 2px solid var(--cyan); display: flex; gap: 10px; flex-shrink: 0; }
-        .btn { flex: 1; padding: 15px; font-family: 'Bangers'; font-size: 1.4rem; border: none; border-radius: 10px; color: white; cursor: pointer; text-shadow: 1px 1px 0px black; }
+        /* --- EPIC BUTTONS --- */
+        .action-row { padding: 15px; background: rgba(0,0,0,0.8); border-top: 2px solid var(--cyan); display: flex; gap: 10px; position: sticky; bottom: 0; }
+        .btn { flex: 1; padding: 15px; font-family: 'Bangers'; font-size: 1.4rem; letter-spacing: 1px; border: none; border-radius: 10px; color: white; cursor: pointer; text-shadow: 1px 1px 0px black; transition: all 0.1s; position: relative; overflow: hidden; }
         .btn:active { transform: scale(0.95); filter: brightness(1.2); }
-        .btn-blue { background: linear-gradient(to bottom, #00d2ff, #0055ff); box-shadow: 0 4px 0 #0033aa; }
-        .btn-gold { background: linear-gradient(to bottom, #f1c40f, #e67e22); color: black; text-shadow: none; box-shadow: 0 4px 0 #b35900; }
-        .btn-green { background: linear-gradient(to bottom, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1e8449; }
-        .btn-red { background: linear-gradient(to bottom, #e74c3c, #c0392b); box-shadow: 0 4px 0 #922b21; }
         
-        /* Dashboard Container */
-        .dashboard { background: rgba(0,0,0,0.8); border-top: 2px solid #333; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem; flex-shrink: 0; }
-        .dash-card { background: #1a1a2e; padding: 10px; border-radius: 8px; border-left: 3px solid var(--cyan); }
-        .dash-card span { color: #aaa; display: block; margin-bottom: 3px; }
-        .dash-card div { font-size: 1rem; font-weight: bold; color: white; }
-
-        /* Arena */
+        .btn-blue { background: linear-gradient(to bottom, #00d2ff, #0055ff); box-shadow: 0 4px 0 #0033aa, 0 0 15px rgba(0, 210, 255, 0.4); }
+        .btn-merge { background: linear-gradient(to bottom, #d63031, #922b21); box-shadow: 0 4px 0 #641e16, 0 0 15px rgba(214, 48, 49, 0.4); }
+        .btn-gold { background: linear-gradient(to bottom, #f1c40f, #e67e22); color: black; text-shadow: none; box-shadow: 0 4px 0 #b35900, 0 0 15px rgba(241, 196, 15, 0.4); }
+        .btn-green { background: linear-gradient(to bottom, #2ecc71, #27ae60); box-shadow: 0 4px 0 #1e8449, 0 0 15px rgba(46, 204, 113, 0.4); }
+        
+        /* --- ARENA PHYSICS/VISUALS --- */
         .arena { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #1a1a3a, #000); position: relative; overflow: hidden; box-shadow: inset 0 0 50px black; }
-        .combat-unit { position: absolute; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); z-index: 10; }
-        .combat-unit img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.9)); }
-        #cb-enemy img { transform: scaleX(-1); }
-        canvas.trail-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+        .arena::before { content:''; position:absolute; inset:0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.03) 2px, rgba(0,255,255,0.03) 4px); pointer-events:none; } /* Scanlines */
         
-        /* Universe */
-        #uni-canvas { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; z-index: 1; }
-        #joystick-zone { position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); left: 20px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3); border-radius: 50%; z-index: 100; touch-action: none; }
-        #joystick-knob { position: absolute; width: 60px; height: 60px; background: rgba(0, 229, 255, 0.5); border: 2px solid cyan; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 15px cyan; }
-        .uni-ui { position: absolute; top: 10px; left: 10px; z-index: 100; text-shadow: 2px 2px black; font-family: 'Bangers'; font-size: 1.5rem; pointer-events: none; }
+        .combat-unit { position: absolute; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); transition: filter 0.05s; }
+        .combat-unit img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.9)); will-change: transform; }
+        #cb-enemy img { transform: scaleX(-1); } /* Face player */
         
-        #respawn-overlay { display: none; position: absolute; inset: 0; background: rgba(100,0,0,0.8); z-index: 200; flex-direction: column; align-items: center; justify-content: center; }
+        /* --- ANIMATIONS & PARTICLES --- */
+        @keyframes spinAura { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Modals */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .modal-box { background: rgba(15, 15, 20, 0.95); border: 2px solid var(--cyan); border-radius: 20px; width: 90%; max-width: 400px; padding: 20px; text-align: center; }
-        .pop { position: absolute; font-family: 'Bangers'; font-size: 2.5rem; -webkit-text-stroke: 1px black; z-index: 50; pointer-events: none; animation: popUp 0.8s forwards; }
-        
+        /* Smooth damage text */
+        .pop { position: absolute; font-family: 'Bangers'; font-size: 2.5rem; font-weight: normal; -webkit-text-stroke: 1px black; z-index: 50; pointer-events: none; animation: popUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popUp { 0% { transform: scale(0.5) translateY(0); opacity: 1; } 50% { transform: scale(1.3) translateY(-30px); } 100% { transform: scale(1) translateY(-60px); opacity: 0; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Micro Bubble Burst (JS injected) */
+        .ui-burst { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: white; pointer-events: none; animation: burstAnim 0.5s ease-out forwards; z-index: 9999; }
+        @keyframes burstAnim { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+
+        /* Heavy Screen Shake */
+        .epic-shake { animation: shakeHeavy 0.3s cubic-bezier(.36,.07,.19,.97) both; filter: brightness(1.2) contrast(1.2); }
+        @keyframes shakeHeavy { 0%, 100% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(-8px, 5px) rotate(-1deg); } 50% { transform: translate(8px, -5px) rotate(1deg); } 75% { transform: translate(-5px, -8px) rotate(-1deg); } }
+
+        /* --- GLASS MODALS --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; }
+        .modal-box { background: rgba(15, 15, 20, 0.95); border: 2px solid var(--cyan); border-radius: 20px; width: 90%; max-width: 420px; padding: 25px; text-align: center; box-shadow: 0 0 40px rgba(0, 229, 255, 0.3); animation: popModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popModal { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        /* Tower Shop */
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); padding: 15px; border: 1px solid #444; border-radius: 12px; margin-bottom: 12px; transition: 0.2s; }
+        .shop-item:active { transform: scale(0.98); border-color: var(--yellow); }
     </style>
 </head>
 <body>
 
     <nav>
-        <button id="tab-hub" class="active" onclick="showTab('hub')">HUB</button>
-        <button id="tab-dungeon" onclick="showTab('dungeon')">DUNGEON</button>
-        <button id="tab-tower" onclick="showTab('tower')">TOWER</button>
-        <button id="tab-universe" onclick="showTab('universe')">UNIVERSE</button>
+        <button id="tab-hub" class="active" onclick="uiClick(event); showTab('hub')">HUB</button>
+        <button id="tab-dungeon" onclick="uiClick(event); showTab('dungeon')">DUNGEON</button>
+        <button id="tab-tower" onclick="uiClick(event); showTab('tower')">TOWER</button>
     </nav>
 
-    <!-- HUB -->
+    <!-- HUB SCREEN -->
     <div id="view-hub" class="screen active-screen">
         <div class="hub-top">
             <div class="avatar-container">
+                <div class="avatar-aura"></div>
                 <div class="avatar"><img src="IMG_0061.png" onerror="this.src=''"></div>
             </div>
-            <div class="title" style="color:var(--cyan); margin:0;">GOKU LV. <span id="ui-lvl">1</span></div>
-            <div class="bar-bg" style="width:85%;"><div id="ui-xp-fill" class="bar-fill" style="background:linear-gradient(90deg, #00d2ff, #0055ff); width:0%;"></div></div>
-            <div style="font-size:0.75rem; color:#aaa; font-weight:bold;">XP: <span id="ui-xp-text">0 / 100</span></div>
+            <div class="title" style="color:var(--cyan);">GOKU LV. <span id="ui-lvl">1</span></div>
+            <div class="bar-bg" style="width:85%; margin: 0 auto; height: 12px;"><div id="ui-xp-fill" class="bar-fill" style="background:linear-gradient(90deg, #00d2ff, #0055ff); width:0%;"></div></div>
+            <div style="font-size:0.75rem; color:#aaa; margin-top:8px; font-weight:bold; letter-spacing:1px;">XP: <span id="ui-xp-text">0 / 100</span></div>
         </div>
 
         <div class="hub-stats">
-            <div>❤️ <span id="ui-hp" style="color:var(--red);">1000</span></div>
+            <div>❤️ <span id="ui-hp" style="color:#ff0055;">1000</span></div>
             <div>⚔️ <span id="ui-atk" style="color:var(--cyan);">10</span></div>
             <div>🛡️ <span id="ui-def" style="color:#2ecc71;">10</span></div>
             <div>💰 <span id="ui-gold" style="color:var(--yellow);">0</span></div>
         </div>
 
+        <div style="display:flex; padding:15px; gap:15px; justify-content:center; background:rgba(0,0,0,0.5);">
+            <div style="background:linear-gradient(135deg, #111, #222); padding:10px; border:1px solid #444; border-radius:10px; text-align:center; flex:1; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
+                <div style="font-size:0.65rem; color:#888; letter-spacing:1px; margin-bottom:5px;">WEAPON</div>
+                <div id="ui-eq-w" style="font-weight:900; font-size:1.1rem; color:var(--cyan); text-shadow:0 0 5px rgba(0,229,255,0.5);">NONE</div>
+            </div>
+            <div style="background:linear-gradient(135deg, #111, #222); padding:10px; border:1px solid #444; border-radius:10px; text-align:center; flex:1; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
+                <div style="font-size:0.65rem; color:#888; letter-spacing:1px; margin-bottom:5px;">ARMOR</div>
+                <div id="ui-eq-a" style="font-weight:900; font-size:1.1rem; color:#2ecc71; text-shadow:0 0 5px rgba(46,204,113,0.5);">NONE</div>
+            </div>
+        </div>
+
         <div class="inv-grid" id="inv-grid"></div>
 
         <div class="action-row">
-            <button class="btn btn-gold" onclick="farmGold()">FARM GOLD</button>
-            <button class="btn btn-merge" id="btn-merge" style="display:none;" onclick="mergeSelected()">MERGE (3)</button>
-            <button class="btn btn-blue" id="btn-equip" onclick="equipSelected()">EQUIP</button>
+            <button class="btn btn-gold" onclick="uiClick(event); farmGold()">FARM GOLD</button>
+            <button class="btn btn-merge" id="btn-merge" style="display:none;" onclick="uiClick(event); mergeSelected()">MERGE (3)</button>
+            <button class="btn btn-blue" id="btn-equip" onclick="uiClick(event); equipSelected()">EQUIP</button>
         </div>
     </div>
 
     <!-- DUNGEON SCREEN -->
     <div id="view-dungeon" class="screen">
         <div class="title" style="color:var(--red);">BOSS RUSH</div>
-        <div style="text-align:center; margin-bottom:10px; flex-shrink:0;">🗝️ KEYS: <span id="ui-keys" style="color:var(--yellow); font-weight:bold;">5</span></div>
+        <div style="text-align:center; margin-bottom:15px; font-size:1.2rem; background:rgba(0,0,0,0.5); padding:10px;">🗝️ KEYS: <span id="ui-keys" style="color:var(--yellow); font-weight:bold;">5</span></div>
         
-        <!-- FIXED: The list now has flex-grow to occupy space but min-height to ensure items render -->
-        <div style="padding:15px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; min-height:100px;" id="dungeon-list"></div>
-        
-        <!-- FIXED IDs: Matching the tower.js dashboard update logic -->
-        <div class="dashboard">
-            <div style="grid-column: 1 / -1; text-align:center; font-family:'Bangers'; font-size:1.2rem; color:var(--yellow);">LIFETIME BATTLE RECORD</div>
-            <div class="dash-card"><span>Total Dmg Dealt</span><div id="stat-dmg-dealt">0</div></div>
-            <div class="dash-card"><span>Hardest Hit</span><div id="stat-hardest-hit">0</div></div>
-            <div class="dash-card"><span>Loot Found</span><div id="stat-loot-found">0</div></div>
-            <div class="dash-card"><span>Total Dmg Taken</span><div id="stat-dmg-taken">0</div></div>
+        <div style="padding:15px; display:flex; flex-direction:column; gap:15px;" id="dungeon-list">
+            <!-- Injected by JS -->
         </div>
     </div>
 
-    <!-- TOWER -->
+    <!-- KORIN'S TOWER SCREEN -->
     <div id="view-tower" class="screen">
-        <div class="title" style="color:#2ecc71;">KORIN'S TOWER</div>
-        <div style="text-align:center; font-size:1.2rem; flex-shrink:0;">Highest Floor: <span id="ui-max-floor" style="color:var(--cyan); font-weight:bold;">1</span></div>
+        <div class="title" style="color:#2ecc71; text-shadow: 3px 3px 0 #000, 0 0 20px #2ecc71;">KORIN'S TOWER</div>
+        <div style="text-align:center; margin-bottom:10px; font-size:1.2rem;">Highest Floor: <span id="ui-max-floor" style="color:var(--cyan); font-weight:bold; font-size:1.5rem;">1</span></div>
         
-        <div style="background:linear-gradient(180deg, #111, #000); padding:30px 15px; margin:20px; border-radius:20px; border:2px solid #2ecc71; text-align:center; flex-shrink:0;">
-            <div style="font-size:4rem;">🫘</div>
-            <div style="color:white; font-family:'Bangers'; font-size:2.5rem;">SENZU BEANS: <span id="ui-senzu" style="color:#2ecc71;">0</span></div>
+        <div style="background:linear-gradient(180deg, #111, #0a0a0a); padding:30px 15px; margin:20px; border-radius:20px; border:2px solid #2ecc71; text-align:center; box-shadow:0 10px 30px rgba(46, 204, 113, 0.2);">
+            <div style="font-size:4rem; filter:drop-shadow(0 0 10px #2ecc71); animation: floatUp 2s infinite alternate ease-in-out;">🫘</div>
+            <div style="color:white; font-family:'Bangers'; font-size:2.5rem; margin-top:10px; letter-spacing:2px;">SENZU BEANS: <span id="ui-senzu" style="color:#2ecc71; text-shadow:0 0 10px #2ecc71;">0</span></div>
+            <div style="font-size:0.85rem; color:#aaa; margin-top:10px; line-height:1.5;">Ascend the endless tower.<br>Survive to earn Senzu Beans.</div>
         </div>
 
-        <div style="padding:20px; display:flex; flex-direction:column; gap:15px; margin-top:auto; flex-shrink:0;">
-            <button class="btn btn-green" onclick="openTowerShop()">INFINITE SHOP</button>
-            <button class="btn btn-gold" onclick="startCombat('tower', 1)" style="font-size:2.2rem;">START CLIMB ⚡</button>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:15px; margin-top:auto; background:rgba(0,0,0,0.8); border-top:2px solid #333;">
+            <button class="btn btn-green" onclick="uiClick(event); openTowerShop()">OPEN TOWER SHOP</button>
+            <button class="btn btn-gold" onclick="uiClick(event); startCombat('tower', 1)" style="font-size:2.2rem; padding:20px;">START CLIMB ⚡</button>
         </div>
     </div>
 
-    <!-- UNIVERSE (SWARM SURVIVAL) -->
-    <div id="view-universe" class="screen">
-        <canvas id="uni-canvas"></canvas>
-        <div class="uni-ui">
-            <div style="width:200px; margin-bottom:10px;">
-                <div style="font-size:0.8rem; color:white; text-shadow:1px 1px black; letter-spacing:1px;">HULL INTEGRITY</div>
-                <div class="bar-bg" style="height:12px; border-color:#2ecc71;">
-                    <div id="uni-hp-fill" class="bar-fill" style="background:#2ecc71; width:100%;"></div>
-                </div>
-            </div>
-            <div style="color:var(--cyan);">KILLS: <span id="uni-kills">0</span></div>
-            <div style="color:var(--yellow);">GOLD: <span id="uni-gold">0</span></div>
-        </div>
-        <div id="joystick-zone"><div id="joystick-knob"></div></div>
-        <div class="action-row" style="position:absolute; bottom:0; width:100%; border:none; background:transparent; pointer-events:none;">
-            <button class="btn btn-red" style="pointer-events:auto; max-width:150px; margin-left:auto;" onclick="showTab('hub')">ESCAPE</button>
-        </div>
-        
-        <div id="respawn-overlay">
-            <div class="title" style="color:red; font-size:4rem;">YOU DIED</div>
-            <div style="font-family:'Bangers'; font-size:2rem;">RESPAWNING IN <span id="respawn-time">15</span>s...</div>
-        </div>
-    </div>
-
-    <!-- UNIFIED COMBAT ARENA -->
+    <!-- UNIFIED COMBAT ARENA (Overlays the screen) -->
     <div id="combat-modal" class="modal" style="background:#000;">
-        <div style="position:absolute; top:calc(20px + env(safe-area-inset-top)); width:100%; text-align:center; z-index:10;">
+        <div style="position:absolute; top:calc(20px + env(safe-area-inset-top)); width:100%; text-align:center; z-index:10; background:linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); padding-bottom:20px;">
             <div id="combat-title" class="title" style="margin:0; font-size:2.5rem;">BATTLE</div>
-            <div id="combat-subtitle" style="font-size:1rem; color:var(--cyan);">Floor 1</div>
-            <div style="width:85%; margin:5px auto;"><div class="bar-bg" style="border-color:var(--red);"><div id="cb-boss-hp" class="bar-fill" style="background:var(--red); width:100%;"></div></div></div>
+            <div id="combat-subtitle" style="font-size:1rem; color:var(--cyan); letter-spacing:3px; margin-bottom:10px;">Floor 1</div>
+            
+            <div style="width:85%; margin:0 auto;">
+                <div class="bar-bg" style="border-color:var(--red); height:22px;"><div id="cb-boss-hp" class="bar-fill" style="background:linear-gradient(90deg, #900, var(--red)); width:100%;"></div></div>
+            </div>
         </div>
 
         <div class="arena" id="combat-arena">
-            <canvas id="trail-canvas" class="trail-canvas"></canvas>
             <div id="cb-player" class="combat-unit" style="left:20%;"><img src="IMG_0061.png" onerror="this.src=''"></div>
             <div id="cb-enemy" class="combat-unit" style="left:80%;"><img id="cb-enemy-img" src="cell.png" onerror="this.src=''"></div>
-            <div id="cb-fx" style="position:absolute; inset:0; pointer-events:none; z-index:20;"></div>
+            <div id="cb-fx" style="position:absolute; inset:0; pointer-events:none;"></div>
         </div>
 
-        <div style="position:absolute; bottom:0; width:100%; text-align:center; z-index:10; background:rgba(0,0,0,0.9); padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));">
+        <div style="position:absolute; bottom:0; width:100%; text-align:center; z-index:10; background:linear-gradient(to top, rgba(0,0,0,0.95), transparent); padding: 40px 20px calc(20px + env(safe-area-inset-bottom));">
             <div style="display:flex; justify-content:space-between; width:90%; margin:0 auto 5px; font-family:'Bangers'; font-size:1.2rem;">
                 <span style="color:white;">GOKU</span> <span id="cb-player-hp-text" style="color:#2ecc71;">100%</span>
             </div>
-            <div style="width:90%; margin:0 auto;"><div class="bar-bg" style="border-color:#2ecc71;"><div id="cb-player-hp" class="bar-fill" style="background:#2ecc71; width:100%;"></div></div></div>
-            <button class="btn btn-red" style="margin-top:15px; width:60%;" onclick="stopCombat()">RETREAT</button>
+            <div style="width:90%; margin:0 auto;">
+                <div class="bar-bg" style="border-color:#2ecc71; height:15px;"><div id="cb-player-hp" class="bar-fill" style="background:linear-gradient(90deg, #1e8449, #2ecc71); width:100%;"></div></div>
+            </div>
+            <button class="btn" style="background:linear-gradient(to bottom, #c0392b, #922b21); margin-top:20px; width:60%; box-shadow:0 4px 0 #641e16;" onclick="uiClick(event); stopCombat()">RETREAT</button>
         </div>
     </div>
 
     <!-- TOWER SHOP MODAL -->
     <div id="shop-modal" class="modal">
-        <div class="modal-box" style="padding:0; overflow:hidden;">
-            <div style="background:#2ecc71; padding:20px; color:black;"><div class="title" style="color:black; margin:0;">INFINITE SHOP</div><div>🫘 Beans: <span id="shop-senzu">0</span></div></div>
+        <div class="modal-box" style="max-width:500px; padding:0; overflow:hidden;">
+            <div style="background:#2ecc71; padding:20px; text-align:center; color:black;">
+                <div class="title" style="color:black; text-shadow:none; margin:0;">TOWER SHOP</div>
+                <div style="font-family:'Orbitron'; font-weight:bold; margin-top:5px;">🫘 Beans: <span id="shop-senzu" style="font-size:1.2rem;">0</span></div>
+            </div>
+            
             <div style="text-align:left; max-height:50vh; overflow-y:auto; padding:20px;">
                 <div class="shop-item">
-                    <div><div style="font-family:'Bangers'; color:var(--cyan); font-size:1.4rem;">Z-SWORD</div><div style="font-size:0.75rem; color:#aaa;">+500K ATK <br>(Owned: <span id="shop-zsword-qty" style="color:white">0</span>)</div></div>
-                    <button class="btn btn-green" style="flex:none; padding:10px;" onclick="buyShopItem('zsword')"><span id="shop-zsword-cost">50</span> 🫘</button>
+                    <div>
+                        <div style="font-family:'Bangers'; color:var(--cyan); font-size:1.4rem;">Z-SWORD</div>
+                        <div style="font-size:0.75rem; color:#aaa; margin-top:3px;">Weapon • <span style="color:var(--cyan)">+500K ATK</span></div>
+                    </div>
+                    <button class="btn btn-green" style="flex:none; padding:10px 20px; font-size:1.2rem;" onclick="uiClick(event); buyShopItem('zsword', 50)">50 🫘</button>
                 </div>
                 <div class="shop-item">
-                    <div><div style="font-family:'Bangers'; color:var(--yellow); font-size:1.4rem;">POTARA EARRINGS</div><div style="font-size:0.75rem; color:#aaa;">+500K DEF <br>(Owned: <span id="shop-potara-qty" style="color:white">0</span>)</div></div>
-                    <button class="btn btn-green" style="flex:none; padding:10px;" onclick="buyShopItem('potara')"><span id="shop-potara-cost">50</span> 🫘</button>
+                    <div>
+                        <div style="font-family:'Bangers'; color:var(--yellow); font-size:1.4rem;">POTARA EARRINGS</div>
+                        <div style="font-size:0.75rem; color:#aaa; margin-top:3px;">Armor • <span style="color:var(--yellow)">+500K DEF</span></div>
+                    </div>
+                    <button class="btn btn-green" style="flex:none; padding:10px 20px; font-size:1.2rem;" onclick="uiClick(event); buyShopItem('potara', 50)">50 🫘</button>
                 </div>
                 <div class="shop-item">
-                    <div><div style="font-family:'Bangers'; color:var(--red); font-size:1.4rem;">GOD KI TRAINING</div><div style="font-size:0.75rem; color:#aaa;">x2 Global Stats <br>(Owned: <span id="shop-godki-qty" style="color:white">0</span>)</div></div>
-                    <button class="btn btn-green" style="flex:none; padding:10px;" onclick="buyShopItem('godki')"><span id="shop-godki-cost">250</span> 🫘</button>
+                    <div>
+                        <div style="font-family:'Bangers'; color:var(--red); font-size:1.4rem;">GOD KI TRAINING</div>
+                        <div style="font-size:0.75rem; color:#aaa; margin-top:3px;">Permanent <span style="color:var(--red)">x2 Stat Multiplier</span></div>
+                    </div>
+                    <button class="btn btn-green" style="flex:none; padding:10px 20px; font-size:1.2rem;" onclick="uiClick(event); buyShopItem('godki', 250)">250 🫘</button>
                 </div>
             </div>
-            <button class="btn" style="width:100%; border-radius:0;" onclick="document.getElementById('shop-modal').style.display='none'">CLOSE</button>
+            <div style="padding:20px; background:#111; border-top:1px solid #333;">
+                <button class="btn" style="width:100%; background:#555;" onclick="uiClick(event); document.getElementById('shop-modal').style.display='none'">CLOSE SHOP</button>
+            </div>
         </div>
     </div>
 
-    <!-- SWEEP/RESULT MODAL -->
+    <!-- RESULT MODAL -->
     <div id="result-modal" class="modal">
-        <div class="modal-box">
-            <div id="res-title" class="title" style="font-size:3.5rem;">RESULTS</div>
-            <div id="res-body" style="margin:15px 0; background:#111; padding:15px; border-radius:10px; font-size:1.1rem; border:1px solid #444;"></div>
-            
-            <div id="sweep-ui" style="display:none; background:#222; padding:15px; border-radius:10px; margin-bottom:15px; border:2px solid var(--cyan);">
-                <div style="margin-bottom:10px; color:var(--cyan); font-family:'Bangers'; font-size:1.2rem;">SWEEP THIS BOSS? (Keys: <span id="sweep-keys-avail">0</span>)</div>
-                <div style="display:flex; gap:5px; margin-bottom:10px;">
-                    <button class="btn btn-blue" style="padding:10px;" onclick="adjSweep(-1)">-1</button>
-                    <input type="number" id="sweep-input" value="1" readonly style="width:60px; text-align:center; font-family:'Bangers'; font-size:1.5rem; background:black; color:white; border:1px solid #555;">
-                    <button class="btn btn-blue" style="padding:10px;" onclick="adjSweep(1)">+1</button>
-                    <button class="btn btn-gold" style="padding:10px;" onclick="adjSweep('max')">MAX</button>
-                </div>
-                <button class="btn btn-green" style="width:100%; padding:10px;" onclick="confirmSweep()">CONFIRM SWEEP</button>
-            </div>
-            
-            <button class="btn btn-gold" style="width:100%;" onclick="closeResult()">CONTINUE</button>
+        <div class="modal-box" style="background:transparent; border:none; box-shadow:none;">
+            <div id="res-title" class="title" style="font-size:4rem; text-shadow:0 0 20px currentColor;">RESULTS</div>
+            <div id="res-body" style="margin:20px 0; line-height:1.8; font-size:1.1rem; background:rgba(0,0,0,0.8); padding:20px; border-radius:10px; border:1px solid #555;"></div>
+            <button class="btn btn-gold" style="width:100%; font-size:1.8rem;" onclick="uiClick(event); closeResult()">CONTINUE</button>
         </div>
     </div>
+
+    <!-- MICRO BUBBLE BURST ENGINE -->
+    <script>
+        function uiClick(e) {
+            // Get click coordinates
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Generate 6 micro particles
+            for(let i=0; i<6; i++) {
+                const burst = document.createElement('div');
+                burst.className = 'ui-burst';
+                burst.style.left = x + 'px';
+                burst.style.top = y + 'px';
+                
+                // Random spread trajectory
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 40 + 20;
+                burst.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+                burst.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+                
+                // Random color matching DBZ theme
+                const colors = ['#FFD700', '#00e5ff', '#ffffff'];
+                burst.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+                e.target.appendChild(burst);
+                setTimeout(() => burst.remove(), 500);
+            }
+            
+            // Add a tiny vibration to the device if supported
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
+    </script>
 
     <!-- SERVICE WORKER REGISTRATION -->
     <script>
