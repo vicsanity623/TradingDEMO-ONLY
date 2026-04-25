@@ -185,11 +185,16 @@
     // --- DUNGEON UI ---
     function renderDungeons() {
         const list = document.getElementById('dungeon-list');
+        if (!list) return;
         list.innerHTML = '';
+        
         Object.keys(DUNGEONS).forEach(key => {
             const d = DUNGEONS[key];
             const el = document.createElement('div');
-            el.style.cssText = `background:rgba(20,20,30,0.9); border:2px solid ${d.color}; border-radius:10px; padding:15px; display:flex; align-items:center; gap:15px; box-shadow:0 5px 15px rgba(0,0,0,0.5);`;
+            
+            // FIXED: Added 'flex-shrink: 0;' and 'min-height: 90px;' to prevent the cards from disappearing
+            el.style.cssText = `background:rgba(20,20,30,0.9); border:2px solid ${d.color}; border-radius:10px; padding:15px; display:flex; align-items:center; gap:15px; box-shadow:0 5px 15px rgba(0,0,0,0.5); flex-shrink: 0; min-height: 90px;`;
+            
             el.innerHTML = `
                 <div style="width:60px; height:60px; border-radius:50%; background:black; border:2px solid #fff; overflow:hidden; flex-shrink:0;">
                     <img src="${d.img}" style="width:100%; height:100%; object-fit:cover;">
@@ -198,7 +203,7 @@
                     <div style="font-family:'Bangers'; font-size:1.5rem; color:${d.color}; text-shadow:1px 1px black;">${d.name}</div>
                     <div style="font-size:0.75rem; color:#aaa;">HP: ${formatNum(d.hp)} | ATK: ${formatNum(d.atk)}</div>
                 </div>
-                <button class="btn btn-gold" style="padding:10px; font-size:1.2rem;" onclick="startCombat('dungeon', null, '${key}')">FIGHT (1🗝️)</button>
+                <button class="btn btn-gold" style="padding:10px; font-size:1.2rem;" onclick="uiClick(event); startCombat('dungeon', null, '${key}')">FIGHT (1🗝️)</button>
             `;
             list.appendChild(el);
         });
