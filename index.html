@@ -59,12 +59,25 @@
         .bar-fill::after { content:''; position:absolute; right:0; top:0; height:100%; width:10px; background:white; filter:blur(2px); }
         
         /* --- HUB STYLES --- */
-        .hub-top { padding: 30px 20px; text-align: center; background: radial-gradient(circle at top, #2a1b38, #000); border-bottom: 2px solid var(--cyan); box-shadow: 0 5px 20px rgba(0, 229, 255, 0.1); flex-shrink: 0; }
+        .hub-top { 
+            padding: 20px; 
+            background: radial-gradient(circle at top, #2a1b38, #000); 
+            border-bottom: 2px solid var(--cyan); 
+            box-shadow: 0 5px 20px rgba(0, 229, 255, 0.1); 
+            flex-shrink: 0; 
+            
+            /* FIXED: Forces strict vertical stacking and centers everything without overlap */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 10px; 
+        }
         
-        .avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto; }
+        /* FIXED: Hardcoded dimensions and flex-shrink: 0 prevents Safari from blowing it up */
+        .avatar-container { position: relative; width: 90px; height: 90px; min-height: 90px; flex-shrink: 0; }
         .avatar-aura { position: absolute; inset: -15px; border-radius: 50%; background: conic-gradient(from 0deg, transparent, var(--cyan), transparent 60%); animation: spinAura 2s linear infinite; filter: blur(5px); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid white; background: #000; position: relative; z-index: 2; overflow: hidden; box-shadow: 0 0 20px var(--cyan); }
-        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
         
         .hub-stats { display: flex; justify-content: space-around; padding: 15px; background: var(--panel-bg); backdrop-filter: blur(10px); font-size: 0.85rem; font-weight: bold; border-bottom: 1px solid #333; flex-shrink: 0; }
         
