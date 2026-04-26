@@ -186,33 +186,85 @@
     }
 
     function addToInv(item) {
-        const found = player.inv.find(i => i.n === item.n && i.val === item.val);
-        if (found) found.qty++; else { item.qty = 1; player.inv.push(item); }
+        // If item doesn't have a buff, give it one
+        if (!item.buff) {
+            const buffs = [
+                { id: 'atkSpd', name: 'Attack Speed', val: 5 + Math.floor(Math.random() * 10) },
+                { id: 'critDmg', name: 'Crit Multiplier', val: 10 + Math.floor(Math.random() * 20) },
+                { id: 'dodge', name: 'Dodge Chance', val: 1 + Math.floor(Math.random() * 5) }
+            ];
+            item.buff = buffs[Math.floor(Math.random() * buffs.length)];
+        }
+
+        const found = player.inv.find(i => i.n === item.n && i.val === item.val && i.buff?.id === item.buff?.id);
+        if (found) found.qty++; 
+        else { item.qty = 1; player.inv.push(item); }
         syncUI();
     }
 
     function renderInventory() {
         const grid = document.getElementById('inv-grid'); if(!grid) return;
         grid.innerHTML = '';
-        const mergeBtn = document.getElementById('btn-merge'); 
-        // Renamed level up button logic
-        const levelBtn = document.getElementById('btn-level-up'); 
-        
-        if(mergeBtn) mergeBtn.style.display = 'none';
-        
         player.inv.forEach((item, i) => {
-            const el = document.createElement('div'); el.className = `inv-item ${player.selected === i ? 'selected' : ''}`;
+            const el = document.createElement('div'); el.className = `inv-item`;
             let color = (item.val > 20000) ? "var(--cyan)" : (item.val > 5000 ? "var(--red)" : "white");
             el.innerHTML = `<span style="font-size:1.5rem;">${item.type === 'w' ? '⚔️' : '🛡️'}</span><span style="color:${color}; font-weight:bold; margin-top:5px;">${formatNum(item.val)}</span>${item.qty > 1 ? `<div class="qty-badge">x${item.qty}</div>` : ''}`;
-            el.onclick = () => { player.selected = i; syncUI(); }; grid.appendChild(el);
+            el.onclick = () => openItemModal(i); 
+            grid.appendChild(el);
         });
+    }
+
+    window.openItemModal = function(index) {
+        const item = player.inv[index];
+        if(!item) return;
+
+        const modal = document.getElementById('item-modal');
+        document.getElementById('item-icon').innerText = item.type === 'w' ? '⚔️' : '🛡️';
+        document.getElementById('item-name').innerText = item.n;
+        document.getElementById('item-main-val').innerText = `+${formatNum(item.val)} ${item.type === 'w' ? 'ATK' : 'DEF'}`;
         
-        if (player.selected !== -1 && player.inv[player.selected] && player.inv[player.selected].qty >= 3) {
-            if(mergeBtn) mergeBtn.style.display = 'block';
-            if(levelBtn) levelBtn.style.display = 'none';
+        const buffCont = document.getElementById('item-buff-container');
+        buffCont.innerHTML = item.buff ? `<span class="buff-text">✦ ${item.buff.name}: +${item.buff.val}%</span>` : '';
+
+        // Buttons
+        document.getElementById('modal-equip-btn').onclick = () => { equipItem(index); modal.style.display = 'none'; };
+        document.getElementById('modal-sell-btn').onclick = () => { sellItem(index); modal.style.display = 'none'; };
+        
+        const mBtn = document.getElementById('modal-merge-btn');
+        if (item.qty >= 3) {
+            mBtn.style.display = 'block';
+            mBtn.onclick = () => { mergeItem(index); modal.style.display = 'none'; };
         } else {
-            if(levelBtn) levelBtn.style.display = 'block';
+            mBtn.style.display = 'none';
         }
+
+        modal.style.display = 'flex';
+    }
+
+    function equipItem(index) {
+        const item = player.inv[index];
+        const old = player.gear[item.type];
+        player.gear[item.type] = { ...item, qty: 1 };
+        item.qty--;
+        if(item.qty <= 0) player.inv.splice(index, 1);
+        if(old) addToInv(old);
+        syncUI(); saveGame();
+    }
+
+    function sellItem(index) {
+        const item = player.inv[index];
+        player.coins += Math.floor(item.val * 0.5);
+        item.qty--;
+        if(item.qty <= 0) player.inv.splice(index, 1);
+        syncUI(); saveGame();
+    }
+
+    function mergeItem(index) {
+        const item = player.inv[index];
+        item.qty -= 3;
+        if(item.qty <= 0) player.inv.splice(index, 1);
+        addToInv({ n: item.n + "+", type: item.type, val: item.val * 2, buff: item.buff });
+        saveGame();
     }
 
     window.equipSelected = function() {
@@ -348,7 +400,9 @@
         drawTrails(p.history, e.history);
 
         if (dist < 15 && combatState.hitCooldown <= 0) {
-            combatState.hitCooldown = 10;
+            // Calculate Attack Speed bonus from Weapon
+            const spdBonus = player.gear.w?.buff?.id === 'atkSpd' ? player.gear.w.buff.val : 0;
+            combatState.hitCooldown = Math.max(5, 15 - Math.floor(spdBonus / 5));
             
             // Player Attack (With Crit)
             let isCrit = Math.random() * 100 < pStats.crit;
@@ -494,24 +548,69 @@
     function spawnUniEnemy(x, y) { uniState.enemies.push({ x: x, y: y, vx: 0, vy: 0, hp: getPlayerStats().atk*3, maxHp: getPlayerStats().atk*3, hist: [], hitCooldown: 0 }); }
 
     function universeLoop() {
-        if(!uniState.active) return; const w = uCan.width; const h = uCan.height;
+        if(!uniState.active) return; 
+        const w = uCan.width; const h = uCan.height;
         uCtx.fillStyle = "rgba(5, 5, 10, 0.4)"; uCtx.fillRect(0, 0, w, h);
         if(uniState.dead) return;
-        const pStats = getPlayerStats(); uniState.vx += uniState.joy.nx * 2; uniState.vy += uniState.joy.ny * 2; uniState.vx *= 0.92; uniState.vy *= 0.92; uniState.px += uniState.vx; uniState.py += uniState.vy;
+
+        const pStats = getPlayerStats(); 
+        
+        // --- FIX 1: APPLY REGEN ---
+        player.hp = Math.min(pStats.hp, player.hp + (pStats.hp * pStats.regen));
+        
+        uniState.vx += uniState.joy.nx * 2; uniState.vy += uniState.joy.ny * 2; 
+        uniState.vx *= 0.92; uniState.vy *= 0.92; uniState.px += uniState.vx; uniState.py += uniState.vy;
+        
         document.getElementById('uni-hp-fill').style.width = (player.hp / pStats.hp * 100) + '%';
+        
         uniState.cx += (uniState.px - uniState.cx) * 0.1; uniState.cy += (uniState.py - uniState.cy) * 0.1;
         uCtx.save(); uCtx.translate(w/2 - uniState.cx, h/2 - uniState.cy);
+        
         uniState.stars.forEach(s => { uCtx.fillStyle = s.color; uCtx.beginPath(); uCtx.arc(s.x, s.y, s.size, 0, Math.PI*2); uCtx.fill(); });
         uCtx.fillStyle = 'cyan'; uCtx.beginPath(); uCtx.arc(uniState.px, uniState.py, 15, 0, Math.PI*2); uCtx.fill();
+        
         for(let i = uniState.enemies.length - 1; i >= 0; i--) {
             let e = uniState.enemies[i]; const dx = uniState.px - e.x; const dy = uniState.py - e.y; const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist < 1500) { e.vx += (dx/dist)*0.6; e.vy += (dy/dist)*0.6; } e.vx *= 0.98; e.vy *= 0.98; e.x += e.vx; e.y += e.vy;
+            if(dist < 1500) { e.vx += (dx/dist)*0.6; e.vy += (dy/dist)*0.6; } 
+            e.vx *= 0.98; e.vy *= 0.98; e.x += e.vx; e.y += e.vy;
+            
             uCtx.fillStyle = '#ff0055'; uCtx.beginPath(); uCtx.arc(e.x, e.y, 14, 0, Math.PI*2); uCtx.fill();
-            if(dist < 35 && e.hitCooldown <= 0) { e.hp -= pStats.atk; player.hp -= (pStats.hp * 0.05); e.vx -= (dx/dist)*30; e.vy -= (dy/dist)*30; uniState.vx += (dx/dist)*15; uniState.vy += (dy/dist)*15; e.hitCooldown = 20; }
-            if(e.hp <= 0) { uniState.enemies.splice(i, 1); player.coins += Math.floor(5000 * pStats.goldBonus); spawnUniEnemy(e.x+100, e.y+100); spawnUniEnemy(e.x-100, e.y-100); }
+            
+            if(dist < 35 && e.hitCooldown <= 0) { 
+                e.hp -= pStats.atk; 
+                player.hp -= (pStats.hp * 0.05); 
+                e.vx -= (dx/dist)*30; e.vy -= (dy/dist)*30; 
+                uniState.vx += (dx/dist)*15; uniState.vy += (dy/dist)*15; e.hitCooldown = 20; 
+            }
+            
+            if(e.hp <= 0) { 
+                uniState.enemies.splice(i, 1);
+                
+                // --- FIX 2: REWARDS & UI UPDATE ---
+                player.dStats.kills++;
+                const gGain = Math.floor(5000 * pStats.goldBonus);
+                const xGain = Math.floor(50 * pStats.xpBonus);
+                player.coins += gGain;
+                player.xp += xGain;
+
+                // Chance to drop dungeon key (5%)
+                if (Math.random() < 0.05) {
+                    player.dungeonKeys++;
+                    spawnPop("KEY FOUND!", 50, 20, "var(--yellow)");
+                }
+
+                // Update Universe UI text
+                document.getElementById('uni-kills').innerText = player.dStats.kills;
+                document.getElementById('uni-gold').innerText = formatNum(player.coins);
+                
+                spawnUniEnemy(e.x+200, e.y+200);
+                spawnUniEnemy(e.x-200, e.y-200);
+                checkLevelUp();
+            }
             if(e.hitCooldown > 0) e.hitCooldown--;
         }
-        uCtx.restore(); requestAnimationFrame(universeLoop);
+        uCtx.restore(); 
+        requestAnimationFrame(universeLoop);
     }
 
     loadGame(); syncUI();
