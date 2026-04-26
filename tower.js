@@ -56,8 +56,8 @@
         const skillAtkMult = 1 + (player.stats.atk * 0.1);  
         const skillDefMult = 1 + (player.stats.def * 0.1);  
         
-        const shopW = player.shop.zsword * 500000;
-        const shopA = player.shop.potara * 500000;
+        const shopW = player.shop.zsword * 1000;
+        const shopA = player.shop.potara * 1000;
         const globalMult = Math.pow(2, player.shop.godki);
 
         return {
